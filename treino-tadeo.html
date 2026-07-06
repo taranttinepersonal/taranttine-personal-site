@@ -50,6 +50,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 .load-input{width:100%;background:var(--black3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'Inter',sans-serif;margin-bottom:8px;outline:none}
 .load-input:focus{border-color:var(--green)}
 .ex-tip{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid var(--border2)}
+.history-box{font-size:11px;color:var(--green);margin-top:8px;display:none;line-height:1.4}
+.history-box.has-data{display:block}
 .gif-toggle{background:transparent;border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:11px;color:var(--muted);cursor:pointer;width:100%;text-align:left;font-family:'Inter',sans-serif;transition:all 0.2s}
 .gif-toggle:hover{border-color:var(--green);color:var(--green)}
 .gif-wrap{margin-top:10px;border-radius:8px;overflow:hidden}
@@ -119,7 +121,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Corpo no solo — pressione os calcanhares — segure 2s no topo — foco na contração bilateral</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -142,7 +145,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Elástico na altura do joelho — movimento controlado — não rotacione o quadril</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -165,7 +169,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Solas dos pés juntas — joelhos para fora — contraia forte no topo — movimento curto e controlado</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -193,7 +198,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">2-3min</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Força</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Pegue fôlego fundo antes de cada rep — coluna neutra — empurre o chão para longe de você — explosão na subida</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -216,7 +222,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">90s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Costas no banco — barra na dobra do quadril — empurre os calcanhares — squeeze no topo por 1s</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -239,7 +246,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Pernas levemente dobradas — incline controlado até sentir o isquiotibial — mantenha coluna neutra</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -262,7 +270,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Bi-Set opcional</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Pegada firme no apoio — flexione até 90° — desça de forma excêntrica e lenta (3s)</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -285,7 +294,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">90s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Excêntrico</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Exercício essencial para tenistas — joelhos fixos no chão — desça o mais lento possível — previne lesão nos posteriores</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -313,7 +323,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Mobilidade</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Movimento suave — não hiperextenda — foco em soltar a região lombar após o treino pesado</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -336,7 +347,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Alongamento Ativo</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Peso leve ou apenas corpo — empurre o quadril para trás — sinta o alongamento nos posteriores</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -381,7 +393,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Cotovelo fixo ao lado do corpo — rotação externa lenta e controlada — essencial para saúde do ombro no tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -404,7 +417,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Polia na altura dos olhos — puxe para o rosto — cotovelos altos — ative o manguito rotador</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -427,7 +441,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Peso leve — movimento amplo — ative o deltoide posterior e trapézio médio</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -455,7 +470,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">2-3min</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Força</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Pegada firme — ombros retraídos e deprimidos — barra toca o peito — explosão na subida — pausa de 1s no peito</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -478,7 +494,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Ângulo de 30-45° — amplitude completa — pressione no topo sem travar os cotovelos</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -501,7 +518,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Rotação fluida do movimento — ótimo para o ombro do tenista — controle na descida</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -524,7 +542,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Tensão Constante</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Polia baixa — cotovelo levemente flexionado — puxe com o cotovelo, não a mão — tensão constante no cabo</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -547,7 +566,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Cotovelos apontados para cima — desça até 90° — extensão explosiva — protege o cotovelo do tenista</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -570,7 +590,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Falha Técnica</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Desça até 90° de cotovelo — tronco ligeiramente inclinado — suba explosivo — ótima força funcional</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -598,7 +619,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">40s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Mobilidade</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Equilibre rotação interna e externa — essencial para mobilidade do saque no tênis — movimento lento</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -621,7 +643,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">40s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Alongamento Ativo</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Peso muito leve — movimento amplo — solte a articulação do ombro após o treino</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -666,7 +689,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Lombar colada no chão — extensão oposta braço/perna — expira no movimento — ativa o core estabilizador</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -689,7 +713,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Prancha firme — joelhos em direção ao peito — alterne rápido — aquece o quadril para os movimentos do tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -712,7 +737,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Potência</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Agache até 90° — salto explosivo — aterrissagem macia — prepara o sistema nervoso para o treino de potência</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -740,7 +766,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">3min</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Potência</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">O exercício mais completo para tênis — explosão do quadril — puxe a barra verticalmente — receba em posição de agachamento — foco na técnica</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -763,7 +790,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Multiplanar</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Cruze a perna atrás e diagonalmente — simula movimento lateral do tênis — controle a descida — subida explosiva</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -786,7 +814,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Unilateral</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Banco na altura do joelho — empurre com o calcanhar — não dê impulso com a perna de trás — controle total</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -809,7 +838,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Rotação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Padrão de movimento do saque e batida — velocidade moderada — amplitude total — crucial para o tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -832,7 +862,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Functional</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Simula o padrão de golpe de baixo para cima — polia baixa — rotação explosiva — desacelere controlado</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -855,7 +886,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Resistência</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Joelho cruza para o cotovelo oposto — velocidade controlada — não perca a prancha — fortalece o core rotacional</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -883,7 +915,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">40s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Isométrico</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Após o treino intenso — consolida a estabilização do core — respire normalmente — corpo reto</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -906,7 +939,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">40s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Mobilidade</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Rotação completa do tronco — solte a coluna torácica — amplitude máxima — essencial para mobilidade do tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -951,7 +985,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Prepara o manguito rotador para o pull — fundamental para saúde do ombro do tenista</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -974,7 +1009,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Peso leve — amplitude total — ativa o deltoide posterior e romboides antes do treino pesado</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -997,7 +1033,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Leve — cotovelos altos — ativa trapézio e deltoide — aquece a articulação do ombro</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1025,7 +1062,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">2min</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Falha</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Pegada pronada um pouco além dos ombros — puxe o peito até a barra — desça controlado — padrão de força fundamental</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1048,7 +1086,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">90s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Tronco a 45° — barra em direção ao umbigo — retraia a escápula antes de puxar — explosão na puxada</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1071,7 +1110,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Puxe com os cotovelos para baixo — peito se aproxima da barra — desça controlado em 2-3s</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1094,7 +1134,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Unilateral</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Joelho e mão no banco — puxe o cotovelo para o teto — retração máxima — desenvolve a força assimétrica do tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1117,7 +1158,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Cotovelos fixos ao lado do corpo — supinação na subida — controle total na descida excêntrica</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1140,7 +1182,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Pegada neutra — cotovelos fixos — trabalha o braquial e antebraço — importante para força de empunhadura no tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1168,7 +1211,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Mobilidade</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Peso muito leve — role a coluna vértebra a vértebra — desça até onde a mobilidade permitir — mobilidade funcional essencial</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1191,7 +1235,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">40s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Mobilidade</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Pós-treino de costas — ativa e alonga o extensor do quadril — posição neutra da coluna</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1236,7 +1281,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Ativa o glúteo médio — estabilizador do joelho em movimentos laterais do tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1259,7 +1305,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">30s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Peso bem leve — amplitude completa — aquece a articulação do joelho antes do agachamento pesado</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1282,7 +1329,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ativação</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Apoie em cabo ou rack — padrão de movimento essencial para agilidade e estabilidade no tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1310,7 +1358,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">2-3min</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Força</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Barra na frente — cotovelos altos — tronco mais vertical — ativa mais o quadríceps — posição exigida no tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1333,7 +1382,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Pés na largura dos ombros — desça até 90° — empurre com os calcanhares — não trave os joelhos no topo</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1356,7 +1406,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">90s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Pé traseiro elevado — desça verticalmente — joelho dianteiro sobre o pé — excelente para simetria e agilidade</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1379,7 +1430,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Drop-Set na última</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Última série: faça até a falha, reduza 30% do peso e continue — tensão máxima no quadríceps</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1402,7 +1454,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Completo</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Amplitude total — suba na ponta máxima — desça até sentir alongamento — essencial para explosão e agilidade</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1425,7 +1478,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Lento</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Joelhos dobrados — isola o sóleo — subida lenta 2s — descida lenta 2s — panturrilha completa para o tênis</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1453,7 +1507,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">40s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Alongamento</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Posição de avanço profundo — quadril empurra para baixo e para frente — alonga o psoas — crucial após leg day</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1476,7 +1531,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 <div class="stat-box"><div class="stat-val">40s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Mobilidade</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Peso leve — isquiotibiais e lombar — encerra o treino soltando a cadeia posterior</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -1520,6 +1576,48 @@ function updateProgress(group) {
   const circ = 2 * Math.PI * 18;
   ring.style.strokeDashoffset = circ - (circ * done / total);
 }
+
+function getCargaHistory(){
+  try { return JSON.parse(localStorage.getItem('taranttine_carga_history') || '{}'); }
+  catch(e) { return {}; }
+}
+function setCargaHistory(h){
+  localStorage.setItem('taranttine_carga_history', JSON.stringify(h));
+}
+function renderLoadHistory(card, entries){
+  const box = card.querySelector('.history-box');
+  if(!box || !entries || !entries.length) return;
+  const shown = entries.slice(-3).reverse().map(e => `${e.load}kg (${e.date})`).join(' · ');
+  box.textContent = '📊 Histórico: ' + shown;
+  box.classList.add('has-data');
+}
+function saveLoadHistory(input){
+  const card = input.closest('.ex-card');
+  if(!card) return;
+  const nameEl = card.querySelector('.ex-name');
+  if(!nameEl) return;
+  const name = nameEl.textContent.trim();
+  const load = input.value.trim();
+  if(!load) return;
+  const history = getCargaHistory();
+  if(!history[name]) history[name] = [];
+  const today = new Date().toLocaleDateString('pt-BR');
+  history[name] = history[name].filter(e => e.date !== today);
+  history[name].push({date: today, load: load});
+  if(history[name].length > 5) history[name] = history[name].slice(-5);
+  setCargaHistory(history);
+  renderLoadHistory(card, history[name]);
+}
+function renderAllLoadHistory(){
+  const history = getCargaHistory();
+  document.querySelectorAll('.ex-card').forEach(card => {
+    const nameEl = card.querySelector('.ex-name');
+    if(!nameEl) return;
+    const name = nameEl.textContent.trim();
+    if(history[name]) renderLoadHistory(card, history[name]);
+  });
+}
+document.addEventListener('DOMContentLoaded', renderAllLoadHistory);
 </script>
 </body>
 </html>

@@ -47,6 +47,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-w
 .load-input{width:100%;background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);margin-bottom:8px;outline:none}
 .load-input:focus{border-color:var(--green)}
 .ex-tip{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+.history-box{font-size:11px;color:var(--green);margin-top:8px;display:none;line-height:1.4}
+.history-box.has-data{display:block}
 .gif-toggle{width:100%;background:transparent;border:1px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--green);cursor:pointer;font-weight:600;transition:all 0.2s}
 .gif-toggle:hover{background:rgba(0,184,148,0.05)}
 .gif-wrap{margin-top:10px;border-radius:10px;overflow:hidden}
@@ -162,7 +164,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Tradicional — Protege joelho e lombar — Foco na contração do glúteo no topo</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -183,7 +186,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Joelhos levemente flexionados — sem curvar a lombar — desça até sentir o alongamento</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -204,7 +208,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 0</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Última série até a falha — Fortalece estabilizadores do quadril — essencial para joelho</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -225,7 +230,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Isolado — sem rotação de quadril — ativação direta do glúteo — sem impacto no joelho</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -246,7 +252,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Variação do hip thrust — ativação de glúteo médio — amplitude controlada</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -309,7 +316,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Tradicional — Máquina guia o movimento — amplitude controlada</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -330,7 +338,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Isolado — Biset com Supino se quiser — sem impacto articular</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -351,7 +360,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Tradicional — Amplitude controlada pela máquina — sem compensação</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -372,7 +382,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 0</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Carga leve — cotovelo levemente flexionado — parar na linha do ombro</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -393,7 +404,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 0</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Última série até a falha — Cotovelos fixos — sem compensação</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -456,7 +468,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">⚠️ Amplitude controlada — joelho não ultrapassa 90° — sem compressão axial</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -477,7 +490,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">⚠️ Amplitude parcial (0-60°) — pausa 1s no topo — parar se sentir dor no joelho</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -498,7 +512,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Fortalece posterior do joelho — essencial para estabilidade patelar — amplitude total</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -519,7 +534,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">⚠️ Caixa baixa (20cm) — joelho alinhado com pé — sem impacto na descida — progressivo</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -540,7 +556,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 0</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Última série até a falha — amplitude completa — essencial para retorno à corrida</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -603,7 +620,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Tradicional — Melhora postura — retração escapular no movimento</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -624,7 +642,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Biset com Puxada Triângulo — cotovelos perto do corpo — pausa na contração</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -645,7 +664,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Biset com Remada — descansa após os dois — pegada neutra — amplitude completa</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -666,7 +686,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 0</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Drop set na última série — sem balanço do tronco — cotovelos fixos</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -687,7 +708,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 0</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Complementa a panturrilha do treino C — amplitude completa — pausa no alongamento</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -750,7 +772,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box"><div class="stat-val">Ritmo</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Ritmo controlado — core ativado — alternativa: 20 repetições cada lado</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -771,7 +794,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Lombar colada no chão — movimento lento — excelente para estabilização do joelho</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -792,7 +816,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Preparação para corrida — ativa glúteo e estabiliza pelve — progressão do hip thrust</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -813,7 +838,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Progredir para 60s — core estabilizado — sem compensação lombar</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -834,7 +860,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
 <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Desc.</div></div>
 <div class="stat-box rir-box"><div class="stat-val">RIR 0</div><div class="stat-lbl">Método</div></div>
 </div>
-<input class="load-input" placeholder="kg usados" type="text" value=""/>
+<input class="load-input" placeholder="kg usados" type="text" value="" onchange="saveLoadHistory(this)"/>
+<div class="history-box"></div>
 <div class="ex-tip">Última série até a falha — amplitude controlada — sem flexão lombar excessiva</div>
 <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
 <div class="gif-wrap" style="display:none">
@@ -874,6 +901,48 @@ function updateProgress(group) {
   const circ = 2 * Math.PI * 18;
   ring.style.strokeDashoffset = circ - (circ * done / total);
 }
+
+function getCargaHistory(){
+  try { return JSON.parse(localStorage.getItem('taranttine_carga_history') || '{}'); }
+  catch(e) { return {}; }
+}
+function setCargaHistory(h){
+  localStorage.setItem('taranttine_carga_history', JSON.stringify(h));
+}
+function renderLoadHistory(card, entries){
+  const box = card.querySelector('.history-box');
+  if(!box || !entries || !entries.length) return;
+  const shown = entries.slice(-3).reverse().map(e => `${e.load}kg (${e.date})`).join(' · ');
+  box.textContent = '📊 Histórico: ' + shown;
+  box.classList.add('has-data');
+}
+function saveLoadHistory(input){
+  const card = input.closest('.ex-card');
+  if(!card) return;
+  const nameEl = card.querySelector('.ex-name');
+  if(!nameEl) return;
+  const name = nameEl.textContent.trim();
+  const load = input.value.trim();
+  if(!load) return;
+  const history = getCargaHistory();
+  if(!history[name]) history[name] = [];
+  const today = new Date().toLocaleDateString('pt-BR');
+  history[name] = history[name].filter(e => e.date !== today);
+  history[name].push({date: today, load: load});
+  if(history[name].length > 5) history[name] = history[name].slice(-5);
+  setCargaHistory(history);
+  renderLoadHistory(card, history[name]);
+}
+function renderAllLoadHistory(){
+  const history = getCargaHistory();
+  document.querySelectorAll('.ex-card').forEach(card => {
+    const nameEl = card.querySelector('.ex-name');
+    if(!nameEl) return;
+    const name = nameEl.textContent.trim();
+    if(history[name]) renderLoadHistory(card, history[name]);
+  });
+}
+document.addEventListener('DOMContentLoaded', renderAllLoadHistory);
 </script>
 </body>
 </html>

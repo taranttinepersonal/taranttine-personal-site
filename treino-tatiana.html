@@ -69,6 +69,8 @@ body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);
 .load-input:focus{outline:none;border-color:var(--green)}
 .ex-tip{font-size:11px;color:var(--muted);margin-top:8px;padding-top:8px;
   border-top:1px solid var(--border2);font-style:italic;line-height:1.4}
+.history-box{font-size:11px;color:var(--green);margin-top:8px;display:none;line-height:1.4}
+.history-box.has-data{display:block}
 
 .progress-summary{display:flex;align-items:center;gap:12px;background:var(--black2);
   border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px}
@@ -214,7 +216,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Máquina guiada — protege a lombar, sem compressão axial</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -234,7 +237,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">50s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -254,7 +258,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Excelente para glúteo sem sobrecarregar a lombar</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -274,7 +279,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -294,7 +300,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Apoie os joelhos no chão se sentir desconforto. Não flexiona a lombar</div>
   </div>
 
@@ -356,7 +363,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Máquina guiada — mais segura para fase inicial</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -376,7 +384,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Pegada aberta — fortalece postura</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -396,7 +405,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -416,7 +426,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Apoio no peito protege a lombar durante o movimento</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -436,7 +447,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Apoie o joelho se precisar — trabalha estabilidade sem flexionar</div>
   </div>
 
@@ -498,7 +510,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Sem flexão de tronco — isola posterior com segurança</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -518,7 +531,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Variação leve do hip thrust</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -538,7 +552,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Use apoio se precisar de equilíbrio</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -558,7 +573,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -578,7 +594,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Excelente para estabilização lombar — movimento lento e controlado</div>
   </div>
 
@@ -640,7 +657,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -660,7 +678,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Pegada neutra — confortável para os ombros</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -680,7 +699,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Carga leve — foco na execução correta</div>
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -700,7 +720,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box rir-box"><div class="stat-val">RIR 1</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     
   
     <button class="gif-toggle" onclick="toggleGif(this)">▶ Ver execução</button>
@@ -720,7 +741,8 @@ body.ciclo-mode .load-input::placeholder{color:#E8A0B0;opacity:.7}
       <div class="stat-box"><div class="stat-val">45s</div><div class="stat-lbl">Descanso</div></div>
       <div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Intensidade</div></div>
     </div>
-    <input class="load-input" type="text" placeholder="Carga utilizada (kg)">
+    <input class="load-input" type="text" placeholder="Carga utilizada (kg)" onchange="saveLoadHistory(this)">
+    <div class="history-box"></div>
     <div class="ex-tip">💡 Tente aumentar o tempo aos poucos</div>
   </div>
 
@@ -773,6 +795,7 @@ function sendWeeklyLoad(group){
     msg += `${isDone ? '✅' : '⬜'} *${name}*`;
     if(load) msg += ` — ${load}kg`;
     msg += `\n`;
+    if(loadInput && load) saveLoadHistory(loadInput);
   });
   msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
   msg += `Concluídos: ${doneCount}/${cards.length}\n`;
@@ -791,6 +814,48 @@ function toggleGif(btn) {
     btn.textContent = '▶ Ver execução';
   }
 }
+
+function getCargaHistory(){
+  try { return JSON.parse(localStorage.getItem('taranttine_carga_history') || '{}'); }
+  catch(e) { return {}; }
+}
+function setCargaHistory(h){
+  localStorage.setItem('taranttine_carga_history', JSON.stringify(h));
+}
+function renderLoadHistory(card, entries){
+  const box = card.querySelector('.history-box');
+  if(!box || !entries || !entries.length) return;
+  const shown = entries.slice(-3).reverse().map(e => `${e.load}kg (${e.date})`).join(' · ');
+  box.textContent = '📊 Histórico: ' + shown;
+  box.classList.add('has-data');
+}
+function saveLoadHistory(input){
+  const card = input.closest('.ex-card');
+  if(!card) return;
+  const nameEl = card.querySelector('.ex-name');
+  if(!nameEl) return;
+  const name = nameEl.textContent.trim();
+  const load = input.value.trim();
+  if(!load) return;
+  const history = getCargaHistory();
+  if(!history[name]) history[name] = [];
+  const today = new Date().toLocaleDateString('pt-BR');
+  history[name] = history[name].filter(e => e.date !== today);
+  history[name].push({date: today, load: load});
+  if(history[name].length > 5) history[name] = history[name].slice(-5);
+  setCargaHistory(history);
+  renderLoadHistory(card, history[name]);
+}
+function renderAllLoadHistory(){
+  const history = getCargaHistory();
+  document.querySelectorAll('.ex-card').forEach(card => {
+    const nameEl = card.querySelector('.ex-name');
+    if(!nameEl) return;
+    const name = nameEl.textContent.trim();
+    if(history[name]) renderLoadHistory(card, history[name]);
+  });
+}
+document.addEventListener('DOMContentLoaded', renderAllLoadHistory);
 </script>
 </body>
 </html>
