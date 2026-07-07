@@ -14,6 +14,13 @@ export function navigate(path) {
 }
 
 async function render() {
+  // Supabase's magic-link callback delivers the session as a URL hash
+  // fragment (#access_token=...&refresh_token=...). That's not a route —
+  // if we treat it as one and rewrite the hash, we destroy the token
+  // before supabase-js gets a chance to read it. Let it be; main.js's
+  // onAuthStateChange listener will navigate once the session is set.
+  if (window.location.hash.includes('access_token=')) return;
+
   const path = window.location.hash.slice(1) || '/';
   const handler = routes[path];
   if (handler) {

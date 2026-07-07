@@ -25,8 +25,8 @@ setNotFound(() => navigate('/'));
 
 onAuthStateChange((session) => {
   const hash = window.location.hash.slice(1) || '/';
-  if (session && (hash === '/login' || hash === '/')) navigate('/treino');
-  if (!session && hash !== '/login') navigate('/login');
+  if (session && hash !== '/treino') navigate('/treino');
+  if (!session && hash === '/treino') navigate('/login');
 });
 
 startRouter();
