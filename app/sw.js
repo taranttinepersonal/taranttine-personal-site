@@ -8,12 +8,12 @@ try {
   // TODO: replace with real values from Firebase Console > Project settings >
   // General > Your apps > Web app — must match app/js/push.js's firebaseConfig.
   firebase.initializeApp({
-    apiKey: 'TODO',
-    authDomain: 'TODO.firebaseapp.com',
-    projectId: 'TODO',
-    storageBucket: 'TODO.appspot.com',
-    messagingSenderId: 'TODO',
-    appId: 'TODO',
+    apiKey: 'AIzaSyC9uCOxGzu0NnKKsnpzDCeM1neIw7MLWFY',
+    authDomain: 'taranttine-personal.firebaseapp.com',
+    projectId: 'taranttine-personal',
+    storageBucket: 'taranttine-personal.firebasestorage.app',
+    messagingSenderId: '870292754316',
+    appId: '1:870292754316:web:ea1e56d4da822404d5d0a9',
   });
 
   const messaging = firebase.messaging();
@@ -29,7 +29,7 @@ try {
   // push notifications unavailable this session; offline caching still works
 }
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const APP_CACHE = `taranttine-app-${VERSION}`;
 const DATA_CACHE = `taranttine-data-${VERSION}`;
 const GIF_CACHE = `taranttine-gifs-${VERSION}`;

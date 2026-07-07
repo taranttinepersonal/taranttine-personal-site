@@ -5,17 +5,17 @@ import { supabase } from './supabaseClient.js';
 // These values are safe to expose client-side (same trust model as the
 // Supabase anon key) — access is restricted by Firebase project rules, not secrecy.
 export const firebaseConfig = {
-  apiKey: 'TODO',
-  authDomain: 'TODO.firebaseapp.com',
-  projectId: 'TODO',
-  storageBucket: 'TODO.appspot.com',
-  messagingSenderId: 'TODO',
-  appId: 'TODO',
+  apiKey: 'AIzaSyC9uCOxGzu0NnKKsnpzDCeM1neIw7MLWFY',
+  authDomain: 'taranttine-personal.firebaseapp.com',
+  projectId: 'taranttine-personal',
+  storageBucket: 'taranttine-personal.firebasestorage.app',
+  messagingSenderId: '870292754316',
+  appId: '1:870292754316:web:ea1e56d4da822404d5d0a9',
 };
 
 // TODO: replace with the real value from Firebase Console > Project settings >
 // Cloud Messaging > Web configuration > Web Push certificates.
-export const VAPID_KEY = 'TODO';
+export const VAPID_KEY = 'BPfsxArMMTFaCXnviUFEmPLMeT2OiHmjwBgYmzeJuNx0lTt5_1e0QeRW3HNdjyx1UdaMy3iHpHTSmaORZJo55QU';
 
 const FIREBASE_SDK_VERSION = '10.12.2';
 
