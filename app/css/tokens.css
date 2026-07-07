@@ -1,0 +1,31 @@
+/* Taranttine Personal — design tokens, copied verbatim from the existing treino-*.html pages */
+:root {
+  --black: #080808;
+  --black2: #111111;
+  --black3: #1A1A1A;
+  --green: #00B894;
+  --green-l: #E8FBF2;
+  --green-d: #007A62;
+  --white: #FFFFFF;
+  --border: #2A2A2A;
+  --border2: #333333;
+  --text: #E8E8E8;
+  --muted: #888888;
+  --faint: #555555;
+  --radius: 10px;
+  --radius-lg: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: 'Barlow Condensed', sans-serif;
+}
