@@ -30,3 +30,11 @@ onAuthStateChange((session) => {
 });
 
 startRouter();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/app/sw.js').catch((err) => {
+      console.error('sw registration failed', err);
+    });
+  });
+}
