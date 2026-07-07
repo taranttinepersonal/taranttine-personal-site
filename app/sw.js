@@ -1,4 +1,35 @@
-const VERSION = 'v1';
+// --- Push notifications (Firebase Cloud Messaging) ---
+// Wrapped in try/catch: if this fails (config not filled in yet, CDN unreachable),
+// the offline-caching service worker below must keep working regardless.
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+
+  // TODO: replace with real values from Firebase Console > Project settings >
+  // General > Your apps > Web app — must match app/js/push.js's firebaseConfig.
+  firebase.initializeApp({
+    apiKey: 'TODO',
+    authDomain: 'TODO.firebaseapp.com',
+    projectId: 'TODO',
+    storageBucket: 'TODO.appspot.com',
+    messagingSenderId: 'TODO',
+    appId: 'TODO',
+  });
+
+  const messaging = firebase.messaging();
+  messaging.onBackgroundMessage((payload) => {
+    const { title, body } = payload.notification || {};
+    self.registration.showNotification(title || 'Taranttine Personal', {
+      body: body || '',
+      icon: '/app/icons/icon-192.png',
+      badge: '/app/icons/icon-192.png',
+    });
+  });
+} catch (err) {
+  // push notifications unavailable this session; offline caching still works
+}
+
+const VERSION = 'v2';
 const APP_CACHE = `taranttine-app-${VERSION}`;
 const DATA_CACHE = `taranttine-data-${VERSION}`;
 const GIF_CACHE = `taranttine-gifs-${VERSION}`;

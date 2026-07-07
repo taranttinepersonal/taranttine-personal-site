@@ -4,6 +4,7 @@ import {
   fetchHistoryForProgram, saveLoad, renderHistoryText,
   fetchCompletions, toggleCompletion,
 } from '../lib/loadHistory.js';
+import { enablePushNotifications, isPushConfigured, getNotificationPermission } from '../push.js';
 
 const TRAINER_WHATSAPP = '5567992567211';
 
@@ -71,6 +72,9 @@ export async function renderWorkout(session) {
       <h1 class="font-display" style="font-size:22px;text-transform:uppercase;color:var(--white);margin-top:10px;">${escapeHtml(program.title)}</h1>
       ${program.subtitle ? `<p style="font-size:12px;color:var(--muted);margin-top:6px;">${escapeHtml(program.subtitle)}</p>` : ''}
       ${program.health_note ? `<div class="health-note">⚠️ ${escapeHtml(program.health_note)}</div>` : ''}
+      ${isPushConfigured() && getNotificationPermission() === 'default' ? `
+        <button class="logout-link" id="enable-push-btn" style="margin-top:8px;">🔔 Ativar notificações</button>
+      ` : ''}
     </div>
     <div class="top-bar"><button class="logout-link" id="logout-btn">Sair</button></div>
     <div class="tabs">
@@ -82,6 +86,21 @@ export async function renderWorkout(session) {
   `;
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
+
+  const pushBtn = document.getElementById('enable-push-btn');
+  if (pushBtn) {
+    pushBtn.addEventListener('click', async () => {
+      pushBtn.textContent = 'Ativando...';
+      const result = await enablePushNotifications(clientId);
+      if (result.ok) {
+        pushBtn.textContent = '✅ Notificações ativadas';
+        pushBtn.disabled = true;
+      } else {
+        pushBtn.textContent = '🔔 Ativar notificações';
+        if (result.reason === 'denied') alert('Permissão negada. Ative notificações nas configurações do navegador para receber avisos.');
+      }
+    });
+  }
 
   root.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {

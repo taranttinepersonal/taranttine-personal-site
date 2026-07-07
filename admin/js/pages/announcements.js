@@ -49,6 +49,21 @@ export async function renderAnnouncements(main) {
     }
     msg.textContent = 'Aviso enviado.';
     msg.classList.remove('error');
+
+    try {
+      const pushRes = await fetch('/.netlify/functions/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ title, body, target_client_id: target }),
+      });
+      if (pushRes.ok) {
+        const { sent } = await pushRes.json();
+        msg.textContent += ` Notificação push enviada para ${sent} dispositivo(s).`;
+      }
+    } catch (err) {
+      // push is best-effort — the announcement itself was already saved successfully
+      console.error('send-push failed', err);
+    }
     document.getElementById('ann-title').value = '';
     document.getElementById('ann-body').value = '';
     loadRecent();
