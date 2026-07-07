@@ -1,0 +1,51 @@
+.admin-shell { max-width: 720px; margin: 0 auto; padding-bottom: 60px; }
+.admin-nav { display: flex; gap: 4px; background: var(--black2); border-bottom: 1px solid var(--border); overflow-x: auto; position: sticky; top: 0; z-index: 10; }
+.admin-nav a { flex: 1; padding: 14px 8px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--faint); text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; }
+.admin-nav a.active { color: var(--green); border-bottom-color: var(--green); }
+.admin-main { padding: 20px 16px; }
+.admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.admin-title { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; text-transform: uppercase; color: var(--white); }
+
+.admin-card { background: var(--black2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
+.admin-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border2); }
+.admin-row:last-child { border-bottom: none; }
+.admin-row-name { font-size: 14px; font-weight: 600; color: var(--white); }
+.admin-row-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.admin-badge { font-size: 10px; padding: 3px 9px; border-radius: 99px; font-weight: 600; text-transform: uppercase; }
+.admin-badge.active { color: var(--green); background: rgba(0,184,148,0.1); }
+.admin-badge.inactive { color: var(--faint); background: rgba(255,255,255,0.05); }
+
+.admin-btn { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border2); background: var(--black3); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
+.admin-btn:hover { border-color: var(--green); color: var(--green); }
+.admin-btn.primary { background: var(--green); color: var(--black); border-color: var(--green); }
+.admin-btn.primary:hover { background: #00d4a8; }
+.admin-btn.danger:hover { border-color: #e05252; color: #e05252; }
+.admin-btn:disabled { opacity: .5; cursor: default; }
+
+.admin-form label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 12px 0 6px; }
+.admin-form label:first-child { margin-top: 0; }
+.admin-form input, .admin-form select, .admin-form textarea {
+  width: 100%; background: var(--black3); border: 1.5px solid var(--border2); border-radius: 8px;
+  padding: 10px; color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif;
+}
+.admin-form input:focus, .admin-form select:focus, .admin-form textarea:focus { outline: none; border-color: var(--green); }
+.admin-form textarea { min-height: 90px; resize: vertical; }
+.admin-form .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.admin-form .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+
+.admin-section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 800; text-transform: uppercase; color: var(--green); margin: 24px 0 10px; }
+.admin-section-title:first-child { margin-top: 0; }
+.admin-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 30px 0; }
+.admin-msg { font-size: 12px; margin-top: 10px; color: var(--green); }
+.admin-msg.error { color: #e05252; }
+
+.exercise-picker { max-height: 260px; overflow-y: auto; background: var(--black3); border: 1px solid var(--border2); border-radius: 8px; margin-top: 6px; }
+.exercise-picker-item { padding: 8px 10px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.exercise-picker-item:hover { background: var(--black2); color: var(--green); }
+.exercise-picker-item .muscle { font-size: 10px; color: var(--faint); }
+
+.admin-day-block { border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 16px; overflow: hidden; }
+.admin-day-header { background: var(--black2); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+.admin-day-body { padding: 12px 14px; }
+.admin-ex-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border2); font-size: 13px; }
+.admin-ex-row:last-child { border-bottom: none; }
