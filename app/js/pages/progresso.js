@@ -23,6 +23,7 @@ export async function renderProgress(session) {
     </div>
     <div class="top-bar">
       <button class="logout-link" id="nav-treino">🏋 Treino</button>
+      <button class="logout-link" id="nav-indicacao" style="margin-left:12px;">🎁 Indicação</button>
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
@@ -80,6 +81,7 @@ export async function renderProgress(session) {
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
   document.getElementById('nav-treino').addEventListener('click', () => { window.location.hash = '/treino'; });
+  document.getElementById('nav-indicacao').addEventListener('click', () => { window.location.hash = '/indicacao'; });
 
   document.getElementById('entry-form').addEventListener('submit', async (e) => {
     e.preventDefault();

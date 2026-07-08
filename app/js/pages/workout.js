@@ -78,6 +78,7 @@ export async function renderWorkout(session) {
     </div>
     <div class="top-bar">
       <button class="logout-link" id="nav-progresso">📈 Evolução</button>
+      <button class="logout-link" id="nav-indicacao" style="margin-left:12px;">🎁 Indicação</button>
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="tabs">
@@ -90,6 +91,7 @@ export async function renderWorkout(session) {
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
   document.getElementById('nav-progresso').addEventListener('click', () => { window.location.hash = '/progresso'; });
+  document.getElementById('nav-indicacao').addEventListener('click', () => { window.location.hash = '/indicacao'; });
 
   const pushBtn = document.getElementById('enable-push-btn');
   if (pushBtn) {

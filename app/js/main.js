@@ -3,6 +3,7 @@ import { getSession, onAuthStateChange } from './auth.js';
 import { renderLogin } from './pages/login.js';
 import { renderWorkout } from './pages/workout.js';
 import { renderProgress } from './pages/progresso.js';
+import { renderReferrals } from './pages/indicacao.js';
 
 route('/', async () => {
   const session = await getSession();
@@ -26,6 +27,12 @@ route('/progresso', async () => {
   const session = await getSession();
   if (!session) return navigate('/login');
   renderProgress(session);
+});
+
+route('/indicacao', async () => {
+  const session = await getSession();
+  if (!session) return navigate('/login');
+  renderReferrals(session);
 });
 
 setNotFound(() => navigate('/'));

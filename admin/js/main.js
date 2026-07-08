@@ -6,10 +6,12 @@ import { renderWorkoutEditor } from './pages/workoutEditor.js';
 import { renderAnnouncements } from './pages/announcements.js';
 import { renderDiet } from './pages/diet.js';
 import { renderProgress } from './pages/progress.js';
+import { renderReferrals } from './pages/referrals.js';
 
 const NAV_ITEMS = [
   { path: '/clientes', label: 'Clientes' },
   { path: '/avisos', label: 'Avisos' },
+  { path: '/indicacoes', label: 'Indicações' },
 ];
 
 function renderShell(activePath, contentHtmlOrRenderer) {
@@ -58,6 +60,12 @@ route('/avisos', async () => {
   renderAnnouncements(main);
 });
 
+route('/indicacoes', async () => {
+  if (!(await requireTrainer())) return;
+  const main = renderShell('/indicacoes');
+  renderReferrals(main);
+});
+
 // dynamic routes: /cliente/<id>/treino, /cliente/<id>/dieta — handled via setNotFound below,
 // since router.js only dispatches exact static-path matches.
 async function handleDynamicRoutes() {
@@ -86,8 +94,8 @@ setNotFound(async () => {
 
 onAuthStateChange((session) => {
   const hash = window.location.hash.slice(1) || '/';
-  if (session && hash !== '/clientes' && !hash.startsWith('/cliente') && hash !== '/avisos') navigate('/clientes');
-  if (!session && hash === '/clientes') navigate('/login');
+  if (session && (hash === '/login' || hash === '/')) navigate('/clientes');
+  if (!session && hash !== '/login') navigate('/login');
 });
 
 startRouter();
