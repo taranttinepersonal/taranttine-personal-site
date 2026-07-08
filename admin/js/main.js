@@ -5,6 +5,7 @@ import { renderClients } from './pages/clients.js';
 import { renderWorkoutEditor } from './pages/workoutEditor.js';
 import { renderAnnouncements } from './pages/announcements.js';
 import { renderDiet } from './pages/diet.js';
+import { renderProgress } from './pages/progress.js';
 
 const NAV_ITEMS = [
   { path: '/clientes', label: 'Clientes' },
@@ -63,6 +64,7 @@ async function handleDynamicRoutes() {
   const hash = window.location.hash.slice(1) || '/';
   const treinoMatch = hash.match(/^\/cliente\/([^/]+)\/treino$/);
   const dietaMatch = hash.match(/^\/cliente\/([^/]+)\/dieta$/);
+  const evolucaoMatch = hash.match(/^\/cliente\/([^/]+)\/evolucao$/);
   if (treinoMatch) {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');
@@ -71,6 +73,10 @@ async function handleDynamicRoutes() {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');
     renderDiet(main, dietaMatch[1]);
+  } else if (evolucaoMatch) {
+    if (!(await requireTrainer())) return;
+    const main = renderShell('/clientes');
+    renderProgress(main, evolucaoMatch[1]);
   }
 }
 

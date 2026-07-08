@@ -2,6 +2,7 @@ import { route, setNotFound, startRouter, navigate } from './router.js';
 import { getSession, onAuthStateChange } from './auth.js';
 import { renderLogin } from './pages/login.js';
 import { renderWorkout } from './pages/workout.js';
+import { renderProgress } from './pages/progresso.js';
 
 route('/', async () => {
   const session = await getSession();
@@ -21,12 +22,18 @@ route('/treino', async () => {
   renderWorkout(session);
 });
 
+route('/progresso', async () => {
+  const session = await getSession();
+  if (!session) return navigate('/login');
+  renderProgress(session);
+});
+
 setNotFound(() => navigate('/'));
 
 onAuthStateChange((session) => {
   const hash = window.location.hash.slice(1) || '/';
-  if (session && hash !== '/treino') navigate('/treino');
-  if (!session && hash === '/treino') navigate('/login');
+  if (session && (hash === '/login' || hash === '/')) navigate('/treino');
+  if (!session && hash !== '/login') navigate('/login');
 });
 
 startRouter();

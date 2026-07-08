@@ -76,7 +76,10 @@ export async function renderWorkout(session) {
         <button class="logout-link" id="enable-push-btn" style="margin-top:8px;">🔔 Ativar notificações</button>
       ` : ''}
     </div>
-    <div class="top-bar"><button class="logout-link" id="logout-btn">Sair</button></div>
+    <div class="top-bar">
+      <button class="logout-link" id="nav-progresso">📈 Evolução</button>
+      <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
+    </div>
     <div class="tabs">
       ${days.map((d, i) => `<button class="tab-btn${i === 0 ? ' active' : ''}" data-day="${d.id}">Treino ${escapeHtml(d.label)}</button>`).join('')}
     </div>
@@ -86,6 +89,7 @@ export async function renderWorkout(session) {
   `;
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
+  document.getElementById('nav-progresso').addEventListener('click', () => { window.location.hash = '/progresso'; });
 
   const pushBtn = document.getElementById('enable-push-btn');
   if (pushBtn) {
