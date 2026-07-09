@@ -6,6 +6,7 @@ import {
 } from '../lib/loadHistory.js';
 import { enablePushNotifications, isPushConfigured, getNotificationPermission } from '../push.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
+import { isBirthdayToday, getMotivationalQuote } from '../lib/birthday.js';
 
 const TRAINER_WHATSAPP = '5567992567211';
 
@@ -16,7 +17,7 @@ export async function renderWorkout(session) {
   const clientId = session.user.id;
 
   const { data: profile } = await supabase
-    .from('profiles').select('full_name').eq('id', clientId).single();
+    .from('profiles').select('full_name, birth_date').eq('id', clientId).single();
 
   const { data: program, error: programError } = await supabase
     .from('workout_programs')
@@ -71,6 +72,11 @@ export async function renderWorkout(session) {
       <div class="brand-name font-display">Taranttine</div>
       <div class="brand-sub">Personal</div>
       <div class="client-badge">👤 ${escapeHtml(profile?.full_name || '')}</div>
+      ${isBirthdayToday(profile?.birth_date) ? `
+        <div class="health-note" style="background:rgba(0,184,148,0.08);border-color:rgba(0,184,148,0.25);color:var(--green);">
+          🎉 Feliz aniversário! ${escapeHtml(getMotivationalQuote())}
+        </div>
+      ` : ''}
       <h1 class="font-display" style="font-size:22px;text-transform:uppercase;color:var(--white);margin-top:10px;">${escapeHtml(program.title)}</h1>
       ${program.subtitle ? `<p style="font-size:12px;color:var(--muted);margin-top:6px;">${escapeHtml(program.subtitle)}</p>` : ''}
       ${program.health_note ? `<div class="health-note">⚠️ ${escapeHtml(program.health_note)}</div>` : ''}

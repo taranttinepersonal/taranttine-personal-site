@@ -8,7 +8,7 @@ export async function renderClients(main) {
 
   const { data: clients, error } = await supabase
     .from('profiles')
-    .select('id, full_name, phone, active')
+    .select('id, full_name, phone, active, birth_date')
     .eq('role', 'client')
     .order('full_name');
 
@@ -26,16 +26,24 @@ export async function renderClients(main) {
     return;
   }
 
+  const birthdaysToday = clients.filter(c => isBirthdayToday(c.birth_date));
+  const banner = birthdaysToday.length ? `
+    <div class="admin-card" style="border-color:var(--green);margin-bottom:16px;">
+      🎂 <b>Aniversário hoje:</b> ${birthdaysToday.map(c => escapeHtml(c.full_name)).join(', ')} — que tal mandar uma mensagem no WhatsApp?
+    </div>
+  ` : '';
+
   list.className = '';
-  list.innerHTML = `<div class="admin-card">
+  list.innerHTML = banner + `<div class="admin-card">
     ${clients.map(c => `
       <div class="admin-row">
         <div>
-          <div class="admin-row-name">${escapeHtml(c.full_name)}</div>
+          <div class="admin-row-name">${escapeHtml(c.full_name)}${isBirthdayToday(c.birth_date) ? ' 🎂' : ''}</div>
           <div class="admin-row-sub">${escapeHtml(c.phone || 'sem telefone cadastrado')}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span class="admin-badge ${c.active ? 'active' : 'inactive'}">${c.active ? 'Ativo' : 'Inativo'}</span>
+          <a class="admin-btn" href="#/cliente/${c.id}/dados">Dados</a>
           <a class="admin-btn" href="#/cliente/${c.id}/treino">Treino</a>
           <a class="admin-btn" href="#/cliente/${c.id}/dieta">Dieta</a>
           <a class="admin-btn" href="#/cliente/${c.id}/evolucao">Evolução</a>
@@ -61,6 +69,13 @@ export async function renderClients(main) {
       renderClients(main);
     });
   });
+}
+
+function isBirthdayToday(birthDate) {
+  if (!birthDate) return false;
+  const today = new Date();
+  const [, month, day] = birthDate.split('-').map(Number);
+  return month === today.getMonth() + 1 && day === today.getDate();
 }
 
 function escapeHtml(str) {
