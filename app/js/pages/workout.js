@@ -5,6 +5,7 @@ import {
   fetchCompletions, toggleCompletion,
 } from '../lib/loadHistory.js';
 import { enablePushNotifications, isPushConfigured, getNotificationPermission } from '../push.js';
+import { fetchVisibleDiet } from '../lib/diet.js';
 
 const TRAINER_WHATSAPP = '5567992567211';
 
@@ -60,6 +61,7 @@ export async function renderWorkout(session) {
   const exerciseIds = workoutExercises.map(we => we.id);
   const historyByExercise = await fetchHistoryForProgram(clientId, exerciseIds);
   const completedToday = await fetchCompletions(clientId, exerciseIds);
+  const diet = await fetchVisibleDiet(clientId);
 
   const sectionsByDay = groupBy(sections, 'workout_day_id');
   const exercisesByDay = groupBy(workoutExercises, 'workout_day_id');
@@ -79,6 +81,7 @@ export async function renderWorkout(session) {
     <div class="top-bar">
       <button class="logout-link" id="nav-progresso">📈 Evolução</button>
       <button class="logout-link" id="nav-indicacao" style="margin-left:12px;">🎁 Indicação</button>
+      ${diet ? `<button class="logout-link" id="nav-dieta" style="margin-left:12px;">🍎 Dieta</button>` : ''}
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="tabs">
@@ -92,6 +95,8 @@ export async function renderWorkout(session) {
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
   document.getElementById('nav-progresso').addEventListener('click', () => { window.location.hash = '/progresso'; });
   document.getElementById('nav-indicacao').addEventListener('click', () => { window.location.hash = '/indicacao'; });
+  const navDieta = document.getElementById('nav-dieta');
+  if (navDieta) navDieta.addEventListener('click', () => { window.location.hash = '/dieta'; });
 
   const pushBtn = document.getElementById('enable-push-btn');
   if (pushBtn) {

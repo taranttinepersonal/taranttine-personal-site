@@ -1,5 +1,6 @@
 import { signOut } from '../auth.js';
 import { fetchEntries, saveEntry, fetchPhotos, uploadPhoto } from '../lib/progress.js';
+import { fetchVisibleDiet } from '../lib/diet.js';
 
 const MEASUREMENT_FIELDS = [
   { key: 'cintura', label: 'Cintura (cm)' },
@@ -13,7 +14,7 @@ export async function renderProgress(session) {
   root.innerHTML = `<div class="loading-state">Carregando sua evolução...</div>`;
 
   const clientId = session.user.id;
-  const [entries, photos] = await Promise.all([fetchEntries(clientId), fetchPhotos(clientId)]);
+  const [entries, photos, diet] = await Promise.all([fetchEntries(clientId), fetchPhotos(clientId), fetchVisibleDiet(clientId)]);
 
   root.innerHTML = `
     <div class="hero">
@@ -24,6 +25,7 @@ export async function renderProgress(session) {
     <div class="top-bar">
       <button class="logout-link" id="nav-treino">🏋 Treino</button>
       <button class="logout-link" id="nav-indicacao" style="margin-left:12px;">🎁 Indicação</button>
+      ${diet ? `<button class="logout-link" id="nav-dieta" style="margin-left:12px;">🍎 Dieta</button>` : ''}
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
@@ -82,6 +84,8 @@ export async function renderProgress(session) {
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
   document.getElementById('nav-treino').addEventListener('click', () => { window.location.hash = '/treino'; });
   document.getElementById('nav-indicacao').addEventListener('click', () => { window.location.hash = '/indicacao'; });
+  const navDieta = document.getElementById('nav-dieta');
+  if (navDieta) navDieta.addEventListener('click', () => { window.location.hash = '/dieta'; });
 
   document.getElementById('entry-form').addEventListener('submit', async (e) => {
     e.preventDefault();

@@ -1,5 +1,6 @@
 import { signOut } from '../auth.js';
 import { fetchReferralProfile, fetchReferrals } from '../lib/referrals.js';
+import { fetchVisibleDiet } from '../lib/diet.js';
 
 const TRAINER_WHATSAPP = '5567992567211';
 
@@ -15,9 +16,10 @@ export async function renderReferrals(session) {
   root.innerHTML = `<div class="loading-state">Carregando...</div>`;
 
   const clientId = session.user.id;
-  const [profile, referrals] = await Promise.all([
+  const [profile, referrals, diet] = await Promise.all([
     fetchReferralProfile(clientId),
     fetchReferrals(clientId),
+    fetchVisibleDiet(clientId),
   ]);
 
   const code = profile?.referral_code || '';
@@ -33,6 +35,7 @@ export async function renderReferrals(session) {
     <div class="top-bar">
       <button class="logout-link" id="nav-treino">🏋 Treino</button>
       <button class="logout-link" id="nav-progresso" style="margin-left:12px;">📈 Evolução</button>
+      ${diet ? `<button class="logout-link" id="nav-dieta" style="margin-left:12px;">🍎 Dieta</button>` : ''}
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
@@ -53,6 +56,8 @@ export async function renderReferrals(session) {
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
   document.getElementById('nav-treino').addEventListener('click', () => { window.location.hash = '/treino'; });
   document.getElementById('nav-progresso').addEventListener('click', () => { window.location.hash = '/progresso'; });
+  const navDieta = document.getElementById('nav-dieta');
+  if (navDieta) navDieta.addEventListener('click', () => { window.location.hash = '/dieta'; });
 }
 
 function renderReferralRow(r) {
