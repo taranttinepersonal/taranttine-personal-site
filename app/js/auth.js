@@ -8,6 +8,11 @@ export async function sendMagicLink(email) {
   if (error) throw error;
 }
 
+export async function verifyLoginCode(email, token) {
+  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+  if (error) throw error;
+}
+
 export async function getSession() {
   const { data: { session } } = await supabase.auth.getSession();
   return session;
