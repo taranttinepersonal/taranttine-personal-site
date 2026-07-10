@@ -18,7 +18,7 @@ export async function renderWorkout(session) {
   const clientId = session.user.id;
 
   const { data: profile } = await supabase
-    .from('profiles').select('full_name, birth_date').eq('id', clientId).single();
+    .from('profiles').select('full_name, birth_date, show_gifs').eq('id', clientId).single();
 
   const { data: program, error: programError } = await supabase
     .from('workout_programs')
@@ -95,7 +95,7 @@ export async function renderWorkout(session) {
       ${days.map((d, i) => `<button class="tab-btn${i === 0 ? ' active' : ''}" data-day="${d.id}">Treino ${escapeHtml(d.label)}</button>`).join('')}
     </div>
     <div class="main">
-      ${days.map((d, i) => renderDay(d, sectionsByDay[d.id] || [], exercisesByDay[d.id] || [], historyByExercise, completedToday, i === 0, i)).join('')}
+      ${days.map((d, i) => renderDay(d, sectionsByDay[d.id] || [], exercisesByDay[d.id] || [], historyByExercise, completedToday, i === 0, i, profile?.show_gifs !== false)).join('')}
     </div>
   `;
 
@@ -132,7 +132,7 @@ export async function renderWorkout(session) {
   wireExerciseCards(root, clientId, program.title, profile?.full_name || '');
 }
 
-function renderDay(day, sections, exercises, historyByExercise, completedToday, isActive, dayIndex) {
+function renderDay(day, sections, exercises, historyByExercise, completedToday, isActive, dayIndex, showGifs) {
   const total = exercises.length;
   const done = exercises.filter(e => completedToday.has(e.id)).length;
   const sectionsById = {};
@@ -167,11 +167,11 @@ function renderDay(day, sections, exercises, historyByExercise, completedToday, 
     const cls = /ativa/i.test(section.title) ? 'section-atv' : 'section-main';
     html += `<div class="section-header ${cls}"><span class="section-icon">${section.icon || ''}</span>${escapeHtml(section.title)}</div>`;
     for (const ex of bySection[sectionId]) {
-      html += renderExerciseCard(ex, day.id, historyByExercise[ex.id], completedToday.has(ex.id));
+      html += renderExerciseCard(ex, day.id, historyByExercise[ex.id], completedToday.has(ex.id), showGifs);
     }
   }
   for (const ex of noSection) {
-    html += renderExerciseCard(ex, day.id, historyByExercise[ex.id], completedToday.has(ex.id));
+    html += renderExerciseCard(ex, day.id, historyByExercise[ex.id], completedToday.has(ex.id), showGifs);
   }
 
   html += renderNutritionTip(dayIndex);
@@ -192,9 +192,9 @@ function renderNutritionTip(dayIndex) {
     </div>`;
 }
 
-function renderExerciseCard(ex, dayId, history, isDone) {
+function renderExerciseCard(ex, dayId, history, isDone, showGifs) {
   const groupLabel = ex.display_group || ex.exercises?.muscle_groups?.name || '';
-  const gifUrl = ex.exercises?.gif_path ? exerciseGifUrl(ex.exercises.gif_path) : null;
+  const gifUrl = showGifs && ex.exercises?.gif_path ? exerciseGifUrl(ex.exercises.gif_path) : null;
   const historyText = renderHistoryText(history);
   return `
     <div class="ex-card${isDone ? ' done' : ''}" data-ex-id="${ex.id}">
