@@ -96,6 +96,14 @@
 .note-box { background: rgba(240,165,0,0.06); border: 1px solid rgba(240,165,0,0.2); border-radius: var(--radius-lg); padding: 14px 16px; margin-top: 20px; font-size: 12px; color: var(--muted); line-height: 1.6; }
 .note-box b { color: #F0A500; }
 
+.nutrition-tip-card { background: var(--black2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-top: 20px; }
+.nutrition-tip-label { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); margin-bottom: 8px; }
+.nutrition-tip-row { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border2); font-size: 13px; }
+.nutrition-tip-row:last-of-type { border-bottom: none; }
+.nutrition-tip-row b { color: var(--green); flex: none; width: 82px; font-size: 11px; text-transform: uppercase; letter-spacing: .02em; padding-top: 1px; }
+.nutrition-tip-row span { color: var(--text); line-height: 1.5; }
+.nutrition-tip-note { font-size: 10.5px; color: var(--faint); font-style: italic; margin-top: 10px; line-height: 1.4; }
+
 .top-bar { display: flex; justify-content: flex-end; max-width: 480px; margin: 0 auto; padding: 8px 16px 0; }
 .logout-link { font-size: 12px; color: var(--faint); background: none; border: none; cursor: pointer; text-decoration: underline; }
 .loading-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; }

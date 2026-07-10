@@ -7,6 +7,7 @@ import {
 import { enablePushNotifications, isPushConfigured, getNotificationPermission } from '../push.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
 import { isBirthdayToday, getMotivationalQuote } from '../lib/birthday.js';
+import { getNutritionTip } from '../lib/nutritionTips.js';
 
 const TRAINER_WHATSAPP = '5567992567211';
 
@@ -94,7 +95,7 @@ export async function renderWorkout(session) {
       ${days.map((d, i) => `<button class="tab-btn${i === 0 ? ' active' : ''}" data-day="${d.id}">Treino ${escapeHtml(d.label)}</button>`).join('')}
     </div>
     <div class="main">
-      ${days.map((d, i) => renderDay(d, sectionsByDay[d.id] || [], exercisesByDay[d.id] || [], historyByExercise, completedToday, i === 0)).join('')}
+      ${days.map((d, i) => renderDay(d, sectionsByDay[d.id] || [], exercisesByDay[d.id] || [], historyByExercise, completedToday, i === 0, i)).join('')}
     </div>
   `;
 
@@ -131,7 +132,7 @@ export async function renderWorkout(session) {
   wireExerciseCards(root, clientId, program.title, profile?.full_name || '');
 }
 
-function renderDay(day, sections, exercises, historyByExercise, completedToday, isActive) {
+function renderDay(day, sections, exercises, historyByExercise, completedToday, isActive, dayIndex) {
   const total = exercises.length;
   const done = exercises.filter(e => completedToday.has(e.id)).length;
   const sectionsById = {};
@@ -173,9 +174,22 @@ function renderDay(day, sections, exercises, historyByExercise, completedToday, 
     html += renderExerciseCard(ex, day.id, historyByExercise[ex.id], completedToday.has(ex.id));
   }
 
+  html += renderNutritionTip(dayIndex);
   html += `<button class="send-btn" data-send-day="${day.id}" data-day-label="${escapeHtml(day.label)}">📤 Enviar treino de hoje</button>`;
   html += `</div>`;
   return html;
+}
+
+function renderNutritionTip(dayIndex) {
+  const tip = getNutritionTip(dayIndex);
+  return `
+    <div class="nutrition-tip-card">
+      <div class="nutrition-tip-label">🍎 Dica de Nutrição</div>
+      <div class="nutrition-tip-row"><b>Pré-treino</b><span>${escapeHtml(tip.pre)}</span></div>
+      <div class="nutrition-tip-row"><b>Pós-treino</b><span>${escapeHtml(tip.pos)}</span></div>
+      <div class="nutrition-tip-row"><b>Dica geral</b><span>${escapeHtml(tip.regra)}</span></div>
+      <div class="nutrition-tip-note">Orientação geral — não substitui um plano alimentar individual.</div>
+    </div>`;
 }
 
 function renderExerciseCard(ex, dayId, history, isDone) {
