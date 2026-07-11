@@ -1,13 +1,21 @@
 import { sendMagicLink, verifyLoginCode } from '../auth.js';
 
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
 export function renderLogin() {
   const root = document.getElementById('app-root');
+  const showInstallHint = !isStandalone();
   root.innerHTML = `
     <div class="login-screen">
       <img src="/app/icons/icon-192.png" class="login-logo" alt="Taranttine Personal">
       <div class="font-display login-brand">TARANTTINE</div>
       <div class="login-brand-sub">PERSONAL</div>
       <h1>Portal do Cliente</h1>
+      ${showInstallHint ? `
+        <div class="health-note">📲 Antes de entrar, adicione esta página à tela inicial do celular (compartilhar → "Adicionar à Tela de Início"). Depois, abra pelo ícone e faça login por ali — assim você não precisa entrar de novo toda vez.</div>
+      ` : ''}
       <form id="login-form" class="login-form">
         <input type="email" id="login-email" placeholder="Seu e-mail" required autocomplete="email">
         <button type="submit" class="send-btn">Entrar</button>
