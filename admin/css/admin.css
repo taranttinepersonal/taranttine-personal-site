@@ -7,10 +7,14 @@
 .admin-title { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; text-transform: uppercase; color: var(--white); }
 
 .admin-card { background: var(--black2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
-.admin-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border2); }
+.admin-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border2); }
 .admin-row:last-child { border-bottom: none; }
 .admin-row-name { font-size: 14px; font-weight: 600; color: var(--white); }
 .admin-row-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.admin-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 480px) {
+  .admin-row-actions { width: 100%; }
+}
 .admin-badge { font-size: 10px; padding: 3px 9px; border-radius: 99px; font-weight: 600; text-transform: uppercase; }
 .admin-badge.active { color: var(--green); background: rgba(0,184,148,0.1); }
 .admin-badge.inactive { color: var(--faint); background: rgba(255,255,255,0.05); }

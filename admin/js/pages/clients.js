@@ -41,7 +41,7 @@ export async function renderClients(main) {
           <div class="admin-row-name">${escapeHtml(c.full_name)}${isBirthdayToday(c.birth_date) ? ' 🎂' : ''}</div>
           <div class="admin-row-sub">${escapeHtml(c.phone || 'sem telefone cadastrado')}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div class="admin-row-actions">
           <span class="admin-badge ${c.active ? 'active' : 'inactive'}">${c.active ? 'Ativo' : 'Inativo'}</span>
           <a class="admin-btn" href="#/cliente/${c.id}/dados">Dados</a>
           <a class="admin-btn" href="#/cliente/${c.id}/treino">Treino</a>
