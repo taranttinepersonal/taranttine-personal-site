@@ -1,9 +1,10 @@
 const { getGoogleAccessToken, sendToTokens } = require('./_lib/fcm');
+const MESSAGES = require('./_lib/reminderMessages');
 
 // Scheduled daily via netlify.toml (schedule = "@daily"). Reminds clients who
 // haven't opened the app in INACTIVE_DAYS days, at most once every INACTIVE_DAYS
 // days per client (tracked via profiles.last_reminder_sent_at).
-const INACTIVE_DAYS = 4;
+const INACTIVE_DAYS = 2;
 
 exports.handler = async () => {
   const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -11,7 +12,7 @@ exports.handler = async () => {
   const SUPABASE_HEADERS = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
 
   const profilesRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?role=eq.client&active=eq.true&select=id,full_name,created_at,last_active_at,last_reminder_sent_at`,
+    `${SUPABASE_URL}/rest/v1/profiles?role=eq.client&active=eq.true&select=id,full_name,created_at,last_active_at,last_reminder_sent_at,last_reminder_message_index`,
     { headers: SUPABASE_HEADERS },
   );
   const profiles = await profilesRes.json();
@@ -39,10 +40,6 @@ exports.handler = async () => {
   }
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
-  const notification = {
-    title: 'Sentimos sua falta! 💪',
-    body: 'Já faz alguns dias que você não abre seu treino. Bora retomar hoje?',
-  };
 
   let reminded = 0;
   const staleTokensAll = [];
@@ -55,13 +52,16 @@ exports.handler = async () => {
     const tokenRows = await tokensRes.json();
     if (!Array.isArray(tokenRows) || !tokenRows.length) continue;
 
+    const nextIndex = ((client.last_reminder_message_index ?? -1) + 1) % MESSAGES.length;
+    const notification = MESSAGES[nextIndex];
+
     const { staleTokens } = await sendToTokens(accessToken, projectId, tokenRows.map((r) => r.fcm_token), notification);
     staleTokensAll.push(...staleTokens);
 
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${client.id}`, {
       method: 'PATCH',
       headers: { ...SUPABASE_HEADERS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ last_reminder_sent_at: new Date().toISOString() }),
+      body: JSON.stringify({ last_reminder_sent_at: new Date().toISOString(), last_reminder_message_index: nextIndex }),
     });
     reminded++;
   }
