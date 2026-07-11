@@ -5,7 +5,7 @@ export async function renderClientData(main, clientId) {
 
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('full_name, phone, email, birth_date')
+    .select('full_name, phone, email, birth_date, show_cycle_mode')
     .eq('id', clientId)
     .single();
 
@@ -32,6 +32,10 @@ export async function renderClientData(main, clientId) {
       <div class="admin-row-sub" style="margin-top:4px;">
         Pra trocar o e-mail de login (o que o cliente usa pra entrar), peça ao desenvolvedor — mudar aqui não afeta o login.
       </div>
+      <label style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="data-cycle" ${profile.show_cycle_mode ? 'checked' : ''} style="width:auto;">
+        🌸 Mostrar Modo Ciclo na ficha de treino
+      </label>
       <button class="admin-btn primary" id="data-save" style="margin-top:12px;">Salvar</button>
       <div class="admin-msg" id="data-msg"></div>
     </div>
@@ -43,6 +47,7 @@ export async function renderClientData(main, clientId) {
       full_name: document.getElementById('data-name').value.trim(),
       phone: document.getElementById('data-phone').value.trim() || null,
       birth_date: document.getElementById('data-birth').value || null,
+      show_cycle_mode: document.getElementById('data-cycle').checked,
     };
     const { error: saveError } = await supabase.from('profiles').update(payload).eq('id', clientId);
     msg.textContent = saveError ? 'Erro ao salvar: ' + saveError.message : 'Salvo.';

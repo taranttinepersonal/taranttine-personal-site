@@ -104,6 +104,21 @@
 .nutrition-tip-row span { color: var(--text); line-height: 1.5; }
 .nutrition-tip-note { font-size: 10.5px; color: var(--faint); font-style: italic; margin-top: 10px; line-height: 1.4; }
 
+/* Modo Ciclo */
+.ciclo-bar { display: flex; align-items: center; justify-content: space-between; max-width: 480px; margin: 0 auto; padding: 12px 16px; background: var(--black2); border-bottom: 1px solid var(--border); }
+.ciclo-label { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 800; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.ciclo-label span { font-size: 18px; }
+.ciclo-switch { position: relative; width: 48px; height: 26px; cursor: pointer; flex-shrink: 0; }
+.ciclo-switch input { opacity: 0; width: 0; height: 0; }
+.ciclo-slider { position: absolute; inset: 0; background: #2A2A2A; border-radius: 99px; transition: .3s; }
+.ciclo-slider::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; bottom: 3px; background: #555; border-radius: 50%; transition: .3s; }
+.ciclo-switch input:checked + .ciclo-slider { background: rgba(255,182,193,0.25); border: 1px solid #E8A0B0; }
+.ciclo-switch input:checked + .ciclo-slider::before { transform: translateX(22px); background: #E8A0B0; }
+.ciclo-banner { display: none; max-width: 480px; margin: 8px auto; background: rgba(232,160,176,0.08); border: 1px solid rgba(232,160,176,0.3); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #E8A0B0; line-height: 1.6; }
+.ciclo-banner.visible { display: block; }
+body.ciclo-mode .stat-box.rir-box .stat-val { color: #E8A0B0; }
+body.ciclo-mode .load-input::placeholder { color: #E8A0B0; opacity: .7; }
+
 .top-bar { display: flex; justify-content: flex-end; max-width: 480px; margin: 0 auto; padding: 8px 16px 0; }
 .logout-link { font-size: 12px; color: var(--faint); background: none; border: none; cursor: pointer; text-decoration: underline; }
 .loading-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; }

@@ -18,7 +18,7 @@ export async function renderWorkout(session) {
   const clientId = session.user.id;
 
   const { data: profile } = await supabase
-    .from('profiles').select('full_name, birth_date, show_gifs').eq('id', clientId).single();
+    .from('profiles').select('full_name, birth_date, show_gifs, show_cycle_mode').eq('id', clientId).single();
 
   const { data: program, error: programError } = await supabase
     .from('workout_programs')
@@ -85,6 +85,18 @@ export async function renderWorkout(session) {
         <button class="logout-link" id="enable-push-btn" style="margin-top:8px;">🔔 Ativar notificações</button>
       ` : ''}
     </div>
+    ${profile?.show_cycle_mode ? `
+      <div class="ciclo-bar">
+        <div class="ciclo-label"><span>🌸</span> Modo Ciclo</div>
+        <label class="ciclo-switch">
+          <input type="checkbox" id="ciclo-toggle">
+          <span class="ciclo-slider"></span>
+        </label>
+      </div>
+      <div class="ciclo-banner" id="ciclo-banner">
+        💙 <strong>Modo Ciclo ativo</strong> — Reduza 20 a 30% da carga desta semana. Priorize a técnica e o bem-estar. Você está indo muito bem! 🌸
+      </div>
+    ` : ''}
     <div class="top-bar">
       <button class="logout-link" id="nav-progresso">📈 Evolução</button>
       <button class="logout-link" id="nav-indicacao" style="margin-left:12px;">🎁 Indicação</button>
@@ -98,6 +110,20 @@ export async function renderWorkout(session) {
       ${days.map((d, i) => renderDay(d, sectionsByDay[d.id] || [], exercisesByDay[d.id] || [], historyByExercise, completedToday, i === 0, i, profile?.show_gifs !== false)).join('')}
     </div>
   `;
+
+  const cicloToggle = document.getElementById('ciclo-toggle');
+  if (cicloToggle) {
+    const cicloKey = `taranttine_ciclo_${clientId}`;
+    const cicloOn = localStorage.getItem(cicloKey) === '1';
+    cicloToggle.checked = cicloOn;
+    document.body.classList.toggle('ciclo-mode', cicloOn);
+    document.getElementById('ciclo-banner').classList.toggle('visible', cicloOn);
+    cicloToggle.addEventListener('change', () => {
+      document.body.classList.toggle('ciclo-mode', cicloToggle.checked);
+      document.getElementById('ciclo-banner').classList.toggle('visible', cicloToggle.checked);
+      localStorage.setItem(cicloKey, cicloToggle.checked ? '1' : '0');
+    });
+  }
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
   document.getElementById('nav-progresso').addEventListener('click', () => { window.location.hash = '/progresso'; });
