@@ -17,6 +17,8 @@ export async function renderWorkout(session) {
 
   const clientId = session.user.id;
 
+  supabase.rpc('touch_last_active').then(() => {});
+
   const { data: profile } = await supabase
     .from('profiles').select('full_name, birth_date, show_gifs, show_cycle_mode').eq('id', clientId).single();
 

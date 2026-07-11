@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+const { getGoogleAccessToken, sendToTokens } = require('./_lib/fcm');
 
 // Environment variables required (set in Netlify dashboard > Site settings > Environment variables):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (already known — same values used everywhere else in this project)
@@ -54,35 +54,9 @@ exports.handler = async (event) => {
   }
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
-  let sent = 0;
-  let failed = 0;
-  const staleTokens = [];
-
-  for (const row of tokenRows) {
-    try {
-      const res = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: {
-            token: row.fcm_token,
-            notification: { title, body },
-            webpush: { fcm_options: { link: 'https://taranttinepersonal.netlify.app/app/#/treino' } },
-          },
-        }),
-      });
-      if (res.ok) {
-        sent++;
-      } else {
-        failed++;
-        const errBody = await res.json().catch(() => null);
-        const code = errBody?.error?.details?.find((d) => d.errorCode)?.errorCode;
-        if (code === 'UNREGISTERED' || code === 'INVALID_ARGUMENT') staleTokens.push(row.fcm_token);
-      }
-    } catch (err) {
-      failed++;
-    }
-  }
+  const { sent, failed, staleTokens } = await sendToTokens(
+    accessToken, projectId, tokenRows.map((r) => r.fcm_token), { title, body },
+  );
 
   if (staleTokens.length) {
     const inList = staleTokens.map((t) => `"${t}"`).join(',');
@@ -94,39 +68,3 @@ exports.handler = async (event) => {
 
   return { statusCode: 200, body: JSON.stringify({ sent, failed }) };
 };
-
-function b64url(input) {
-  const base64 = Buffer.isBuffer(input) ? input.toString('base64') : Buffer.from(input).toString('base64');
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-async function getGoogleAccessToken() {
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
-
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const now = Math.floor(Date.now() / 1000);
-  const claims = {
-    iss: clientEmail,
-    scope: 'https://www.googleapis.com/auth/firebase.messaging',
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600,
-  };
-
-  const signingInput = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claims))}`;
-  const signature = crypto.createSign('RSA-SHA256').update(signingInput).sign(privateKey);
-  const jwt = `${signingInput}.${b64url(signature)}`;
-
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt,
-    }),
-  });
-  const tokenJson = await tokenRes.json();
-  if (!tokenJson.access_token) throw new Error(JSON.stringify(tokenJson));
-  return tokenJson.access_token;
-}
