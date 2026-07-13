@@ -107,6 +107,25 @@
 .report-empty { font-size: 12.5px; color: var(--report-muted); }
 .report-footer { text-align: center; font-size: 10px; color: var(--report-muted); margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--report-border); }
 
+/* Avaliação postural — upload dos 4 ângulos (admin form) */
+.postural-photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.postural-photo-slot { background: var(--black3); border: 1px dashed var(--border2); border-radius: 8px; padding: 10px; }
+.postural-photo-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.postural-photo-slot input[type="file"] { font-size: 11px; color: var(--text); width: 100%; }
+
+/* Avaliação postural — grade de alinhamento no relatório (simetrógrafo digital) */
+.postural-grid-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.postural-grid-photo-frame { position: relative; border-radius: 8px; overflow: hidden; background: var(--black3); aspect-ratio: 3/4; }
+.postural-grid-photo-frame.empty { display: flex; align-items: center; justify-content: center; }
+.postural-grid-photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.postural-grid-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,184,148,0.45) 0, rgba(0,184,148,0.45) 1px, transparent 1px, transparent 24px),
+    repeating-linear-gradient(90deg, rgba(0,184,148,0.45) 0, rgba(0,184,148,0.45) 1px, transparent 1px, transparent 24px);
+}
+.postural-grid-photo-label { font-size: 10.5px; color: var(--report-muted); text-align: center; margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; }
+
 @media print {
   .admin-nav, .top-bar, .no-print { display: none !important; }
   body, .admin-shell, .admin-main { background: #fff !important; padding: 0 !important; }
@@ -120,4 +139,9 @@
   }
   .report-brand, .report-value { color: #111 !important; }
   .report-bar-track, .report-chart { background: #eee !important; }
+  .postural-grid-overlay {
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,120,100,0.5) 0, rgba(0,120,100,0.5) 1px, transparent 1px, transparent 24px),
+      repeating-linear-gradient(90deg, rgba(0,120,100,0.5) 0, rgba(0,120,100,0.5) 1px, transparent 1px, transparent 24px);
+  }
 }

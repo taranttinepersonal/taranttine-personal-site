@@ -17,6 +17,13 @@ const POSTURAL_CHECKLIST = [
   { key: 'pes', label: 'Pés' },
 ];
 
+const POSTURAL_ANGLES = [
+  { column: 'foto_lateral_direita', label: 'Lateral Direita' },
+  { column: 'foto_lateral_esquerda', label: 'Lateral Esquerda' },
+  { column: 'foto_posterior', label: 'Posterior' },
+  { column: 'foto_anterior', label: 'Anterior' },
+];
+
 export async function renderReport(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
@@ -26,7 +33,7 @@ export async function renderReport(main, clientId) {
       .eq('client_id', clientId).order('recorded_at', { ascending: false }),
     supabase.from('progress_photos').select('id, storage_path, recorded_at')
       .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(6),
-    supabase.from('postural_assessments').select('recorded_at, notes, general_note')
+    supabase.from('postural_assessments').select('recorded_at, notes, general_note, foto_anterior, foto_posterior, foto_lateral_direita, foto_lateral_esquerda')
       .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(1),
   ]);
 
@@ -39,6 +46,15 @@ export async function renderReport(main, clientId) {
   const previous = entries?.[1] || null;
   const posturalLatest = postural?.[0] || null;
   const age = calcAge(profile?.birth_date);
+
+  const posturalPhotosWithUrls = posturalLatest ? await Promise.all(
+    POSTURAL_ANGLES.map(async (a) => {
+      const path = posturalLatest[a.column];
+      if (!path) return { ...a, url: null };
+      const { data: signed } = await supabase.storage.from('progress-photos').createSignedUrl(path, 3600);
+      return { ...a, url: signed?.signedUrl || null };
+    }),
+  ) : [];
 
   main.innerHTML = `
     <div class="admin-header no-print">
@@ -94,6 +110,21 @@ export async function renderReport(main, clientId) {
 
       <div class="report-section-title">Avaliação Postural</div>
       ${posturalLatest ? `
+        ${posturalPhotosWithUrls.some(p => p.url) ? `
+          <div class="postural-grid-photos">
+            ${posturalPhotosWithUrls.map(p => `
+              <div class="postural-grid-photo">
+                ${p.url ? `
+                  <div class="postural-grid-photo-frame">
+                    <img src="${p.url}" alt="${p.label}">
+                    <div class="postural-grid-overlay"></div>
+                  </div>
+                ` : `<div class="postural-grid-photo-frame empty"></div>`}
+                <div class="postural-grid-photo-label">${p.label}</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
         <div class="report-postural">
           ${POSTURAL_CHECKLIST.filter(item => posturalLatest.notes?.[item.key]).map(item => `
             <div class="report-postural-row"><b>${item.label}</b><span>${escapeHtml(posturalLatest.notes[item.key])}</span></div>
