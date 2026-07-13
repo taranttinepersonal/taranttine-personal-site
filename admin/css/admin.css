@@ -53,3 +53,71 @@
 .admin-day-body { padding: 12px 14px; }
 .admin-ex-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border2); font-size: 13px; }
 .admin-ex-row:last-child { border-bottom: none; }
+
+/* Relatório de avaliação — pensado pra impressão/PDF */
+.report-doc {
+  --report-accent: var(--green);
+  --report-bg: var(--black2);
+  --report-border: var(--border);
+  --report-text: var(--text);
+  --report-muted: var(--muted);
+  background: var(--report-bg);
+  border: 1px solid var(--report-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  color: var(--report-text);
+}
+.report-header { text-align: center; padding-bottom: 18px; border-bottom: 1px solid var(--report-border); margin-bottom: 18px; }
+.report-logo { width: 56px; height: 56px; border-radius: 50%; margin-bottom: 8px; }
+.report-brand { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: .04em; color: var(--white); }
+.report-brand-sub { font-size: 11px; color: var(--report-muted); text-transform: uppercase; letter-spacing: .1em; margin-top: 4px; }
+
+.report-client-row { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
+.report-client-row > div { display: flex; flex-direction: column; align-items: center; }
+.report-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--report-muted); }
+.report-value { font-size: 15px; font-weight: 700; color: var(--white); margin-top: 2px; }
+
+.report-section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 800; text-transform: uppercase; color: var(--report-accent); margin: 22px 0 10px; }
+.report-section-title:first-of-type { margin-top: 0; }
+
+.report-bars { display: flex; flex-direction: column; gap: 14px; }
+.report-bar-item { }
+.report-bar-label { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 5px; }
+.report-bar-value { font-weight: 700; color: var(--report-accent); }
+.report-bar-value small { font-weight: 500; color: var(--report-muted); }
+.report-bar-track { height: 8px; border-radius: 99px; background: var(--black3); overflow: hidden; margin-bottom: 3px; }
+.report-bar-fill { height: 100%; border-radius: 99px; }
+.report-bar-fill.prev { background: var(--report-muted); opacity: .5; }
+.report-bar-fill.current { background: var(--report-accent); }
+
+.report-chart { background: var(--black3); border-radius: var(--radius); padding: 12px; }
+.report-chart-dates { display: flex; justify-content: space-between; font-size: 10px; color: var(--report-muted); margin-top: 4px; }
+
+.report-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.report-photo { text-align: center; }
+.report-photo img { width: 100%; border-radius: 8px; aspect-ratio: 3/4; object-fit: cover; }
+.report-photo-date { font-size: 10px; color: var(--report-muted); margin-top: 4px; }
+
+.report-postural-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--report-border); font-size: 12.5px; }
+.report-postural-row:last-of-type { border-bottom: none; }
+.report-postural-row b { flex: none; width: 90px; color: var(--report-accent); font-size: 11px; text-transform: uppercase; }
+.report-postural-general { font-size: 12.5px; color: var(--report-muted); font-style: italic; margin-top: 8px; }
+.report-postural-date { font-size: 10px; color: var(--report-muted); margin-top: 10px; text-align: right; }
+
+.report-empty { font-size: 12.5px; color: var(--report-muted); }
+.report-footer { text-align: center; font-size: 10px; color: var(--report-muted); margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--report-border); }
+
+@media print {
+  .admin-nav, .top-bar, .no-print { display: none !important; }
+  body, .admin-shell, .admin-main { background: #fff !important; padding: 0 !important; }
+  .report-doc {
+    --report-bg: #ffffff;
+    --report-border: #ddd;
+    --report-text: #1a1a1a;
+    --report-muted: #666;
+    border: none;
+    padding: 0;
+  }
+  .report-brand, .report-value { color: #111 !important; }
+  .report-bar-track, .report-chart { background: #eee !important; }
+}

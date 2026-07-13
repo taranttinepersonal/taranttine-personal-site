@@ -47,6 +47,8 @@ export async function renderClients(main) {
           <a class="admin-btn" href="#/cliente/${c.id}/treino">Treino</a>
           <a class="admin-btn" href="#/cliente/${c.id}/dieta">Dieta</a>
           <a class="admin-btn" href="#/cliente/${c.id}/evolucao">Evolução</a>
+          <a class="admin-btn" href="#/cliente/${c.id}/postural">Postural</a>
+          <a class="admin-btn" href="#/cliente/${c.id}/relatorio">Relatório</a>
           <button class="admin-btn ${c.active ? 'danger' : ''}" data-toggle-active="${c.id}" data-active="${c.active}">
             ${c.active ? 'Desativar' : 'Ativar'}
           </button>
