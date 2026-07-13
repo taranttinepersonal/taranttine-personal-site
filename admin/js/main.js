@@ -8,7 +8,7 @@ import { renderDiet } from './pages/diet.js';
 import { renderProgress } from './pages/progress.js';
 import { renderReferrals } from './pages/referrals.js';
 import { renderClientData } from './pages/clientData.js';
-import { renderPosturalAssessment } from './pages/posturalAssessment.js';
+import { renderAssessment } from './pages/assessment.js';
 import { renderReport } from './pages/report.js';
 
 const NAV_ITEMS = [
@@ -77,7 +77,7 @@ async function handleDynamicRoutes() {
   const dietaMatch = hash.match(/^\/cliente\/([^/]+)\/dieta$/);
   const evolucaoMatch = hash.match(/^\/cliente\/([^/]+)\/evolucao$/);
   const dadosMatch = hash.match(/^\/cliente\/([^/]+)\/dados$/);
-  const posturalMatch = hash.match(/^\/cliente\/([^/]+)\/postural$/);
+  const avaliacaoMatch = hash.match(/^\/cliente\/([^/]+)\/avaliacao$/);
   const relatorioMatch = hash.match(/^\/cliente\/([^/]+)\/relatorio$/);
   if (treinoMatch) {
     if (!(await requireTrainer())) return;
@@ -95,10 +95,10 @@ async function handleDynamicRoutes() {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');
     renderClientData(main, dadosMatch[1]);
-  } else if (posturalMatch) {
+  } else if (avaliacaoMatch) {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');
-    renderPosturalAssessment(main, posturalMatch[1]);
+    renderAssessment(main, avaliacaoMatch[1]);
   } else if (relatorioMatch) {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');

@@ -1,4 +1,5 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
+import { sumSkinfolds, calcBodyFat } from '../../../app/js/lib/skinfold.js';
 
 const MEASUREMENT_FIELDS = [
   { key: 'cintura', label: 'Cintura', unit: 'cm' },
@@ -27,7 +28,7 @@ const POSTURAL_ANGLES = [
 export async function renderReport(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
-  const [{ data: profile }, { data: entries }, { data: photos }, { data: postural }] = await Promise.all([
+  const [{ data: profile }, { data: entries }, { data: photos }, { data: postural }, { data: skinfolds }] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date').eq('id', clientId).single(),
     supabase.from('progress_entries').select('id, recorded_at, weight_kg, body_fat_pct, measurements')
       .eq('client_id', clientId).order('recorded_at', { ascending: false }),
@@ -35,6 +36,8 @@ export async function renderReport(main, clientId) {
       .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(6),
     supabase.from('postural_assessments').select('recorded_at, notes, general_note, foto_anterior, foto_posterior, foto_lateral_direita, foto_lateral_esquerda')
       .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(1),
+    supabase.from('skinfold_assessments').select('*')
+      .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(2),
   ]);
 
   const photosWithUrls = await Promise.all((photos || []).map(async (p) => {
@@ -46,6 +49,11 @@ export async function renderReport(main, clientId) {
   const previous = entries?.[1] || null;
   const posturalLatest = postural?.[0] || null;
   const age = calcAge(profile?.birth_date);
+
+  const skinfoldCurrent = skinfolds?.[0] ? { ...skinfolds[0], sum: sumSkinfolds(skinfolds[0]) } : null;
+  const skinfoldPrevious = skinfolds?.[1] ? { ...skinfolds[1], sum: sumSkinfolds(skinfolds[1]) } : null;
+  const skinfoldResultCurrent = skinfoldCurrent ? calcBodyFat({ sexo: skinfoldCurrent.sexo, age, sum: skinfoldCurrent.sum }) : null;
+  const skinfoldResultPrevious = skinfoldPrevious ? calcBodyFat({ sexo: skinfoldPrevious.sexo, age, sum: skinfoldPrevious.sum }) : null;
 
   const posturalPhotosWithUrls = posturalLatest ? await Promise.all(
     POSTURAL_ANGLES.map(async (a) => {
@@ -90,6 +98,14 @@ export async function renderReport(main, clientId) {
           f.label, latest?.measurements?.[f.key], previous?.measurements?.[f.key], f.unit,
         )).join('')}
       </div>
+
+      ${skinfoldResultCurrent ? `
+        <div class="report-section-title">Composição Corporal — Dobras Cutâneas (Pollock 7 pontos)</div>
+        <div class="report-bars">
+          ${renderDeltaBar('Soma das dobras', skinfoldCurrent.sum, skinfoldPrevious?.sum, 'mm')}
+          ${renderDeltaBar('% Gordura (dobras)', skinfoldResultCurrent.bodyFatPct, skinfoldResultPrevious?.bodyFatPct, '%')}
+        </div>
+      ` : ''}
 
       ${entries && entries.filter(e => e.weight_kg != null).length >= 2 ? `
         <div class="report-section-title">Histórico — Peso</div>
