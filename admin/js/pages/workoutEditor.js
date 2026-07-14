@@ -229,7 +229,34 @@ function openExerciseForm(main, clientId, sectionId, dayId, exerciseId, exercise
       <label>Descanso (segundos)</label>
       <input type="number" id="f-rest">
       <label>Método / RIR</label>
-      <input type="text" id="f-method" placeholder="RIR 2, Tradicional, Ativação...">
+      <input type="text" id="f-method" list="method-options" placeholder="RIR 2, Tradicional, Ativação...">
+      <datalist id="method-options">
+        <option value="Tradicional">
+        <option value="RIR 1">
+        <option value="RIR 2">
+        <option value="RIR 3">
+        <option value="Falha concêntrica">
+        <option value="Rest-Pause">
+        <option value="Cluster Set">
+        <option value="Dropset">
+        <option value="Stripset">
+        <option value="Superbomba (GVT)">
+        <option value="Pirâmide Crescente">
+        <option value="Pirâmide Decrescente">
+        <option value="Método Decrescente">
+        <option value="Superset Agonista-Antagonista">
+        <option value="Superset por Segmento">
+        <option value="Circuito">
+        <option value="Método de Prioridade">
+        <option value="Ordem Variável">
+        <option value="Excêntrico">
+        <option value="Repetições Parciais">
+        <option value="Repetições Forçadas">
+        <option value="Roubada">
+        <option value="Biset">
+        <option value="Triset">
+        <option value="Série Gigante">
+      </datalist>
       <label>Grupo (opcional, sobrescreve o padrão)</label>
       <input type="text" id="f-group" placeholder="${escapeHtml(exercise.muscle_groups?.name || '')}">
       <label>Dica (opcional)</label>
