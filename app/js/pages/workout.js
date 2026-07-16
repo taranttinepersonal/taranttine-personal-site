@@ -8,6 +8,7 @@ import { enablePushNotifications, isPushConfigured, getNotificationPermission } 
 import { fetchVisibleDiet } from '../lib/diet.js';
 import { isBirthdayToday, getMotivationalQuote } from '../lib/birthday.js';
 import { getNutritionTip } from '../lib/nutritionTips.js';
+import { getSupplementTip } from '../lib/supplementTips.js';
 
 const TRAINER_WHATSAPP = '5567992567211';
 
@@ -210,6 +211,7 @@ function renderDay(day, sections, exercises, historyByExercise, completedToday, 
 
 function renderNutritionTip(dayIndex) {
   const tip = getNutritionTip(dayIndex);
+  const supp = getSupplementTip(dayIndex);
   return `
     <div class="nutrition-tip-card">
       <div class="nutrition-tip-label">🍎 Dica de Nutrição</div>
@@ -217,6 +219,11 @@ function renderNutritionTip(dayIndex) {
       <div class="nutrition-tip-row"><b>Pós-treino</b><span>${escapeHtml(tip.pos)}</span></div>
       <div class="nutrition-tip-row"><b>Dica geral</b><span>${escapeHtml(tip.regra)}</span></div>
       <div class="nutrition-tip-note">Orientação geral — não substitui um plano alimentar individual.</div>
+    </div>
+    <div class="nutrition-tip-card">
+      <div class="nutrition-tip-label">💊 Dica de Suplementação</div>
+      <div class="nutrition-tip-row"><b>${escapeHtml(supp.nome)}</b><span>${escapeHtml(supp.dica)}</span></div>
+      <div class="nutrition-tip-note">Orientação geral, com base em evidência científica — não substitui avaliação individual.</div>
     </div>`;
 }
 
