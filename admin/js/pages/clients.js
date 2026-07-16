@@ -12,6 +12,14 @@ export async function renderClients(main) {
     .eq('role', 'client')
     .order('full_name');
 
+  const { data: programs } = await supabase
+    .from('workout_programs')
+    .select('client_id, created_at, last_adjusted_at')
+    .eq('is_active', true);
+
+  const programByClient = {};
+  (programs || []).forEach(p => { programByClient[p.client_id] = p; });
+
   const list = document.getElementById('clients-list');
 
   if (error) {
@@ -27,18 +35,27 @@ export async function renderClients(main) {
   }
 
   const birthdaysToday = clients.filter(c => isBirthdayToday(c.birth_date));
-  const banner = birthdaysToday.length ? `
+  const birthdayBanner = birthdaysToday.length ? `
     <div class="admin-card" style="border-color:var(--green);margin-bottom:16px;">
       🎂 <b>Aniversário hoje:</b> ${birthdaysToday.map(c => escapeHtml(c.full_name)).join(', ')} — que tal mandar uma mensagem no WhatsApp?
     </div>
   ` : '';
+
+  const dueForAdjustment = clients.filter(c => isDueForAdjustment(programByClient[c.id]));
+  const adjustmentBanner = dueForAdjustment.length ? `
+    <div class="admin-card" style="border-color:#F0A500;margin-bottom:16px;">
+      🔁 <b>Hora de reajustar (4+ semanas):</b> ${dueForAdjustment.map(c => escapeHtml(c.full_name)).join(', ')}
+    </div>
+  ` : '';
+
+  const banner = birthdayBanner + adjustmentBanner;
 
   list.className = '';
   list.innerHTML = banner + `<div class="admin-card">
     ${clients.map(c => `
       <div class="admin-row">
         <div>
-          <div class="admin-row-name">${escapeHtml(c.full_name)}${isBirthdayToday(c.birth_date) ? ' 🎂' : ''}</div>
+          <div class="admin-row-name">${escapeHtml(c.full_name)}${isBirthdayToday(c.birth_date) ? ' 🎂' : ''}${isDueForAdjustment(programByClient[c.id]) ? ' 🔁' : ''}</div>
           <div class="admin-row-sub">${escapeHtml(c.phone || 'sem telefone cadastrado')}</div>
         </div>
         <div class="admin-row-actions">
@@ -71,6 +88,14 @@ export async function renderClients(main) {
       renderClients(main);
     });
   });
+}
+
+function isDueForAdjustment(program) {
+  if (!program) return false;
+  const reference = program.last_adjusted_at || program.created_at;
+  if (!reference) return false;
+  const days = (Date.now() - new Date(reference).getTime()) / (1000 * 60 * 60 * 24);
+  return days >= 28;
 }
 
 function isBirthdayToday(birthDate) {

@@ -20,7 +20,7 @@ export async function renderWorkoutEditor(main, clientId) {
 
   const { data: program } = await supabase
     .from('workout_programs')
-    .select('id, title, subtitle, health_note')
+    .select('id, title, subtitle, health_note, created_at, last_adjusted_at')
     .eq('client_id', clientId)
     .eq('is_active', true)
     .maybeSingle();
@@ -58,10 +58,22 @@ export async function renderWorkoutEditor(main, clientId) {
         .in('workout_day_id', dayIds).order('sort_order')
     : { data: [] };
 
+  const adjustmentRef = program.last_adjusted_at || program.created_at;
+  const daysSinceAdjustment = Math.floor((Date.now() - new Date(adjustmentRef).getTime()) / (1000 * 60 * 60 * 24));
+  const dueForAdjustment = daysSinceAdjustment >= 28;
+
   main.innerHTML = `
     <div class="admin-header">
       <div class="admin-title">${escapeHtml(profile?.full_name || '')}</div>
       <a href="#/clientes" class="admin-btn">← Voltar</a>
+    </div>
+
+    <div class="admin-card" style="${dueForAdjustment ? 'border-color:#F0A500;' : ''}margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:12.5px;color:var(--muted);">
+        ${dueForAdjustment ? '🔁 <b style="color:#F0A500;">Hora de reajustar</b> — ' : 'Último reajuste: '}há ${daysSinceAdjustment} dias
+        ${program.last_adjusted_at ? '' : ' (desde a criação do programa)'}
+      </div>
+      <button class="admin-btn primary" id="mark-adjusted">✅ Marcar reajuste feito hoje</button>
     </div>
 
     <div class="admin-section-title">Dados do programa</div>
@@ -80,6 +92,13 @@ export async function renderWorkoutEditor(main, clientId) {
     <div id="days-container"></div>
     <button class="admin-btn primary" id="add-day">+ Adicionar Treino (dia)</button>
   `;
+
+  document.getElementById('mark-adjusted').addEventListener('click', async () => {
+    const { error } = await supabase.from('workout_programs')
+      .update({ last_adjusted_at: new Date().toISOString() }).eq('id', program.id);
+    if (error) { alert('Erro: ' + error.message); return; }
+    renderWorkoutEditor(main, clientId);
+  });
 
   document.getElementById('save-program').addEventListener('click', async () => {
     const msg = document.getElementById('program-msg');
