@@ -10,6 +10,7 @@ import { renderReferrals } from './pages/referrals.js';
 import { renderClientData } from './pages/clientData.js';
 import { renderAssessment } from './pages/assessment.js';
 import { renderReport } from './pages/report.js';
+import { enablePushNotifications, isPushConfigured, getNotificationPermission } from '../../app/js/push.js';
 
 const NAV_ITEMS = [
   { path: '/clientes', label: 'Clientes' },
@@ -19,17 +20,43 @@ const NAV_ITEMS = [
 
 function renderShell(activePath, contentHtmlOrRenderer) {
   const root = document.getElementById('app-root');
+  const showPushBtn = isPushConfigured() && getNotificationPermission() === 'default';
   root.innerHTML = `
     <div class="admin-shell">
       <div class="admin-nav">
         ${NAV_ITEMS.map(item => `<a href="#${item.path}" class="${activePath.startsWith(item.path) ? 'active' : ''}">${item.label}</a>`).join('')}
+        ${showPushBtn ? `<a href="#" id="admin-enable-push" style="flex:0 0 auto;padding:14px 12px;">🔔</a>` : ''}
         <a href="#" id="admin-logout" style="flex:0 0 auto;padding:14px 16px;">Sair</a>
       </div>
       <div class="admin-main" id="admin-main"></div>
     </div>
   `;
   document.getElementById('admin-logout').addEventListener('click', (e) => { e.preventDefault(); signOut(); });
+  const pushBtn = document.getElementById('admin-enable-push');
+  if (pushBtn) {
+    pushBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const session = await getSession();
+      if (!session) return;
+      pushBtn.textContent = '...';
+      const result = await enablePushNotifications(session.user.id);
+      if (result.ok) {
+        pushBtn.textContent = '✅';
+      } else {
+        pushBtn.textContent = '🔔';
+        if (result.reason === 'denied') alert('Permissão negada. Ative notificações nas configurações do navegador para receber avisos.');
+      }
+    });
+  }
   return document.getElementById('admin-main');
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/app/sw.js', { scope: '/admin/' }).catch((err) => {
+      console.error('admin sw registration failed', err);
+    });
+  });
 }
 
 async function requireTrainer() {

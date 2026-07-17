@@ -3,3 +3,6 @@
 
 [functions."check-inactive-clients"]
   schedule = "@daily"
+
+[functions."check-program-adjustments"]
+  schedule = "@daily"
