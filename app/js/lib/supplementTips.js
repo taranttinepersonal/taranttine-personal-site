@@ -7,6 +7,8 @@ const TIPS = [
   { nome: 'Creatina', dica: 'O efeito é cumulativo — resultado aparece em semanas de uso constante, não numa dose só' },
   { nome: 'Whey Protein', dica: 'Não substitui refeição — é um complemento, comida de verdade vem sempre primeiro' },
   { nome: 'Cafeína', dica: 'Evite no fim da tarde/noite — pode atrapalhar o sono, que também é parte da recuperação' },
+  { nome: 'Magnésio', dica: '200-400mg à noite antes de dormir — ajuda no relaxamento muscular e na qualidade do sono' },
+  { nome: 'Whey Protein', dica: 'Ótima opção logo após o treino ou nos dias mais corridos, quando falta tempo pra uma refeição completa' },
 ];
 
 export function getSupplementTip(seed) {
