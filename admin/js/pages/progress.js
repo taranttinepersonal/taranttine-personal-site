@@ -53,6 +53,11 @@ export async function renderProgress(main, clientId) {
           ${exerciseSeries.map((ex, i) => `<option value="${i}">${escapeHtml(ex.name)}</option>`).join('')}
         </select>
         <div id="exercise-chart-container" style="margin-top:14px;"></div>
+        <label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 6px;">Registrar carga manualmente</label>
+        <div style="display:flex;gap:8px;">
+          <input id="manual-load-input" type="text" inputmode="decimal" placeholder="Carga (kg)" style="flex:1;background:var(--black3);border:1.5px solid var(--border2);border-radius:8px;padding:10px;color:var(--text);font-size:14px;font-family:'Inter',sans-serif;">
+          <button id="manual-load-save" class="admin-btn" style="flex:0 0 auto;">Registrar</button>
+        </div>
       </div>
     ` : ''}
 
@@ -93,6 +98,29 @@ export async function renderProgress(main, clientId) {
     select.addEventListener('change', renderSelected);
     renderSelected();
   }
+
+  const manualInput = document.getElementById('manual-load-input');
+  const manualSave = document.getElementById('manual-load-save');
+  if (manualSave) {
+    manualSave.addEventListener('click', async () => {
+      const value = manualInput.value.trim();
+      if (!value) return;
+      const ex = exerciseSeries[Number(select.value)];
+      manualSave.disabled = true;
+      manualSave.textContent = '...';
+      const { error } = await supabase.from('load_history').upsert(
+        { client_id: clientId, workout_exercise_id: ex.id, load_value: value, logged_on: new Date().toISOString().slice(0, 10) },
+        { onConflict: 'workout_exercise_id,logged_on' }
+      );
+      if (error) {
+        alert('Erro: ' + error.message);
+        manualSave.disabled = false;
+        manualSave.textContent = 'Registrar';
+        return;
+      }
+      renderProgress(main, clientId);
+    });
+  }
 }
 
 async function fetchExerciseSeries(clientId) {
@@ -119,21 +147,19 @@ async function fetchExerciseSeries(clientId) {
   const historyByExercise = {};
   (history || []).forEach(h => { (historyByExercise[h.workout_exercise_id] ||= []).push(h); });
 
-  return workoutExercises
-    .filter(we => historyByExercise[we.id]?.length)
-    .map(we => {
-      const reps = parseRepsAvg(we.reps);
-      const sets = parseNum(we.sets) || 1;
-      const points = historyByExercise[we.id].map(h => {
-        const load = parseNum(h.load_value);
-        return {
-          date: h.logged_on,
-          load,
-          volume: (load != null && reps != null) ? load * reps * sets : null,
-        };
-      });
-      return { name: we.exercises?.name || 'Exercício', sets, reps, points };
+  return workoutExercises.map(we => {
+    const reps = parseRepsAvg(we.reps);
+    const sets = parseNum(we.sets) || 1;
+    const points = (historyByExercise[we.id] || []).map(h => {
+      const load = parseNum(h.load_value);
+      return {
+        date: h.logged_on,
+        load,
+        volume: (load != null && reps != null) ? load * reps * sets : null,
+      };
     });
+    return { id: we.id, name: we.exercises?.name || 'Exercício', sets, reps, points };
+  });
 }
 
 function renderExerciseCharts(ex) {
