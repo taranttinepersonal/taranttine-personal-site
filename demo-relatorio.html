@@ -97,6 +97,42 @@ body { padding: 20px; }
 
 .report-footer { text-align: center; font-size: 10px; color: var(--report-muted); margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--report-border); }
 
+/* ===== Navegação entre abas (Avaliação / Ficha de Treino) ===== */
+.page-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.page-tab-btn {
+  flex: 1; padding: 12px; border-radius: 10px; border: 1.5px solid var(--border2);
+  background: var(--black2); color: var(--muted); font-weight: 700; font-size: 13px;
+  font-family: 'Inter', sans-serif; cursor: pointer; text-align: center;
+}
+.page-tab-btn.active { background: var(--green); color: var(--black); border-color: var(--green); }
+.page-view { display: none; }
+.page-view.active { display: block; }
+
+/* ===== Ficha de treino (dias, exercícios) ===== */
+.wk-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.wk-tab-btn {
+  flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--report-border);
+  background: var(--black3); color: var(--report-muted); font-weight: 700; font-size: 12.5px;
+  font-family: 'Inter', sans-serif; cursor: pointer; text-align: center;
+}
+.wk-tab-btn.active { background: var(--report-accent); color: var(--black); border-color: var(--report-accent); }
+.wk-day { display: none; }
+.wk-day.active { display: block; }
+.wk-ex-card { background: var(--black3); border: 1px solid var(--report-border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.wk-ex-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 8px; }
+.wk-ex-name { font-weight: 700; font-size: 14px; color: var(--white); }
+.wk-ex-group { font-size: 10.5px; color: var(--report-muted); }
+.wk-check {
+  width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--report-border);
+  display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--faint); flex: none;
+}
+.wk-check.checked { background: var(--report-accent); border-color: var(--report-accent); color: var(--black); }
+.wk-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+.wk-stat-box { background: var(--black2); border-radius: 6px; padding: 6px 4px; text-align: center; }
+.wk-stat-val { font-weight: 700; font-size: 13px; color: var(--white); }
+.wk-stat-lbl { font-size: 9px; color: var(--report-muted); text-transform: uppercase; letter-spacing: .03em; margin-top: 1px; }
+.wk-tip { font-size: 11.5px; color: var(--report-muted); background: var(--black2); border-radius: 6px; padding: 6px 8px; margin-top: 4px; }
+
 @media print {
   .no-print { display: none !important; }
   body { background: #fff !important; padding: 0 !important; }
@@ -116,6 +152,12 @@ body { padding: 20px; }
   </div>
   <button class="demo-print-btn no-print" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
 
+  <div class="page-tabs no-print">
+    <button class="page-tab-btn active" onclick="showPage(event,'avaliacao')">📋 Avaliação</button>
+    <button class="page-tab-btn" onclick="showPage(event,'treino')">🏋 Ficha de Treino</button>
+  </div>
+
+  <div id="page-avaliacao" class="page-view active">
   <div class="report-doc">
     <div class="report-header">
       <img src="/app/icons/icon-192.png" class="report-logo" alt="Taranttine Personal">
@@ -227,6 +269,155 @@ body { padding: 20px; }
 
     <div class="report-footer">Taranttine Personal · taranttinepersonal.netlify.app · Modelo — dados fictícios</div>
   </div>
+  </div>
+
+  <div id="page-treino" class="page-view">
+  <div class="report-doc">
+    <div class="report-header">
+      <img src="/app/icons/icon-192.png" class="report-logo" alt="Taranttine Personal">
+      <div class="report-brand">TARANTTINE PERSONAL</div>
+      <div class="report-brand-sub">Ficha de Treino</div>
+    </div>
+
+    <div class="report-client-row">
+      <div><span class="report-label">Cliente</span><span class="report-value">Cliente Exemplo</span></div>
+      <div><span class="report-label">Objetivo</span><span class="report-value">Hipertrofia</span></div>
+      <div><span class="report-label">Nível</span><span class="report-value">Intermediário</span></div>
+    </div>
+
+    <div class="wk-tabs">
+      <button class="wk-tab-btn active" onclick="showDay(event,'A')">Treino A · Superior</button>
+      <button class="wk-tab-btn" onclick="showDay(event,'B')">Treino B · Inferior</button>
+    </div>
+
+    <div class="wk-day active" id="wkA">
+      <div class="wk-ex-card">
+        <div class="wk-ex-head">
+          <div><div class="wk-ex-name">Supino Reto</div><span class="wk-ex-group">Peitoral</span></div>
+          <div class="wk-check checked">✓</div>
+        </div>
+        <div class="wk-stats">
+          <div class="wk-stat-box"><div class="wk-stat-val">4</div><div class="wk-stat-lbl">Séries</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">10</div><div class="wk-stat-lbl">Reps</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">60s</div><div class="wk-stat-lbl">Descanso</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">Convenc.</div><div class="wk-stat-lbl">Método</div></div>
+        </div>
+        <div class="wk-tip">💡 Cotovelos a 45°, controle na descida</div>
+      </div>
+      <div class="wk-ex-card">
+        <div class="wk-ex-head">
+          <div><div class="wk-ex-name">Puxada Alta</div><span class="wk-ex-group">Costas</span></div>
+          <div class="wk-check checked">✓</div>
+        </div>
+        <div class="wk-stats">
+          <div class="wk-stat-box"><div class="wk-stat-val">4</div><div class="wk-stat-lbl">Séries</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">12</div><div class="wk-stat-lbl">Reps</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">45s</div><div class="wk-stat-lbl">Descanso</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">Convenc.</div><div class="wk-stat-lbl">Método</div></div>
+        </div>
+        <div class="wk-tip">💡 Puxe com as costas, não com os braços</div>
+      </div>
+      <div class="wk-ex-card">
+        <div class="wk-ex-head">
+          <div><div class="wk-ex-name">Desenvolvimento Ombro</div><span class="wk-ex-group">Ombro</span></div>
+          <div class="wk-check">✓</div>
+        </div>
+        <div class="wk-stats">
+          <div class="wk-stat-box"><div class="wk-stat-val">3</div><div class="wk-stat-lbl">Séries</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">12</div><div class="wk-stat-lbl">Reps</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">45s</div><div class="wk-stat-lbl">Descanso</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">Bi-set</div><div class="wk-stat-lbl">Método</div></div>
+        </div>
+        <div class="wk-tip">💡 Não hiperextenda a lombar</div>
+      </div>
+    </div>
+
+    <div class="wk-day" id="wkB">
+      <div class="wk-ex-card">
+        <div class="wk-ex-head">
+          <div><div class="wk-ex-name">Agachamento Livre</div><span class="wk-ex-group">Quadríceps / Glúteo</span></div>
+          <div class="wk-check">✓</div>
+        </div>
+        <div class="wk-stats">
+          <div class="wk-stat-box"><div class="wk-stat-val">4</div><div class="wk-stat-lbl">Séries</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">10</div><div class="wk-stat-lbl">Reps</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">90s</div><div class="wk-stat-lbl">Descanso</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">Convenc.</div><div class="wk-stat-lbl">Método</div></div>
+        </div>
+        <div class="wk-tip">💡 Joelho alinhado com a ponta do pé</div>
+      </div>
+      <div class="wk-ex-card">
+        <div class="wk-ex-head">
+          <div><div class="wk-ex-name">Cadeira Extensora</div><span class="wk-ex-group">Quadríceps</span></div>
+          <div class="wk-check">✓</div>
+        </div>
+        <div class="wk-stats">
+          <div class="wk-stat-box"><div class="wk-stat-val">3</div><div class="wk-stat-lbl">Séries</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">15</div><div class="wk-stat-lbl">Reps</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">45s</div><div class="wk-stat-lbl">Descanso</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">Drop-set</div><div class="wk-stat-lbl">Método</div></div>
+        </div>
+        <div class="wk-tip">💡 Contração no topo por 1s</div>
+      </div>
+      <div class="wk-ex-card">
+        <div class="wk-ex-head">
+          <div><div class="wk-ex-name">Elevação Pélvica</div><span class="wk-ex-group">Glúteo</span></div>
+          <div class="wk-check">✓</div>
+        </div>
+        <div class="wk-stats">
+          <div class="wk-stat-box"><div class="wk-stat-val">4</div><div class="wk-stat-lbl">Séries</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">15</div><div class="wk-stat-lbl">Reps</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">45s</div><div class="wk-stat-lbl">Descanso</div></div>
+          <div class="wk-stat-box"><div class="wk-stat-val">Convenc.</div><div class="wk-stat-lbl">Método</div></div>
+        </div>
+        <div class="wk-tip">💡 Aperte o glúteo no topo, evite hiperextensão lombar</div>
+      </div>
+    </div>
+
+    <div class="report-section-title">Evolução — Carga (Supino Reto)</div>
+    <div class="report-chart">
+      <svg viewBox="0 0 600 140" style="width:100%;height:140px;">
+        <polyline points="0,125 150,88.3 300,70 450,51.7 600,15" fill="none" stroke="var(--report-accent)" stroke-width="2"/>
+        <circle cx="0" cy="125" r="3" fill="var(--report-accent)"/>
+        <circle cx="150" cy="88.3" r="3" fill="var(--report-accent)"/>
+        <circle cx="300" cy="70" r="3" fill="var(--report-accent)"/>
+        <circle cx="450" cy="51.7" r="3" fill="var(--report-accent)"/>
+        <circle cx="600" cy="15" r="3" fill="var(--report-accent)"/>
+      </svg>
+      <div class="report-chart-dates"><span>03/06/2026 · 40kg</span><span>15/07/2026 · 55kg</span></div>
+    </div>
+
+    <div class="report-section-title">Evolução — Volume Total (Treino A)</div>
+    <div class="report-chart">
+      <svg viewBox="0 0 600 140" style="width:100%;height:140px;">
+        <polyline points="0,125 150,104.6 300,84.3 450,51.7 600,15" fill="none" stroke="var(--report-accent)" stroke-width="2"/>
+        <circle cx="0" cy="125" r="3" fill="var(--report-accent)"/>
+        <circle cx="150" cy="104.6" r="3" fill="var(--report-accent)"/>
+        <circle cx="300" cy="84.3" r="3" fill="var(--report-accent)"/>
+        <circle cx="450" cy="51.7" r="3" fill="var(--report-accent)"/>
+        <circle cx="600" cy="15" r="3" fill="var(--report-accent)"/>
+      </svg>
+      <div class="report-chart-dates"><span>03/06/2026 · 3.200kg</span><span>15/07/2026 · 4.550kg</span></div>
+    </div>
+
+    <div class="report-footer">Taranttine Personal · taranttinepersonal.netlify.app · Modelo — dados fictícios</div>
+  </div>
+  </div>
 </div>
+
+<script>
+function showPage(event, id) {
+  document.querySelectorAll('.page-view').forEach(function (el) { el.classList.remove('active'); });
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.page-tab-btn').forEach(function (btn) { btn.classList.remove('active'); });
+  event.currentTarget.classList.add('active');
+}
+function showDay(event, id) {
+  document.querySelectorAll('.wk-day').forEach(function (el) { el.classList.remove('active'); });
+  document.getElementById('wk' + id).classList.add('active');
+  document.querySelectorAll('.wk-tab-btn').forEach(function (btn) { btn.classList.remove('active'); });
+  event.currentTarget.classList.add('active');
+}
+</script>
 </body>
 </html>
