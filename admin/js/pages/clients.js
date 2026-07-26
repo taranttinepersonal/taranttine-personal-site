@@ -2,7 +2,10 @@ import { supabase } from '../../../app/js/supabaseClient.js';
 
 export async function renderClients(main) {
   main.innerHTML = `
-    <div class="admin-header"><div class="admin-title">Clientes</div></div>
+    <div class="admin-header">
+      <div class="admin-title">Clientes</div>
+      <a href="#/cliente/novo" class="admin-btn primary">+ Novo Cliente</a>
+    </div>
     <div id="clients-list" class="admin-empty">Carregando...</div>
   `;
 
@@ -30,7 +33,7 @@ export async function renderClients(main) {
   }
 
   if (!clients.length) {
-    list.innerHTML = `<div class="admin-empty">Nenhum cliente cadastrado ainda.<br>Peça para eu criar o acesso de um cliente novo.</div>`;
+    list.innerHTML = `<div class="admin-empty">Nenhum cliente cadastrado ainda.<br>Toque em "+ Novo Cliente" para criar o primeiro acesso.</div>`;
     return;
   }
 

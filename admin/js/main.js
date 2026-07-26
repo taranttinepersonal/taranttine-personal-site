@@ -2,6 +2,7 @@ import { route, setNotFound, startRouter, navigate } from '../../app/js/router.j
 import { getSession, getProfile, onAuthStateChange, signOut } from '../../app/js/auth.js';
 import { renderLogin } from '../../app/js/pages/login.js';
 import { renderClients } from './pages/clients.js';
+import { renderNewClient } from './pages/newClient.js';
 import { renderWorkoutEditor } from './pages/workoutEditor.js';
 import { renderAnnouncements } from './pages/announcements.js';
 import { renderDiet } from './pages/diet.js';
@@ -82,6 +83,12 @@ route('/clientes', async () => {
   if (!(await requireTrainer())) return;
   const main = renderShell('/clientes');
   renderClients(main);
+});
+
+route('/cliente/novo', async () => {
+  if (!(await requireTrainer())) return;
+  const main = renderShell('/clientes');
+  renderNewClient(main);
 });
 
 route('/avisos', async () => {
