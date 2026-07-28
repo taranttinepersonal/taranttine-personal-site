@@ -435,6 +435,85 @@ section + section { padding-top: 0; }
   margin-bottom: 36px;
 }
 
+/* ── APP SHOWCASE ── */
+.phones-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-top: 8px;
+}
+
+.phone-mockup {
+  text-align: center;
+  animation: phone-float 5s ease-in-out infinite;
+}
+
+@keyframes phone-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.phone-frame {
+  width: 240px;
+  height: 500px;
+  border-radius: 34px;
+  background: linear-gradient(160deg, #1c1c1c, #0a0a0a);
+  border: 1px solid var(--border2);
+  padding: 12px;
+  position: relative;
+  box-shadow: 0 30px 70px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.phone-frame::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 74px;
+  height: 16px;
+  background: #050505;
+  border-radius: 0 0 14px 14px;
+  z-index: 2;
+}
+
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.phone-screen iframe {
+  width: 480px;
+  height: 1058px;
+  border: none;
+  pointer-events: none;
+  transform: scale(0.45);
+  transform-origin: top left;
+}
+
+.phone-caption {
+  margin-top: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--silver-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-mockup { animation: none; }
+}
+
+@media (max-width: 560px) {
+  .phone-frame { width: 208px; height: 434px; }
+  .phone-screen iframe { width: 416px; height: 918px; transform: scale(0.39); }
+}
+
 /* ── FOR WHO ── */
 .forwhom-list {
   display: flex;
@@ -1158,6 +1237,34 @@ footer {
           <div class="step-title">Resultado que você vê e sente</div>
           <div class="step-desc">O objetivo é evolução real e mensurável — força, composição e performance alinhadas com o que você quer.</div>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- APP SHOWCASE -->
+<section class="app-showcase">
+  <div class="container">
+    <div class="section-label">O App</div>
+    <h2 class="section-title">Seu treino e sua evolução, sempre à mão</h2>
+    <p class="section-desc">Ficha de treino, carga, fotos e avaliação postural — tudo organizado num app só seu, sem planilha, sem papel.</p>
+
+    <div class="phones-wrap">
+      <div class="phone-mockup" style="animation-delay:0s">
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <iframe src="/demo-relatorio.html?mockup=1&tab=treino" loading="lazy" title="Ficha de treino"></iframe>
+          </div>
+        </div>
+        <div class="phone-caption">Ficha de Treino</div>
+      </div>
+      <div class="phone-mockup" style="animation-delay:.6s">
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <iframe src="/demo-relatorio.html?mockup=1" loading="lazy" title="Avaliação física"></iframe>
+          </div>
+        </div>
+        <div class="phone-caption">Avaliação Física</div>
       </div>
     </div>
   </div>

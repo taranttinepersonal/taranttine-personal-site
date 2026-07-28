@@ -10,6 +10,10 @@
 <style>
 body { padding: 20px; }
 .demo-wrap { max-width: 480px; margin: 0 auto; }
+html.is-mockup body { padding: 0; }
+html.is-mockup .no-print,
+html.is-mockup .page-tabs { display: none !important; }
+html.is-mockup .report-doc { border-radius: 0; border: none; }
 .demo-banner {
   background: rgba(0,184,148,0.08); border: 1px solid rgba(0,184,148,0.3); border-radius: 10px;
   padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: var(--green); line-height: 1.5; text-align: center;
@@ -418,6 +422,21 @@ function showDay(event, id) {
   document.querySelectorAll('.wk-tab-btn').forEach(function (btn) { btn.classList.remove('active'); });
   event.currentTarget.classList.add('active');
 }
+
+// Suporte a embed decorativo (usado nos mockups de celular da home):
+// ?mockup=1 esconde o banner/botão de imprimir/nav de abas; &tab=treino abre direto na Ficha de Treino.
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('mockup') === '1') {
+    document.documentElement.classList.add('is-mockup');
+  }
+  if (params.get('tab') === 'treino') {
+    document.querySelectorAll('.page-view').forEach(function (el) { el.classList.remove('active'); });
+    document.getElementById('page-treino').classList.add('active');
+    document.querySelectorAll('.page-tab-btn').forEach(function (btn) { btn.classList.remove('active'); });
+    document.querySelectorAll('.page-tab-btn')[1].classList.add('active');
+  }
+})();
 </script>
 </body>
 </html>
