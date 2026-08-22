@@ -20,15 +20,14 @@ export async function renderWorkout(session) {
 
   supabase.rpc('touch_last_active').then(() => {});
 
-  const { data: profile } = await supabase
-    .from('profiles').select('full_name, birth_date, show_gifs, show_cycle_mode').eq('id', clientId).single();
-
-  const { data: program, error: programError } = await supabase
-    .from('workout_programs')
-    .select('id, title, subtitle, health_note')
-    .eq('client_id', clientId)
-    .eq('is_active', true)
-    .single();
+  // profile, program and diet only depend on clientId — fetch them together
+  // instead of waiting on each other, since every round trip here delays
+  // the first paint of the workout screen.
+  const [{ data: profile }, { data: program, error: programError }, diet] = await Promise.all([
+    supabase.from('profiles').select('full_name, birth_date, show_gifs, show_cycle_mode').eq('id', clientId).single(),
+    supabase.from('workout_programs').select('id, title, subtitle, health_note').eq('client_id', clientId).eq('is_active', true).single(),
+    fetchVisibleDiet(clientId),
+  ]);
 
   if (programError || !program) {
     root.innerHTML = `
@@ -48,25 +47,27 @@ export async function renderWorkout(session) {
 
   const dayIds = days.map(d => d.id);
 
-  const { data: sections } = await supabase
-    .from('workout_sections')
-    .select('id, workout_day_id, title, icon, sort_order')
-    .in('workout_day_id', dayIds)
-    .order('sort_order');
-
-  const { data: workoutExercises } = await supabase
-    .from('workout_exercises')
-    .select(`
-      id, workout_day_id, section_id, sets, reps, rest_seconds, method, tip, display_group, sort_order,
-      exercises ( name, gif_path, muscle_groups ( name ) )
-    `)
-    .in('workout_day_id', dayIds)
-    .order('sort_order');
+  const [{ data: sections }, { data: workoutExercises }] = await Promise.all([
+    supabase
+      .from('workout_sections')
+      .select('id, workout_day_id, title, icon, sort_order')
+      .in('workout_day_id', dayIds)
+      .order('sort_order'),
+    supabase
+      .from('workout_exercises')
+      .select(`
+        id, workout_day_id, section_id, sets, reps, rest_seconds, method, tip, display_group, sort_order,
+        exercises ( name, gif_path, muscle_groups ( name ) )
+      `)
+      .in('workout_day_id', dayIds)
+      .order('sort_order'),
+  ]);
 
   const exerciseIds = workoutExercises.map(we => we.id);
-  const historyByExercise = await fetchHistoryForProgram(clientId, exerciseIds);
-  const completedToday = await fetchCompletions(clientId, exerciseIds);
-  const diet = await fetchVisibleDiet(clientId);
+  const [historyByExercise, completedToday] = await Promise.all([
+    fetchHistoryForProgram(clientId, exerciseIds),
+    fetchCompletions(clientId, exerciseIds),
+  ]);
 
   const sectionsByDay = groupBy(sections, 'workout_day_id');
   const exercisesByDay = groupBy(workoutExercises, 'workout_day_id');
