@@ -740,6 +740,35 @@ section + section { padding-top: 0; }
   margin-bottom: 20px;
 }
 
+.plan-bonus {
+  font-size: 12px;
+  color: var(--silver);
+  background: rgba(200,200,200,0.06);
+  border: 1px dashed var(--border2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 20px;
+}
+
+.bonus-old {
+  color: var(--faint);
+  text-decoration: line-through;
+  margin-left: 4px;
+}
+
+.bonus-free {
+  color: var(--silver);
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.plan-guarantee-note {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 12px;
+}
+
 .plan-features {
   list-style: none;
   display: flex;
@@ -1267,6 +1296,10 @@ footer {
         <div class="phone-caption">Avaliação Física</div>
       </div>
     </div>
+
+    <div style="text-align:center;margin-top:32px">
+      <a href="/demo-relatorio.html" target="_blank" class="btn-ghost" style="display:inline-flex">Ver exemplo completo em tela cheia →</a>
+    </div>
   </div>
 </section>
 
@@ -1289,8 +1322,10 @@ footer {
       <div class="plan-card">
         <div class="plan-name">Mensal</div>
         <div class="plan-duration">À distância · 30 dias</div>
+        <div class="plan-price-old">R$ 180</div>
         <div class="plan-price">R$ 99<span style="font-size:18px;font-weight:400">/mês</span></div>
-        <div class="plan-price-note" style="margin-bottom:20px">treino online · sem sessão presencial</div>
+        <div class="plan-price-note" style="margin-bottom:14px">treino online · sem sessão presencial</div>
+        <div class="plan-bonus">🎁 Guia Prático de Bolso (acesso vitalício)<span class="bonus-old">R$ 150,00</span><span class="bonus-free">Grátis</span></div>
         <ul class="plan-features">
           <li class="plan-feature">30 dias de acompanhamento online</li>
           <li class="plan-feature">Anamnese e análise do perfil</li>
@@ -1301,15 +1336,18 @@ footer {
           <li class="plan-feature">Acesso direto via WhatsApp</li>
         </ul>
         <a href="anamnese.html" class="btn-ghost" style="width:100%;justify-content:center">COMEÇAR AGORA →</a>
+        <div class="plan-guarantee-note">🛡️ 7 dias de garantia — devolução total</div>
       </div>
 
       <div class="plan-card featured">
         <div class="plan-badge">⭐ MAIS ESCOLHIDO</div>
         <div class="plan-name">Trimestral</div>
         <div class="plan-duration">À distância · 90 dias</div>
+        <div class="plan-price-old">R$ 297 (3x mensal)</div>
         <div class="plan-price">R$ 267<span style="font-size:18px;font-weight:400">/3 meses</span></div>
         <div class="plan-price-note">pagamento único</div>
         <div class="plan-economy">💰 Economia de R$ 30 vs. mensal</div>
+        <div class="plan-bonus">🎁 Guia Prático de Bolso (acesso vitalício)<span class="bonus-old">R$ 150,00</span><span class="bonus-free">Grátis</span></div>
         <ul class="plan-features">
           <li class="plan-feature">90 dias de acompanhamento online</li>
           <li class="plan-feature">3 revisões completas do treino</li>
@@ -1321,6 +1359,7 @@ footer {
           <li class="plan-feature">Acesso direto via WhatsApp</li>
         </ul>
         <a href="anamnese.html" class="btn-chrome" style="width:100%">COMEÇAR AGORA →</a>
+        <div class="plan-guarantee-note">🛡️ 7 dias de garantia — devolução total</div>
       </div>
 
     </div>
@@ -1332,7 +1371,8 @@ footer {
         <div class="plan-name">Mensal Híbrido</div>
         <div class="plan-duration">1x sessão presencial/semana · 30 dias</div>
         <div class="plan-price">R$ 400<span style="font-size:18px;font-weight:400">/mês</span></div>
-        <div class="plan-price-note" style="margin-bottom:20px">treino online + presença semanal</div>
+        <div class="plan-price-note" style="margin-bottom:14px">treino online + presença semanal</div>
+        <div class="plan-bonus">🎁 Guia Prático de Bolso (acesso vitalício)<span class="bonus-old">R$ 150,00</span><span class="bonus-free">Grátis</span></div>
         <ul class="plan-features">
           <li class="plan-feature">30 dias de acompanhamento</li>
           <li class="plan-feature">1 sessão presencial por semana (4 sessões)</li>
@@ -1344,6 +1384,7 @@ footer {
           <li class="plan-feature">Acesso direto via WhatsApp</li>
         </ul>
         <a href="anamnese.html" class="btn-ghost" style="width:100%;justify-content:center">COMEÇAR AGORA →</a>
+        <div class="plan-guarantee-note">🛡️ 7 dias de garantia — devolução total</div>
       </div>
 
       <div class="plan-card featured">
@@ -1353,6 +1394,7 @@ footer {
         <div class="plan-price">R$ 1.100<span style="font-size:18px;font-weight:400">/3 meses</span></div>
         <div class="plan-price-note">pagamento único</div>
         <div class="plan-economy">💰 Economia de R$ 100 vs. mensal</div>
+        <div class="plan-bonus">🎁 Guia Prático de Bolso (acesso vitalício)<span class="bonus-old">R$ 150,00</span><span class="bonus-free">Grátis</span></div>
         <ul class="plan-features">
           <li class="plan-feature">90 dias de acompanhamento</li>
           <li class="plan-feature">1 sessão presencial por semana (12 sessões)</li>
@@ -1365,6 +1407,7 @@ footer {
           <li class="plan-feature">Acesso direto via WhatsApp</li>
         </ul>
         <a href="anamnese.html" class="btn-chrome" style="width:100%">COMEÇAR AGORA →</a>
+        <div class="plan-guarantee-note">🛡️ 7 dias de garantia — devolução total</div>
       </div>
 
     </div>
