@@ -769,6 +769,38 @@ section + section { padding-top: 0; }
   margin-top: 12px;
 }
 
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .testimonials-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.testimonial-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: relative;
+}
+
+.testimonial-quote {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.testimonial-author {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--silver);
+}
+
 .plan-features {
   list-style: none;
   display: flex;
@@ -1299,6 +1331,32 @@ footer {
 
     <div style="text-align:center;margin-top:32px">
       <a href="/demo-relatorio.html" target="_blank" class="btn-ghost" style="display:inline-flex">Ver exemplo completo em tela cheia →</a>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section>
+  <div class="container">
+    <div class="section-label">Depoimentos</div>
+    <h2 class="section-title">Quem treina comigo, fala por mim</h2>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"O que mais gosto no Taranttine são os treinos realmente personalizados, que respeitam minha individualidade, minhas necessidades e minha rotina corrida. Além de cuidar da minha saúde e condicionamento, os treinos são direcionados para me ajudar na prática do beach tennis. Isso faz toda a diferença para mim!"</div>
+        <div class="testimonial-author">Cristiane Caetano</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"O que melhorou? Minha força, minha disposição, minha autoestima e, principalmente, minha confiança em mim mesma! Tudo isso graças à dedicação, incentivo e profissionalismo do meu personal."</div>
+        <div class="testimonial-author">Beth</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"São três meses de treino, e o que mais nos chama atenção não é só a evolução física, é ver o quanto ele está mais disposto no dia a dia e mais interessado em cuidar da própria saúde."</div>
+        <div class="testimonial-author">Rose — mãe do Nicolas, 15 anos</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"O que mais me impressiona é o resultado que consegui em tão pouco tempo. O diferencial é entender que não é só sobre malhar, mas saber o que fazer, como combinar os exercícios e como distribuir os treinos durante a semana. Sinto que cada treino tem um propósito."</div>
+        <div class="testimonial-author">Nadja Araujo</div>
+      </div>
     </div>
   </div>
 </section>
