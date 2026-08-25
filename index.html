@@ -772,7 +772,7 @@ section + section { padding-top: 0; }
 .testimonials-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 20px;
 }
 
 @media (min-width: 640px) {
@@ -780,25 +780,90 @@ section + section { padding-top: 0; }
 }
 
 .testimonial-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 24px;
+  max-width: 420px;
+}
+
+.chat-bubble {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 4px 16px 16px 16px;
+  padding: 14px 16px 10px;
   position: relative;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.chat-bubble::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -7px;
+  width: 14px;
+  height: 14px;
+  background: var(--surface2);
+  border-left: 1px solid var(--border2);
+  border-top: 1px solid var(--border2);
+  border-radius: 3px 0 0 0;
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.chat-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--chrome);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: #080808;
+  flex-shrink: 0;
+}
+
+.chat-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--silver);
 }
 
 .testimonial-quote {
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.55;
   color: var(--text);
-  margin-bottom: 16px;
+}
+
+.chat-meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.chat-time {
+  font-size: 10px;
+  color: var(--faint);
+}
+
+.chat-check {
+  font-size: 12px;
+  color: #4FC3F7;
+  letter-spacing: -2px;
 }
 
 .testimonial-author {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: var(--silver);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 10px;
+  padding-left: 4px;
 }
 
 .plan-features {
@@ -1342,20 +1407,44 @@ footer {
     <h2 class="section-title">Quem treina comigo, fala por mim</h2>
     <div class="testimonials-grid">
       <div class="testimonial-card">
-        <div class="testimonial-quote">"O que mais gosto no Taranttine são os treinos realmente personalizados, que respeitam minha individualidade, minhas necessidades e minha rotina corrida. Além de cuidar da minha saúde e condicionamento, os treinos são direcionados para me ajudar na prática do beach tennis. Isso faz toda a diferença para mim!"</div>
-        <div class="testimonial-author">Cristiane Caetano</div>
+        <div class="chat-bubble">
+          <div class="chat-header">
+            <div class="chat-avatar">C</div>
+            <div class="chat-name">Cristiane Caetano</div>
+          </div>
+          <div class="testimonial-quote">O que mais gosto no Taranttine são os treinos realmente personalizados, que respeitam minha individualidade, minhas necessidades e minha rotina corrida. Além de cuidar da minha saúde e condicionamento, os treinos são direcionados para me ajudar na prática do beach tennis. Isso faz toda a diferença para mim!</div>
+          <div class="chat-meta"><span class="chat-time">11:44</span><span class="chat-check">✓✓</span></div>
+        </div>
       </div>
       <div class="testimonial-card">
-        <div class="testimonial-quote">"O que melhorou? Minha força, minha disposição, minha autoestima e, principalmente, minha confiança em mim mesma! Tudo isso graças à dedicação, incentivo e profissionalismo do meu personal."</div>
-        <div class="testimonial-author">Beth</div>
+        <div class="chat-bubble">
+          <div class="chat-header">
+            <div class="chat-avatar">B</div>
+            <div class="chat-name">Beth</div>
+          </div>
+          <div class="testimonial-quote">O que melhorou? 💪✨ Minha força, minha disposição, minha autoestima e, principalmente, minha confiança em mim mesma! Tudo isso graças à dedicação, incentivo e profissionalismo do meu personal.</div>
+          <div class="chat-meta"><span class="chat-time">12:28</span><span class="chat-check">✓✓</span></div>
+        </div>
       </div>
       <div class="testimonial-card">
-        <div class="testimonial-quote">"São três meses de treino, e o que mais nos chama atenção não é só a evolução física, é ver o quanto ele está mais disposto no dia a dia e mais interessado em cuidar da própria saúde."</div>
-        <div class="testimonial-author">Rose — mãe do Nicolas, 15 anos</div>
+        <div class="chat-bubble">
+          <div class="chat-header">
+            <div class="chat-avatar">R</div>
+            <div class="chat-name">Rose — mãe do Nicolas, 15 anos</div>
+          </div>
+          <div class="testimonial-quote">São três meses de treino, e o que mais nos chama atenção não é só a evolução física, é ver o quanto ele está mais disposto no dia a dia e mais interessado em cuidar da própria saúde.</div>
+          <div class="chat-meta"><span class="chat-time">12:29</span><span class="chat-check">✓✓</span></div>
+        </div>
       </div>
       <div class="testimonial-card">
-        <div class="testimonial-quote">"O que mais me impressiona é o resultado que consegui em tão pouco tempo. O diferencial é entender que não é só sobre malhar, mas saber o que fazer, como combinar os exercícios e como distribuir os treinos durante a semana. Sinto que cada treino tem um propósito."</div>
-        <div class="testimonial-author">Nadja Araujo</div>
+        <div class="chat-bubble">
+          <div class="chat-header">
+            <div class="chat-avatar">N</div>
+            <div class="chat-name">Nadja Araujo</div>
+          </div>
+          <div class="testimonial-quote">O que mais me impressiona é o resultado que consegui em tão pouco tempo. O diferencial é entender que não é só sobre malhar, mas saber o que fazer, como combinar os exercícios e como distribuir os treinos durante a semana. Sinto que cada treino tem um propósito.</div>
+          <div class="chat-meta"><span class="chat-time">11:29</span><span class="chat-check">✓✓</span></div>
+        </div>
       </div>
     </div>
   </div>
