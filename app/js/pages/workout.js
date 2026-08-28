@@ -56,7 +56,7 @@ export async function renderWorkout(session) {
     supabase
       .from('workout_exercises')
       .select(`
-        id, workout_day_id, section_id, sets, reps, rest_seconds, method, tip, display_group, sort_order,
+        id, workout_day_id, section_id, sets, reps, rest_seconds, method, tip, display_group, superset_group, sort_order,
         exercises ( name, gif_path, muscle_groups ( name ) )
       `)
       .in('workout_day_id', dayIds)
@@ -196,13 +196,9 @@ function renderDay(day, sections, exercises, historyByExercise, completedToday, 
     const section = sectionsById[sectionId];
     const cls = /ativa/i.test(section.title) ? 'section-atv' : 'section-main';
     html += `<div class="section-header ${cls}"><span class="section-icon">${section.icon || ''}</span>${escapeHtml(section.title)}</div>`;
-    for (const ex of bySection[sectionId]) {
-      html += renderExerciseCard(ex, day.id, historyByExercise[ex.id], completedToday.has(ex.id), showGifs);
-    }
+    html += renderExerciseList(bySection[sectionId], day.id, historyByExercise, completedToday, showGifs);
   }
-  for (const ex of noSection) {
-    html += renderExerciseCard(ex, day.id, historyByExercise[ex.id], completedToday.has(ex.id), showGifs);
-  }
+  html += renderExerciseList(noSection, day.id, historyByExercise, completedToday, showGifs);
 
   html += renderNutritionTip(dayIndex);
   html += `<button class="send-btn" data-send-day="${day.id}" data-day-label="${escapeHtml(day.label)}">📤 Enviar treino de hoje</button>`;
@@ -228,7 +224,41 @@ function renderNutritionTip(dayIndex) {
     </div>`;
 }
 
-function renderExerciseCard(ex, dayId, history, isDone, showGifs) {
+function renderExerciseList(exercises, dayId, historyByExercise, completedToday, showGifs) {
+  let html = '';
+  let i = 0;
+  while (i < exercises.length) {
+    const ex = exercises[i];
+    if (ex.superset_group) {
+      const group = [];
+      let j = i;
+      while (j < exercises.length && exercises[j].superset_group === ex.superset_group) {
+        group.push(exercises[j]);
+        j++;
+      }
+      if (group.length > 1) {
+        html += renderSupersetBlock(group, dayId, historyByExercise, completedToday, showGifs);
+        i = j;
+        continue;
+      }
+    }
+    html += renderExerciseCard(ex, dayId, historyByExercise[ex.id], completedToday.has(ex.id), showGifs);
+    i++;
+  }
+  return html;
+}
+
+function renderSupersetBlock(group, dayId, historyByExercise, completedToday, showGifs) {
+  let html = `<div class="superset-block"><div class="superset-label">🔗 Série Conjugada — sem descanso entre os exercícios</div>`;
+  group.forEach((ex, idx) => {
+    const holdRest = idx < group.length - 1;
+    html += renderExerciseCard(ex, dayId, historyByExercise[ex.id], completedToday.has(ex.id), showGifs, holdRest);
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderExerciseCard(ex, dayId, history, isDone, showGifs, holdRest = false) {
   const groupLabel = ex.display_group || ex.exercises?.muscle_groups?.name || '';
   const gifUrl = showGifs && ex.exercises?.gif_path ? exerciseGifUrl(ex.exercises.gif_path) : null;
   const historyText = renderHistoryText(history);
@@ -241,7 +271,7 @@ function renderExerciseCard(ex, dayId, history, isDone, showGifs) {
       <div class="ex-stats">
         <div class="stat-box"><div class="stat-val">${escapeHtml(ex.sets || '—')}</div><div class="stat-lbl">Séries</div></div>
         <div class="stat-box"><div class="stat-val">${escapeHtml(ex.reps || '—')}</div><div class="stat-lbl">Reps</div></div>
-        <div class="stat-box"><div class="stat-val">${ex.rest_seconds ? ex.rest_seconds + 's' : '—'}</div><div class="stat-lbl">Descanso</div></div>
+        <div class="stat-box"><div class="stat-val">${holdRest ? '→' : (ex.rest_seconds ? ex.rest_seconds + 's' : '—')}</div><div class="stat-lbl">${holdRest ? 'Direto' : 'Descanso'}</div></div>
         <div class="stat-box rir-box"><div class="stat-val">${escapeHtml(ex.method || '—')}</div><div class="stat-lbl">Método</div></div>
       </div>
       <input class="load-input" type="text" placeholder="Carga utilizada (kg)" data-load="${ex.id}">

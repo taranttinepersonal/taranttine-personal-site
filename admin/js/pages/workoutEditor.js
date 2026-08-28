@@ -54,7 +54,7 @@ export async function renderWorkoutEditor(main, clientId) {
     : { data: [] };
   const { data: workoutExercises } = dayIds.length
     ? await supabase.from('workout_exercises')
-        .select('id, workout_day_id, section_id, sets, reps, rest_seconds, method, tip, display_group, sort_order, exercises(name)')
+        .select('id, workout_day_id, section_id, sets, reps, rest_seconds, method, tip, display_group, superset_group, sort_order, exercises(name)')
         .in('workout_day_id', dayIds).order('sort_order')
     : { data: [] };
 
@@ -145,9 +145,12 @@ function renderDayBlock(day, sections, exercises) {
               <button class="admin-btn" data-remove-section="${section.id}" style="font-size:11px;padding:4px 8px;">Remover seção</button>
             </div>
             ${(exercisesBySection[section.id] || []).map(ex => `
-              <div class="admin-ex-row">
-                <span>${escapeHtml(ex.exercises?.name || '')} — ${escapeHtml(ex.sets || '')}x${escapeHtml(ex.reps || '')}</span>
-                <button class="admin-btn danger" data-remove-ex="${ex.id}" style="font-size:11px;padding:3px 7px;">Remover</button>
+              <div class="admin-ex-row"${ex.superset_group ? ` style="border-left:3px solid var(--gold, #b98d54);padding-left:8px;"` : ''}>
+                <span>${ex.superset_group ? `🔗 <b>${escapeHtml(ex.superset_group)}</b> · ` : ''}${escapeHtml(ex.exercises?.name || '')} — ${escapeHtml(ex.sets || '')}x${escapeHtml(ex.reps || '')}</span>
+                <span>
+                  <button class="admin-btn" data-edit-ex="${ex.id}" style="font-size:11px;padding:3px 7px;">Editar</button>
+                  <button class="admin-btn danger" data-remove-ex="${ex.id}" style="font-size:11px;padding:3px 7px;">Remover</button>
+                </span>
               </div>
             `).join('') || '<div class="admin-row-sub">Nenhum exercício ainda.</div>'}
             <button class="admin-btn" data-add-ex-to-section="${section.id}" style="margin-top:8px;font-size:11px;">+ Exercício</button>
@@ -197,6 +200,17 @@ function wireDayBlocks(main, clientId, programId, days) {
   main.querySelectorAll('[data-add-ex-to-section]').forEach(btn => {
     btn.addEventListener('click', () => openExercisePicker(main, clientId, btn.dataset.addExToSection));
   });
+
+  main.querySelectorAll('[data-edit-ex]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const { data: row } = await supabase
+        .from('workout_exercises')
+        .select('id, section_id, workout_day_id, exercise_id, sets, reps, rest_seconds, method, tip, display_group, superset_group, exercises(name, muscle_groups(name))')
+        .eq('id', btn.dataset.editEx).single();
+      if (!row) return;
+      openExerciseForm(main, clientId, row.section_id, row.workout_day_id, row.exercise_id, row.exercises, row);
+    });
+  });
 }
 
 async function openExercisePicker(main, clientId, sectionId) {
@@ -235,20 +249,21 @@ async function openExercisePicker(main, clientId, sectionId) {
   modal.querySelector('#ex-picker-cancel').addEventListener('click', () => document.body.removeChild(modal));
 }
 
-function openExerciseForm(main, clientId, sectionId, dayId, exerciseId, exercise) {
+function openExerciseForm(main, clientId, sectionId, dayId, exerciseId, exercise, existingRow) {
+  const isEdit = !!existingRow;
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;';
   modal.innerHTML = `
     <div class="admin-card admin-form" style="width:100%;max-width:360px;">
       <div class="admin-section-title" style="margin-top:0;">${escapeHtml(exercise.name)}</div>
       <div class="field-row">
-        <div><label>Séries</label><input type="text" id="f-sets" placeholder="4"></div>
-        <div><label>Reps</label><input type="text" id="f-reps" placeholder="8-10"></div>
+        <div><label>Séries</label><input type="text" id="f-sets" placeholder="4" value="${escapeHtml(existingRow?.sets || '')}"></div>
+        <div><label>Reps</label><input type="text" id="f-reps" placeholder="8-10" value="${escapeHtml(existingRow?.reps || '')}"></div>
       </div>
       <label>Descanso (segundos)</label>
-      <input type="number" id="f-rest">
+      <input type="number" id="f-rest" value="${existingRow?.rest_seconds ?? ''}">
       <label>Método / RIR</label>
-      <input type="text" id="f-method" list="method-options" placeholder="RIR 2, Tradicional, Ativação...">
+      <input type="text" id="f-method" list="method-options" placeholder="RIR 2, Tradicional, Ativação..." value="${escapeHtml(existingRow?.method || '')}">
       <datalist id="method-options">
         <option value="Tradicional">
         <option value="RIR 1">
@@ -277,31 +292,42 @@ function openExerciseForm(main, clientId, sectionId, dayId, exerciseId, exercise
         <option value="Série Gigante">
       </datalist>
       <label>Grupo (opcional, sobrescreve o padrão)</label>
-      <input type="text" id="f-group" placeholder="${escapeHtml(exercise.muscle_groups?.name || '')}">
+      <input type="text" id="f-group" placeholder="${escapeHtml(exercise.muscle_groups?.name || '')}" value="${escapeHtml(existingRow?.display_group || '')}">
+      <label>🔗 Conjugado — mesmo código em 2+ exercícios os une numa série sem descanso entre eles (ex: C1)</label>
+      <input type="text" id="f-superset" placeholder="Ex: C1 (deixe em branco se for exercício isolado)" value="${escapeHtml(existingRow?.superset_group || '')}">
       <label>Dica (opcional)</label>
-      <textarea id="f-tip"></textarea>
+      <textarea id="f-tip">${escapeHtml(existingRow?.tip || '')}</textarea>
       <div style="display:flex;gap:8px;margin-top:14px;">
         <button class="admin-btn" id="f-cancel" style="flex:1;">Cancelar</button>
-        <button class="admin-btn primary" id="f-save" style="flex:1;">Adicionar</button>
+        <button class="admin-btn primary" id="f-save" style="flex:1;">${isEdit ? 'Salvar' : 'Adicionar'}</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
   modal.querySelector('#f-cancel').addEventListener('click', () => document.body.removeChild(modal));
   modal.querySelector('#f-save').addEventListener('click', async () => {
-    const { data: existing } = await supabase.from('workout_exercises').select('id').eq('section_id', sectionId);
-    const { error } = await supabase.from('workout_exercises').insert({
-      workout_day_id: dayId,
-      section_id: sectionId,
-      exercise_id: exerciseId,
+    const payload = {
       sets: modal.querySelector('#f-sets').value.trim() || null,
       reps: modal.querySelector('#f-reps').value.trim() || null,
       rest_seconds: parseInt(modal.querySelector('#f-rest').value, 10) || null,
       method: modal.querySelector('#f-method').value.trim() || null,
       display_group: modal.querySelector('#f-group').value.trim() || null,
+      superset_group: modal.querySelector('#f-superset').value.trim() || null,
       tip: modal.querySelector('#f-tip').value.trim() || null,
-      sort_order: (existing || []).length,
-    });
+    };
+    let error;
+    if (isEdit) {
+      ({ error } = await supabase.from('workout_exercises').update(payload).eq('id', existingRow.id));
+    } else {
+      const { data: existing } = await supabase.from('workout_exercises').select('id').eq('section_id', sectionId);
+      ({ error } = await supabase.from('workout_exercises').insert({
+        workout_day_id: dayId,
+        section_id: sectionId,
+        exercise_id: exerciseId,
+        sort_order: (existing || []).length,
+        ...payload,
+      }));
+    }
     if (error) { alert('Erro: ' + error.message); return; }
     document.body.removeChild(modal);
     renderWorkoutEditor(main, clientId);
