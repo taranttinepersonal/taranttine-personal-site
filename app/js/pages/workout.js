@@ -249,7 +249,13 @@ function renderExerciseList(exercises, dayId, historyByExercise, completedToday,
 }
 
 function renderSupersetBlock(group, dayId, historyByExercise, completedToday, showGifs) {
-  let html = `<div class="superset-block"><div class="superset-label">🔗 Série Conjugada — sem descanso entre os exercícios</div>`;
+  // Um grupo é "circuito" (descanso curto entre exercícios) se algum item que não é o
+  // último tem rest_seconds definido; senão é "conjugado" de verdade (direto, sem descanso).
+  const isCircuit = group.some((ex, idx) => idx < group.length - 1 && ex.rest_seconds);
+  const label = isCircuit
+    ? '🔁 Circuito — descanso entre os exercícios'
+    : '🔗 Série Conjugada — sem descanso entre os exercícios';
+  let html = `<div class="superset-block"><div class="superset-label">${label}</div>`;
   group.forEach((ex, idx) => {
     const holdRest = idx < group.length - 1;
     html += renderExerciseCard(ex, dayId, historyByExercise[ex.id], completedToday.has(ex.id), showGifs, holdRest);
@@ -271,7 +277,7 @@ function renderExerciseCard(ex, dayId, history, isDone, showGifs, holdRest = fal
       <div class="ex-stats">
         <div class="stat-box"><div class="stat-val">${escapeHtml(ex.sets || '—')}</div><div class="stat-lbl">Séries</div></div>
         <div class="stat-box"><div class="stat-val">${escapeHtml(ex.reps || '—')}</div><div class="stat-lbl">Reps</div></div>
-        <div class="stat-box"><div class="stat-val">${holdRest ? '→' : (ex.rest_seconds ? ex.rest_seconds + 's' : '—')}</div><div class="stat-lbl">${holdRest ? 'Direto' : 'Descanso'}</div></div>
+        <div class="stat-box"><div class="stat-val">${holdRest && !ex.rest_seconds ? '→' : (ex.rest_seconds ? ex.rest_seconds + 's' : '—')}</div><div class="stat-lbl">${holdRest && !ex.rest_seconds ? 'Direto' : 'Descanso'}</div></div>
         <div class="stat-box rir-box"><div class="stat-val">${escapeHtml(ex.method || '—')}</div><div class="stat-lbl">Método</div></div>
       </div>
       <input class="load-input" type="text" placeholder="Carga utilizada (kg)" data-load="${ex.id}">
