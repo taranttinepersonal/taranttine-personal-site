@@ -996,8 +996,13 @@ function collectData(){
   const data = {};
   // Text inputs
   document.querySelectorAll('input[type=text],input[type=email],input[type=tel],input[type=number],input[type=date],textarea').forEach(el=>{
-    if(el.value && el.placeholder) data[el.placeholder] = el.value;
-    else if(el.value && el.type==='date') data['Data de nascimento'] = el.value;
+    if(el.type==='date'){
+      if(el.value) data['Data de nascimento'] = el.value;
+      return;
+    }
+    if(!el.value) return;
+    const lbl = el.closest('.form-group')?.querySelector('label')?.textContent?.trim().replace(/\s*\*$/,'');
+    data[lbl || el.placeholder] = el.value;
   });
   // Selects
   document.querySelectorAll('select').forEach(el=>{
