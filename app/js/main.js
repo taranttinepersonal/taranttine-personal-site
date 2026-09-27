@@ -5,6 +5,7 @@ import { renderWorkout } from './pages/workout.js';
 import { renderProgress } from './pages/progresso.js';
 import { renderReferrals } from './pages/indicacao.js';
 import { renderDiet } from './pages/dieta.js';
+import { renderAnamnese } from './pages/anamnese.js';
 
 // The trainer logs in through this same /app/ form (Supabase's redirect
 // allow-list only reliably resolves to /app/, not /admin/, regardless of
@@ -54,6 +55,12 @@ route('/dieta', async () => {
   const session = await getSession();
   if (!session) return navigate('/login');
   renderDiet(session);
+});
+
+route('/anamnese', async () => {
+  const session = await getSession();
+  if (!session) return navigate('/login');
+  renderAnamnese(session);
 });
 
 setNotFound(() => navigate('/'));

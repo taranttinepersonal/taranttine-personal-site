@@ -145,3 +145,21 @@
       repeating-linear-gradient(90deg, rgba(0,120,100,0.5) 0, rgba(0,120,100,0.5) 1px, transparent 1px, transparent 24px);
   }
 }
+
+/* Mesma paleta clara do @media print, aplicada via classe para a captura do html2canvas ao gerar PDF */
+.report-doc.pdf-export {
+  --report-bg: #ffffff;
+  --report-border: #ddd;
+  --report-text: #1a1a1a;
+  --report-muted: #666;
+  border: none;
+}
+.report-doc.pdf-export .report-brand,
+.report-doc.pdf-export .report-value { color: #111 !important; }
+.report-doc.pdf-export .report-bar-track,
+.report-doc.pdf-export .report-chart { background: #eee !important; }
+.report-doc.pdf-export .postural-grid-overlay {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,120,100,0.5) 0, rgba(0,120,100,0.5) 1px, transparent 1px, transparent 24px),
+    repeating-linear-gradient(90deg, rgba(0,120,100,0.5) 0, rgba(0,120,100,0.5) 1px, transparent 1px, transparent 24px);
+}

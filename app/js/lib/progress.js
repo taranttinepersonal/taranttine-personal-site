@@ -1,5 +1,12 @@
 import { supabase } from '../supabaseClient.js';
 
+export const MEASUREMENT_FIELDS = [
+  { key: 'cintura', label: 'Cintura (cm)' },
+  { key: 'quadril', label: 'Quadril (cm)' },
+  { key: 'braco', label: 'Braço (cm)' },
+  { key: 'coxa', label: 'Coxa (cm)' },
+];
+
 export async function fetchEntries(clientId) {
   const { data, error } = await supabase
     .from('progress_entries')

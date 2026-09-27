@@ -3,6 +3,7 @@ import { SKINFOLD_SITES, sumSkinfolds, calcBodyFat } from '../../../app/js/lib/s
 import {
   FORCA_EXERCICIOS, scoreForcaRelativa, computeTemporalScores, average, classificar,
 } from '../../../app/js/lib/trainingLevel.js';
+import { fetchEntries, saveEntry, uploadPhoto, MEASUREMENT_FIELDS } from '../../../app/js/lib/progress.js';
 
 const TECNICA_EXERCICIOS = [
   { key: 'supino', label: 'Supino (empurrar)' },
@@ -38,18 +39,44 @@ const BIOIMPEDANCE_FIELDS = [
   { key: 'taxa_metabolica_basal', label: 'Taxa Metabólica Basal (kcal)', step: '1' },
 ];
 
+const ANAMNESE_FIELDS = [
+  { key: 'Descreva sua meta em detalhes', label: 'Meta em detalhes', type: 'textarea' },
+  { key: 'Objetivo principal', label: 'Objetivo principal' },
+  { key: 'Medicamentos em uso', label: 'Medicamentos em uso' },
+  { key: 'Cirurgias ou acidentes relevantes', label: 'Cirurgias ou acidentes relevantes' },
+  { key: 'Doenças diagnosticadas', label: 'Doenças diagnosticadas' },
+  { key: 'Regiões com lesão ou dor', label: 'Regiões com lesão ou dor' },
+  { key: 'Intensidade da dor (0 = sem dor · 10 = máxima)', label: 'Intensidade da dor (0-10)' },
+  { key: 'Nível de estresse (1 = tranquilo · 10 = muito estressado)', label: 'Nível de estresse (1-10)' },
+  { key: 'Experiência com atividade física', label: 'Experiência com atividade física' },
+  { key: 'Disponibilidade semanal', label: 'Disponibilidade semanal' },
+  { key: 'Tempo disponível por sessão', label: 'Tempo disponível por sessão' },
+  { key: 'Pirâmide de prioridades — o que você mais quer desenvolver? (em ordem)', label: 'Prioridades (em ordem)' },
+  { key: 'O que já tentou e não funcionou?', label: 'O que já tentou e não funcionou', type: 'textarea' },
+  { key: 'Informações adicionais', label: 'Informações adicionais', type: 'textarea' },
+];
+
 export async function renderAssessment(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
-  const [{ data: profile }, { data: skinfoldHistory }, { data: posturalHistory }, { data: bioimpedanceHistory }, { data: levelHistory }] = await Promise.all([
-    supabase.from('profiles').select('full_name, birth_date, sexo').eq('id', clientId).single(),
+  const [{ data: profile }, { data: skinfoldHistory }, { data: posturalHistory }, { data: bioimpedanceHistory }, { data: levelHistory }, { data: anamneseHistory }, { data: unlinked }, measurementHistory] = await Promise.all([
+    supabase.from('profiles').select('full_name, birth_date, sexo, phone').eq('id', clientId).single(),
     supabase.from('skinfold_assessments').select('*').eq('client_id', clientId).order('recorded_at', { ascending: false }),
     supabase.from('postural_assessments')
       .select('id, recorded_at, notes, general_note, foto_anterior, foto_posterior, foto_lateral_direita, foto_lateral_esquerda')
       .eq('client_id', clientId).order('recorded_at', { ascending: false }),
     supabase.from('bioimpedance_assessments').select('*').eq('client_id', clientId).order('recorded_at', { ascending: false }),
     supabase.from('training_level_assessments').select('*').eq('client_id', clientId).order('recorded_at', { ascending: false }),
+    supabase.from('anamneses').select('id, source, recorded_at, respostas').eq('client_id', clientId).order('recorded_at', { ascending: false }),
+    supabase.from('anamneses').select('id, full_name, phone, recorded_at').is('client_id', null),
+    fetchEntries(clientId),
   ]);
+
+  const profilePhoneDigits = (profile?.phone || '').replace(/\D/g, '');
+  const unlinkedMatches = (unlinked || []).filter(u => {
+    const digits = (u.phone || '').replace(/\D/g, '');
+    return digits && profilePhoneDigits && digits.slice(-8) === profilePhoneDigits.slice(-8);
+  });
 
   const age = calcAge(profile?.birth_date);
 
@@ -63,13 +90,61 @@ export async function renderAssessment(main, clientId) {
     </div>
 
     <div class="tabs" style="margin-bottom:16px;border-radius:10px;overflow:hidden;">
-      <button class="tab-btn active" data-tab="dobras">Dobras Cutâneas</button>
+      <button class="tab-btn active" data-tab="anamnese">Anamnese</button>
+      <button class="tab-btn" data-tab="dobras">Dobras Cutâneas</button>
+      <button class="tab-btn" data-tab="medidas">Medidas Métricas</button>
       <button class="tab-btn" data-tab="postural">Avaliação Postural</button>
       <button class="tab-btn" data-tab="bioimpedancia">Bioimpedância</button>
       <button class="tab-btn" data-tab="nivel">Nível de Treinamento</button>
     </div>
 
-    <div class="tab-content active" id="tab-dobras">
+    <div class="tab-content active" id="tab-anamnese">
+      ${unlinkedMatches.length ? `
+        <div class="admin-card" style="background:var(--black3);margin-bottom:14px;">
+          <div class="admin-section-title" style="margin-top:0;">Anamnese online não vinculada</div>
+          ${unlinkedMatches.map(u => `
+            <div class="admin-row">
+              <div>
+                <div class="admin-row-name">${escapeHtml(u.full_name || 'Sem nome')}</div>
+                <div class="admin-row-sub">Enviada em ${formatDate(u.recorded_at)} · telefone bate com o cadastro</div>
+              </div>
+              <button class="admin-btn primary anam-link-btn" data-id="${u.id}">Vincular</button>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <div class="admin-card admin-form">
+        <div class="admin-section-title" style="margin-top:0;">Nova avaliação presencial</div>
+        <label>Data da avaliação</label>
+        <input type="date" id="an-date" value="${new Date().toISOString().slice(0, 10)}">
+        ${ANAMNESE_FIELDS.map(f => `
+          <label>${f.label}</label>
+          ${f.type === 'textarea'
+            ? `<textarea id="an-${cssKey(f.key)}" rows="2"></textarea>`
+            : `<input type="text" id="an-${cssKey(f.key)}">`}
+        `).join('')}
+        <button class="admin-btn primary" id="an-save" style="margin-top:12px;">Salvar anamnese presencial</button>
+        <div class="admin-msg" id="an-msg"></div>
+      </div>
+
+      <div class="admin-section-title">Histórico</div>
+      ${anamneseHistory && anamneseHistory.length ? `
+        <div class="admin-card">
+          ${anamneseHistory.map(h => `
+            <div class="admin-row">
+              <div>
+                <div class="admin-row-name">${formatDate(h.recorded_at)} · ${h.source === 'presencial' ? 'Presencial' : 'Online'}</div>
+                <div class="admin-row-sub">${escapeHtml(h.respostas?.['Objetivo principal'] || h.respostas?.['Descreva sua meta em detalhes'] || '—')}</div>
+              </div>
+              <a href="#/cliente/${clientId}/anamnese/${h.id}" class="admin-btn">Ver / PDF</a>
+            </div>
+          `).join('')}
+        </div>
+      ` : `<div class="admin-empty">Nenhuma anamnese registrada ainda.</div>`}
+    </div>
+
+    <div class="tab-content" id="tab-dobras">
       <div class="admin-card admin-form">
         ${!age ? `<div class="admin-msg error" style="margin-bottom:10px;">Cadastre a data de nascimento em "Dados" pra calcular o %gordura corretamente.</div>` : ''}
         <label>Data da avaliação</label>
@@ -117,6 +192,52 @@ export async function renderAssessment(main, clientId) {
           }).join('')}
         </div>
       ` : `<div class="admin-empty">Nenhuma avaliação de dobras registrada ainda.</div>`}
+    </div>
+
+    <div class="tab-content" id="tab-medidas">
+      <div class="admin-card admin-form">
+        <label>Data da medição</label>
+        <input type="date" id="md-date" value="${new Date().toISOString().slice(0, 10)}">
+        <div class="field-row">
+          <div>
+            <label>Peso (kg)</label>
+            <input type="number" step="0.1" id="md-weight">
+          </div>
+          <div>
+            <label>% Gordura</label>
+            <input type="number" step="0.1" id="md-bodyfat">
+          </div>
+        </div>
+        <div class="field-row">
+          ${MEASUREMENT_FIELDS.map(f => `
+            <div>
+              <label>${f.label}</label>
+              <input type="number" step="0.1" id="md-${f.key}">
+            </div>
+          `).join('')}
+        </div>
+        <label>Foto (opcional — aparece no relatório para o cliente)</label>
+        <input type="file" accept="image/*" id="md-photo">
+        <label>Observação</label>
+        <textarea id="md-general" rows="2" placeholder="Outras observações relevantes"></textarea>
+        <button class="admin-btn primary" id="md-save" style="margin-top:12px;">Salvar medidas</button>
+        <div class="admin-msg" id="md-msg"></div>
+      </div>
+
+      <div class="admin-section-title">Histórico</div>
+      ${measurementHistory && measurementHistory.length ? `
+        <div class="admin-card">
+          ${measurementHistory.map(h => `
+            <div class="admin-row">
+              <div>
+                <div class="admin-row-name">${formatDate(h.recorded_at)}</div>
+                <div class="admin-row-sub">${measurementSummary(h)}</div>
+                ${h.note ? `<div class="admin-row-sub" style="margin-top:4px;">💬 ${escapeHtml(h.note)}</div>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : `<div class="admin-empty">Nenhuma medida registrada ainda.</div>`}
     </div>
 
     <div class="tab-content" id="tab-postural">
@@ -339,7 +460,39 @@ export async function renderAssessment(main, clientId) {
       await supabase.from('profiles').update({ sexo: payload.sexo }).eq('id', clientId);
       const { error } = await supabase.from('skinfold_assessments').insert([payload]);
       if (error) throw error;
-      renderAssessment(main, clientId);
+      msg.textContent = '✅ Avaliação salva!';
+      setTimeout(() => renderAssessment(main, clientId), 900);
+    } catch (err) {
+      msg.textContent = 'Erro ao salvar: ' + err.message;
+      msg.classList.add('error');
+      btn.disabled = false;
+    }
+  });
+
+  // medidas métricas
+  document.getElementById('md-save').addEventListener('click', async () => {
+    const msg = document.getElementById('md-msg');
+    const btn = document.getElementById('md-save');
+    btn.disabled = true;
+    msg.textContent = '';
+    try {
+      const recordedAt = document.getElementById('md-date').value;
+      const measurements = {};
+      for (const f of MEASUREMENT_FIELDS) {
+        const val = document.getElementById(`md-${f.key}`).value;
+        if (val) measurements[f.key] = Number(val);
+      }
+      await saveEntry(clientId, {
+        recordedAt,
+        weightKg: document.getElementById('md-weight').value || null,
+        bodyFatPct: document.getElementById('md-bodyfat').value || null,
+        measurements: Object.keys(measurements).length ? measurements : null,
+        note: document.getElementById('md-general').value.trim() || null,
+      });
+      const photoFile = document.getElementById('md-photo').files[0];
+      if (photoFile) await uploadPhoto(clientId, photoFile, recordedAt);
+      msg.textContent = '✅ Medidas salvas!';
+      setTimeout(() => renderAssessment(main, clientId), 900);
     } catch (err) {
       msg.textContent = 'Erro ao salvar: ' + err.message;
       msg.classList.add('error');
@@ -381,7 +534,8 @@ export async function renderAssessment(main, clientId) {
       };
       const { error } = await supabase.from('postural_assessments').insert([payload]);
       if (error) throw error;
-      renderAssessment(main, clientId);
+      msg.textContent = '✅ Avaliação salva!';
+      setTimeout(() => renderAssessment(main, clientId), 900);
     } catch (err) {
       msg.textContent = 'Erro ao salvar: ' + err.message;
       msg.classList.add('error');
@@ -417,7 +571,8 @@ export async function renderAssessment(main, clientId) {
 
       const { error } = await supabase.from('bioimpedance_assessments').insert([payload]);
       if (error) throw error;
-      renderAssessment(main, clientId);
+      msg.textContent = '✅ Avaliação salva!';
+      setTimeout(() => renderAssessment(main, clientId), 900);
     } catch (err) {
       msg.textContent = 'Erro ao salvar: ' + err.message;
       msg.classList.add('error');
@@ -507,13 +662,58 @@ export async function renderAssessment(main, clientId) {
       };
       const { error } = await supabase.from('training_level_assessments').insert([payload]);
       if (error) throw error;
-      renderAssessment(main, clientId);
+      msg.textContent = '✅ Avaliação salva!';
+      setTimeout(() => renderAssessment(main, clientId), 900);
     } catch (err) {
       msg.textContent = 'Erro ao salvar: ' + err.message;
       msg.classList.add('error');
       btn.disabled = false;
     }
   });
+
+  // anamnese — vincular submissão online não vinculada
+  main.querySelectorAll('.anam-link-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      const { error } = await supabase.from('anamneses').update({ client_id: clientId }).eq('id', btn.dataset.id);
+      if (error) { alert('Erro ao vincular: ' + error.message); btn.disabled = false; return; }
+      renderAssessment(main, clientId);
+    });
+  });
+
+  // anamnese — nova avaliação presencial
+  document.getElementById('an-save').addEventListener('click', async () => {
+    const msg = document.getElementById('an-msg');
+    const btn = document.getElementById('an-save');
+    btn.disabled = true;
+    msg.textContent = '';
+    try {
+      const respostas = {};
+      for (const f of ANAMNESE_FIELDS) {
+        const val = document.getElementById(`an-${cssKey(f.key)}`).value.trim();
+        if (val) respostas[f.key] = val;
+      }
+      const payload = {
+        client_id: clientId,
+        source: 'presencial',
+        full_name: profile?.full_name || null,
+        recorded_at: document.getElementById('an-date').value,
+        respostas,
+      };
+      const { error } = await supabase.from('anamneses').insert([payload]);
+      if (error) throw error;
+      msg.textContent = '✅ Anamnese salva!';
+      setTimeout(() => renderAssessment(main, clientId), 900);
+    } catch (err) {
+      msg.textContent = 'Erro ao salvar: ' + err.message;
+      msg.classList.add('error');
+      btn.disabled = false;
+    }
+  });
+}
+
+function cssKey(str) {
+  return str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 }
 
 function levelLabel(key) {
@@ -523,6 +723,17 @@ function levelLabel(key) {
     avancado: 'Avançado',
     extremamente_avancado: 'Extremamente Avançado',
   }[key] || '—';
+}
+
+function measurementSummary(h) {
+  const parts = [];
+  if (h.weight_kg != null) parts.push(`Peso: ${h.weight_kg}kg`);
+  if (h.body_fat_pct != null) parts.push(`%Gordura: ${h.body_fat_pct}%`);
+  for (const f of MEASUREMENT_FIELDS) {
+    const val = h.measurements?.[f.key];
+    if (val != null) parts.push(`${f.label.replace(' (cm)', '')}: ${val}cm`);
+  }
+  return parts.join(' · ') || '—';
 }
 
 function bioimpedanceSummary(h) {

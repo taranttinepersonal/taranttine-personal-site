@@ -16,6 +16,7 @@ export async function renderDiet(session) {
     </div>
     <div class="top-bar">
       <button class="logout-link" id="nav-treino">🏋 Treino</button>
+      <button class="logout-link" id="nav-anamnese" style="margin-left:12px;">📋 Anamnese</button>
       <button class="logout-link" id="nav-progresso" style="margin-left:12px;">📈 Evolução</button>
       <button class="logout-link" id="nav-indicacao" style="margin-left:12px;">🎁 Indicação</button>
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
@@ -27,6 +28,7 @@ export async function renderDiet(session) {
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
   document.getElementById('nav-treino').addEventListener('click', () => { window.location.hash = '/treino'; });
+  document.getElementById('nav-anamnese').addEventListener('click', () => { window.location.hash = '/anamnese'; });
   document.getElementById('nav-progresso').addEventListener('click', () => { window.location.hash = '/progresso'; });
   document.getElementById('nav-indicacao').addEventListener('click', () => { window.location.hash = '/indicacao'; });
 

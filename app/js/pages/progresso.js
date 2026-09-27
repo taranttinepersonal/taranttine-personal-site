@@ -1,13 +1,6 @@
 import { signOut } from '../auth.js';
-import { fetchEntries, saveEntry, fetchPhotos, uploadPhoto } from '../lib/progress.js';
+import { fetchEntries, saveEntry, fetchPhotos, uploadPhoto, MEASUREMENT_FIELDS } from '../lib/progress.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
-
-const MEASUREMENT_FIELDS = [
-  { key: 'cintura', label: 'Cintura (cm)' },
-  { key: 'quadril', label: 'Quadril (cm)' },
-  { key: 'braco', label: 'Braço (cm)' },
-  { key: 'coxa', label: 'Coxa (cm)' },
-];
 
 export async function renderProgress(session) {
   const root = document.getElementById('app-root');
@@ -24,6 +17,7 @@ export async function renderProgress(session) {
     </div>
     <div class="top-bar">
       <button class="logout-link" id="nav-treino">🏋 Treino</button>
+      <button class="logout-link" id="nav-anamnese" style="margin-left:12px;">📋 Anamnese</button>
       <button class="logout-link" id="nav-indicacao" style="margin-left:12px;">🎁 Indicação</button>
       ${diet ? `<button class="logout-link" id="nav-dieta" style="margin-left:12px;">🍎 Dieta</button>` : ''}
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
@@ -83,6 +77,7 @@ export async function renderProgress(session) {
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
   document.getElementById('nav-treino').addEventListener('click', () => { window.location.hash = '/treino'; });
+  document.getElementById('nav-anamnese').addEventListener('click', () => { window.location.hash = '/anamnese'; });
   document.getElementById('nav-indicacao').addEventListener('click', () => { window.location.hash = '/indicacao'; });
   const navDieta = document.getElementById('nav-dieta');
   if (navDieta) navDieta.addEventListener('click', () => { window.location.hash = '/dieta'; });

@@ -11,6 +11,7 @@ import { renderReferrals } from './pages/referrals.js';
 import { renderClientData } from './pages/clientData.js';
 import { renderAssessment } from './pages/assessment.js';
 import { renderReport } from './pages/report.js';
+import { renderAnamneseReport } from './pages/anamneseReport.js';
 import { enablePushNotifications, isPushConfigured, getNotificationPermission } from '../../app/js/push.js';
 
 const NAV_ITEMS = [
@@ -113,6 +114,7 @@ async function handleDynamicRoutes() {
   const dadosMatch = hash.match(/^\/cliente\/([^/]+)\/dados$/);
   const avaliacaoMatch = hash.match(/^\/cliente\/([^/]+)\/avaliacao$/);
   const relatorioMatch = hash.match(/^\/cliente\/([^/]+)\/relatorio$/);
+  const anamneseMatch = hash.match(/^\/cliente\/([^/]+)\/anamnese\/([^/]+)$/);
   if (treinoMatch) {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');
@@ -137,6 +139,10 @@ async function handleDynamicRoutes() {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');
     renderReport(main, relatorioMatch[1]);
+  } else if (anamneseMatch) {
+    if (!(await requireTrainer())) return;
+    const main = renderShell('/clientes');
+    renderAnamneseReport(main, anamneseMatch[1], anamneseMatch[2]);
   }
 }
 

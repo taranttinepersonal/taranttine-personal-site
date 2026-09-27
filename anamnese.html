@@ -1127,6 +1127,26 @@ async function submitForm(){
     if(!resp.ok) console.warn('Formspree error:', resp.status);
   } catch(e){ console.warn('Formspree erro de rede:', e); }
 
+  // 1b. Grava no Supabase (fica registrada e pronta pra vincular à conta do
+  // cliente assim que ela for criada — não bloqueia o envio se falhar).
+  try {
+    const resp = await fetch('https://zqopjmijrmlifwnzthfb.supabase.co/rest/v1/anamneses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'sb_publishable_ce3Q3zOJmatnEIoEqM8kRw_53x6OrC3'
+      },
+      body: JSON.stringify({
+        source: 'online',
+        full_name: data['Nome completo'] || null,
+        phone: data['Telefone / WhatsApp'] || null,
+        email: data['E-mail'] || null,
+        respostas: data
+      })
+    });
+    if(!resp.ok) console.warn('Supabase anamnese error:', resp.status);
+  } catch(e){ console.warn('Supabase anamnese erro de rede:', e); }
+
   // 2. Abrir WhatsApp com resumo (notificação imediata)
   const waMsg = formatWhatsApp(data);
   window.open(`https://wa.me/5567992567211?text=${waMsg}`, '_blank');
