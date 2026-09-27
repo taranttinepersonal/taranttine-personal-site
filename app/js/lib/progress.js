@@ -1,10 +1,14 @@
 import { supabase } from '../supabaseClient.js';
 
 export const MEASUREMENT_FIELDS = [
+  { key: 'ombros', label: 'Ombros (cm)' },
+  { key: 'peito', label: 'Peito (cm)' },
   { key: 'cintura', label: 'Cintura (cm)' },
   { key: 'quadril', label: 'Quadril (cm)' },
+  { key: 'abdomen', label: 'Abdômen (cm)' },
   { key: 'braco', label: 'Braço (cm)' },
   { key: 'coxa', label: 'Coxa (cm)' },
+  { key: 'panturrilha', label: 'Panturrilha (cm)' },
 ];
 
 export async function fetchEntries(clientId) {
