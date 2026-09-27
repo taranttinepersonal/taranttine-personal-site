@@ -13,13 +13,13 @@ const TECNICA_EXERCICIOS = [
 ];
 
 const POSTURAL_CHECKLIST = [
-  { key: 'cabeca', label: 'Cabeça', hint: 'ex: anteriorizada, neutra' },
-  { key: 'ombros', label: 'Ombros', hint: 'ex: elevado à direita, nivelados' },
-  { key: 'escapulas', label: 'Escápulas', hint: 'ex: aladas, neutras' },
-  { key: 'coluna', label: 'Coluna', hint: 'ex: hipercifose, hiperlordose, escoliose' },
-  { key: 'quadril', label: 'Quadril', hint: 'ex: anteversão, retroversão, desnivelado, rotação de sacro' },
-  { key: 'joelhos', label: 'Joelhos', hint: 'ex: valgo, varo, hiperextendido, neutro' },
-  { key: 'pes', label: 'Pés', hint: 'ex: plano, cavo, pronado, supinado' },
+  { key: 'cabeca', label: 'Cabeça', options: ['Neutra', 'Anteriorizada'] },
+  { key: 'ombros', label: 'Ombros', options: ['Nivelados', 'Elevado à direita', 'Elevado à esquerda'] },
+  { key: 'escapulas', label: 'Escápulas', options: ['Neutras', 'Aladas'] },
+  { key: 'coluna', label: 'Coluna', options: ['Neutra', 'Hipercifose', 'Hiperlordose', 'Escoliose'] },
+  { key: 'quadril', label: 'Quadril', options: ['Neutro', 'Anteversão', 'Retroversão', 'Desnivelado', 'Rotação de sacro'] },
+  { key: 'joelhos', label: 'Joelhos', options: ['Neutro', 'Valgo', 'Varo', 'Hiperextendido'] },
+  { key: 'pes', label: 'Pés', options: ['Neutro', 'Plano', 'Cavo', 'Pronado', 'Supinado'] },
 ];
 
 const POSTURAL_ANGLES = [
@@ -257,7 +257,12 @@ export async function renderAssessment(main, clientId) {
 
         ${POSTURAL_CHECKLIST.map(item => `
           <label>${item.label}</label>
-          <input type="text" id="post-${item.key}" placeholder="${item.hint}">
+          <select id="post-${item.key}">
+            <option value="">Selecione</option>
+            ${item.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+            <option value="__custom__">Outro (especificar)</option>
+          </select>
+          <input type="text" id="post-${item.key}-custom" placeholder="Especifique" style="display:none;margin-top:6px;">
         `).join('')}
         <label>Observação geral</label>
         <textarea id="post-general" rows="3" placeholder="Outras observações relevantes"></textarea>
@@ -501,6 +506,14 @@ export async function renderAssessment(main, clientId) {
   });
 
   // postural
+  for (const item of POSTURAL_CHECKLIST) {
+    const select = document.getElementById(`post-${item.key}`);
+    const custom = document.getElementById(`post-${item.key}-custom`);
+    select.addEventListener('change', () => {
+      custom.style.display = select.value === '__custom__' ? 'block' : 'none';
+    });
+  }
+
   document.getElementById('post-save').addEventListener('click', async () => {
     const msg = document.getElementById('post-msg');
     const btn = document.getElementById('post-save');
@@ -509,7 +522,10 @@ export async function renderAssessment(main, clientId) {
     try {
       const notes = {};
       for (const item of POSTURAL_CHECKLIST) {
-        const val = document.getElementById(`post-${item.key}`).value.trim();
+        const selectVal = document.getElementById(`post-${item.key}`).value;
+        const val = selectVal === '__custom__'
+          ? document.getElementById(`post-${item.key}-custom`).value.trim()
+          : selectVal;
         if (val) notes[item.key] = val;
       }
       const recordedAt = document.getElementById('post-date').value;

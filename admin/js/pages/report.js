@@ -166,7 +166,7 @@ export async function renderReport(main, clientId) {
       <div class="report-section-title">Medidas</div>
       <div class="report-bars">
         ${MEASUREMENT_FIELDS.map(f => renderDeltaBar(
-          f.label, latest?.measurements?.[f.key], previous?.measurements?.[f.key], f.unit,
+          f.label, latest?.measurements?.[f.key], previous?.measurements?.[f.key], '',
         )).join('')}
       </div>
       ${renderMultiTrendChart(measurementSeries, 'cm', 'Evolução — Medidas')}
