@@ -2,6 +2,13 @@
 .admin-nav { display: flex; gap: 4px; background: var(--black2); border-bottom: 1px solid var(--border); overflow-x: auto; position: sticky; top: 0; z-index: 10; }
 .admin-nav a { flex: 1; padding: 14px 8px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--faint); text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; }
 .admin-nav a.active { color: var(--green); border-bottom-color: var(--green); }
+
+/* .tabs/.tab-btn come from app.css (built for the client app's 480px-wide
+   mobile frame): max-width:480px + flex:1 squeezes/clips longer admin tab
+   labels instead of scrolling. .admin-tabs overrides that to match the
+   .admin-nav scroll pattern instead. */
+.tabs.admin-tabs { max-width: none; overflow-x: auto; overflow-y: hidden; border-radius: var(--radius-lg); }
+.tabs.admin-tabs .tab-btn { flex: 0 0 auto; }
 .admin-main { padding: 20px 16px; }
 .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .admin-title { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; text-transform: uppercase; color: var(--white); }

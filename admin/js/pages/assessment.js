@@ -89,7 +89,7 @@ export async function renderAssessment(main, clientId) {
       </div>
     </div>
 
-    <div class="tabs" style="margin-bottom:16px;border-radius:10px;overflow:hidden;">
+    <div class="tabs admin-tabs" style="margin-bottom:16px;">
       <button class="tab-btn active" data-tab="anamnese">Anamnese</button>
       <button class="tab-btn" data-tab="dobras">Dobras Cutâneas</button>
       <button class="tab-btn" data-tab="medidas">Medidas Métricas</button>
