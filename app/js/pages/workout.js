@@ -25,7 +25,7 @@ export async function renderWorkout(session) {
   // the first paint of the workout screen.
   const [{ data: profile }, { data: program, error: programError }, diet] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date, show_gifs, show_cycle_mode').eq('id', clientId).single(),
-    supabase.from('workout_programs').select('id, title, subtitle, health_note').eq('client_id', clientId).eq('is_active', true).single(),
+    supabase.from('workout_programs').select('id, title, subtitle, health_note, current_week, total_weeks').eq('client_id', clientId).eq('is_active', true).single(),
     fetchVisibleDiet(clientId),
   ]);
 
@@ -84,6 +84,17 @@ export async function renderWorkout(session) {
       ` : ''}
       <h1 class="font-display" style="font-size:22px;text-transform:uppercase;color:var(--white);margin-top:10px;">${escapeHtml(program.title)}</h1>
       ${program.subtitle ? `<p style="font-size:12px;color:var(--muted);margin-top:6px;">${escapeHtml(program.subtitle)}</p>` : ''}
+      ${program.current_week ? `
+        <div style="margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">
+            <span>Semana ${program.current_week} de ${program.total_weeks}</span>
+            <span>${Math.round((program.current_week / program.total_weeks) * 100)}%</span>
+          </div>
+          <div style="height:6px;border-radius:99px;background:var(--border);overflow:hidden;">
+            <div style="height:100%;border-radius:99px;background:var(--green);width:${Math.min(100, (program.current_week / program.total_weeks) * 100)}%;"></div>
+          </div>
+        </div>
+      ` : ''}
       ${program.health_note ? `<div class="health-note">⚠️ ${escapeHtml(program.health_note)}</div>` : ''}
       ${isPushConfigured() && getNotificationPermission() === 'default' ? `
         <button class="logout-link" id="enable-push-btn" style="margin-top:8px;">🔔 Ativar notificações</button>

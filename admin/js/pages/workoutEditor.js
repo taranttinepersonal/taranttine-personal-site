@@ -20,7 +20,7 @@ export async function renderWorkoutEditor(main, clientId) {
 
   const { data: program } = await supabase
     .from('workout_programs')
-    .select('id, title, subtitle, health_note, created_at, last_adjusted_at')
+    .select('id, title, subtitle, health_note, created_at, last_adjusted_at, current_week, total_weeks')
     .eq('client_id', clientId)
     .eq('is_active', true)
     .maybeSingle();
@@ -84,6 +84,17 @@ export async function renderWorkoutEditor(main, clientId) {
       <input type="text" id="program-subtitle" value="${escapeHtml(program.subtitle || '')}">
       <label>Aviso de saúde (opcional)</label>
       <textarea id="program-health-note">${escapeHtml(program.health_note || '')}</textarea>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label>Semana atual</label>
+          <input type="number" min="1" id="program-current-week" value="${program.current_week ?? ''}" placeholder="ex: 4">
+        </div>
+        <div style="flex:1;">
+          <label>Total de semanas</label>
+          <input type="number" min="1" id="program-total-weeks" value="${program.total_weeks ?? 16}">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Deixe "Semana atual" em branco pra não mostrar isso pro cliente.</div>
       <button class="admin-btn primary" id="save-program" style="margin-top:12px;">Salvar</button>
       <div class="admin-msg" id="program-msg"></div>
     </div>
@@ -106,6 +117,8 @@ export async function renderWorkoutEditor(main, clientId) {
       title: document.getElementById('program-title').value.trim(),
       subtitle: document.getElementById('program-subtitle').value.trim(),
       health_note: document.getElementById('program-health-note').value.trim() || null,
+      current_week: document.getElementById('program-current-week').value ? Number(document.getElementById('program-current-week').value) : null,
+      total_weeks: Number(document.getElementById('program-total-weeks').value) || 16,
     }).eq('id', program.id);
     msg.textContent = error ? 'Erro ao salvar.' : 'Salvo.';
     msg.classList.toggle('error', !!error);

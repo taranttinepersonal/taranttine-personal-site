@@ -4,6 +4,7 @@ import {
   FORCA_EXERCICIOS, scoreForcaRelativa, computeTemporalScores, average, classificar,
 } from '../../../app/js/lib/trainingLevel.js';
 import { fetchEntries, saveEntry, uploadPhoto, MEASUREMENT_FIELDS } from '../../../app/js/lib/progress.js';
+import { buildRadarChart } from '../../../app/js/lib/chart.js';
 
 const TECNICA_EXERCICIOS = [
   { key: 'supino', label: 'Supino (empurrar)' },
@@ -398,6 +399,7 @@ export async function renderAssessment(main, clientId) {
           <div class="report-bar-label" style="margin-top:6px;"><span>Força relativa (média)</span><span class="report-bar-value" id="nv-score-p5">—</span></div>
           <div class="report-bar-label" style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;"><span><b>Classificação final</b></span><span class="report-bar-value" id="nv-final" style="font-size:1.1em;">—</span></div>
         </div>
+        <div id="nv-radar" style="margin-top:14px;"></div>
 
         <label>Observação geral</label>
         <textarea id="nv-general" rows="2" placeholder="Pontos deficitários, direcionamento sugerido..."></textarea>
@@ -624,27 +626,35 @@ export async function renderAssessment(main, clientId) {
     const pesoCorporal = document.getElementById('nv-peso-corporal').value;
     const forca = {};
     const forcaScores = [];
+    const forcaAxes = [];
     for (const ex of FORCA_EXERCICIOS) {
       const cargaKg = document.getElementById(`nv-carga-${ex.key}`).value;
       const reps = document.getElementById(`nv-reps-${ex.key}`).value;
       if (!cargaKg) continue;
       forca[ex.key] = { carga: Number(cargaKg), reps: reps ? Number(reps) : 1, peso_corporal: pesoCorporal ? Number(pesoCorporal) : null };
       const result = scoreForcaRelativa({ exercicio: ex.key, sexo, cargaKg: Number(cargaKg), reps, pesoCorporalKg: Number(pesoCorporal) });
-      if (result) forcaScores.push(result.score);
+      if (result) {
+        forcaScores.push(result.score);
+        forcaAxes.push({ label: ex.label, value: result.score });
+      }
     }
     const forcaScore = average(forcaScores);
 
     const scoreFinal = average([temporal.param1, temporal.param2, temporal.param3, tecnicaScore, forcaScore]);
-    return { sexo, currentlyTraining, temporal, tecnica, tecnicaScore, forca, forcaScore, scoreFinal };
+    return { sexo, currentlyTraining, temporal, tecnica, tecnicaScore, forca, forcaScore, forcaAxes, scoreFinal };
   }
 
   function updateLevelPreview() {
-    const { temporal, tecnicaScore, forcaScore, scoreFinal } = readLevelInputs();
+    const { temporal, tecnicaScore, forcaScore, forcaAxes, scoreFinal } = readLevelInputs();
     document.getElementById('nv-score-p1').textContent = temporal.param1 ?? '—';
     document.getElementById('nv-score-p2').textContent = temporal.param2 ?? '—';
     document.getElementById('nv-score-p3').textContent = temporal.param3 ?? '—';
     document.getElementById('nv-score-p4').textContent = tecnicaScore != null ? round1(tecnicaScore) : '—';
     document.getElementById('nv-score-p5').textContent = forcaScore != null ? round1(forcaScore) : '—';
+    const radar = buildRadarChart(forcaAxes, { color: 'var(--green)', gridColor: 'var(--border)' });
+    document.getElementById('nv-radar').innerHTML = radar
+      ? `<div style="font-size:10px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Perfil de Força Relativa</div>${radar.svg}`
+      : '';
     const cls = classificar(scoreFinal);
     document.getElementById('nv-final').textContent = cls ? `${cls.label} (${round1(scoreFinal)})` : '—';
   }

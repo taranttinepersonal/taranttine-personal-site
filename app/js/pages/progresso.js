@@ -1,13 +1,17 @@
 import { signOut } from '../auth.js';
 import { fetchEntries, saveEntry, fetchPhotos, uploadPhoto, MEASUREMENT_FIELDS } from '../lib/progress.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
+import { computeTrainingStats } from '../lib/loadHistory.js';
+import { buildTrendChart } from '../lib/chart.js';
 
 export async function renderProgress(session) {
   const root = document.getElementById('app-root');
   root.innerHTML = `<div class="loading-state">Carregando sua evolução...</div>`;
 
   const clientId = session.user.id;
-  const [entries, photos, diet] = await Promise.all([fetchEntries(clientId), fetchPhotos(clientId), fetchVisibleDiet(clientId)]);
+  const [entries, photos, diet, trainingStats] = await Promise.all([
+    fetchEntries(clientId), fetchPhotos(clientId), fetchVisibleDiet(clientId), computeTrainingStats(clientId),
+  ]);
 
   root.innerHTML = `
     <div class="hero">
@@ -23,6 +27,8 @@ export async function renderProgress(session) {
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
+      ${renderWeekStats(trainingStats)}
+      ${renderStrengthChart(trainingStats.loadWeeklySeries)}
       ${renderChart(entries)}
       <div class="ex-card">
         <div class="ex-name" style="margin-bottom:12px;">Registrar hoje</div>
@@ -120,6 +126,55 @@ export async function renderProgress(session) {
       btn.textContent = 'Salvar registro';
     }
   });
+}
+
+function deltaBadge(current, previous) {
+  if (!previous) return '';
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct === 0) return '';
+  return `<span style="font-size:10px;color:${pct > 0 ? 'var(--green)' : 'var(--faint)'};">${pct > 0 ? '↑' : '↓'} ${Math.abs(pct)}%</span>`;
+}
+
+function renderWeekStats(stats) {
+  const { cargaTotal, tempoTreino, calorias } = stats;
+  if (!cargaTotal.current && !tempoTreino.current) return '';
+  const cards = [
+    { label: 'Carga Total', value: `${cargaTotal.current.toLocaleString('pt-BR')}kg`, delta: deltaBadge(cargaTotal.current, cargaTotal.previous) },
+    { label: 'Tempo de Treino*', value: `${tempoTreino.current}min`, delta: deltaBadge(tempoTreino.current, tempoTreino.previous) },
+  ];
+  if (calorias.current != null) {
+    cards.push({ label: 'Calorias*', value: `${calorias.current}kcal`, delta: deltaBadge(calorias.current, calorias.previous) });
+  }
+  return `
+    <div class="ex-card">
+      <div class="ex-name" style="margin-bottom:10px;">📊 Sua Semana</div>
+      <div class="ex-stats" style="grid-template-columns:repeat(${cards.length}, 1fr);">
+        ${cards.map(c => `
+          <div class="stat-box">
+            <div style="font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.03em;">${c.label}</div>
+            <div style="font-size:16px;font-weight:700;color:var(--white);margin-top:2px;">${c.value}</div>
+            ${c.delta}
+          </div>
+        `).join('')}
+      </div>
+      <div style="font-size:10px;color:var(--faint);margin-top:8px;">*estimativa, sem cronômetro real</div>
+    </div>
+  `;
+}
+
+function renderStrengthChart(loadWeeklySeries) {
+  const chart = buildTrendChart([{ label: 'Carga total', color: 'var(--green)', points: loadWeeklySeries }]);
+  if (!chart) return '';
+  return `
+    <div class="ex-card">
+      <div class="ex-name" style="margin-bottom:10px;">💪 Evolução de Força — Carga Total Semanal</div>
+      ${chart.svg}
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--faint);margin-top:4px;">
+        <span>${formatDate(chart.firstDate)}</span>
+        <span>${formatDate(chart.lastDate)}</span>
+      </div>
+    </div>
+  `;
 }
 
 function renderChart(entries) {

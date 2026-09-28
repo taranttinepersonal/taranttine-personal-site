@@ -1,7 +1,8 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
 import { sumSkinfolds, calcBodyFat } from '../../../app/js/lib/skinfold.js';
-import { classificar } from '../../../app/js/lib/trainingLevel.js';
+import { classificar, FORCA_EXERCICIOS, scoreForcaRelativa } from '../../../app/js/lib/trainingLevel.js';
 import { MEASUREMENT_FIELDS } from '../../../app/js/lib/progress.js';
+import { buildTrendChart, buildRadarChart } from '../../../app/js/lib/chart.js';
 
 const BIOIMPEDANCE_FIELDS = [
   { key: 'peso', label: 'Peso', unit: 'kg' },
@@ -42,7 +43,7 @@ export async function renderReport(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
   const [{ data: profile }, { data: entries }, { data: photos }, { data: postural }, { data: skinfolds }, { data: bioimpedances }, { data: levels }, { data: anamneses }, { data: savedReports }] = await Promise.all([
-    supabase.from('profiles').select('full_name, birth_date').eq('id', clientId).single(),
+    supabase.from('profiles').select('full_name, birth_date, sexo').eq('id', clientId).single(),
     supabase.from('progress_entries').select('id, recorded_at, weight_kg, body_fat_pct, measurements')
       .eq('client_id', clientId).order('recorded_at', { ascending: false }),
     supabase.from('progress_photos').select('id, storage_path, recorded_at')
@@ -82,6 +83,14 @@ export async function renderReport(main, clientId) {
   const levelCurrent = levels?.[0] || null;
   const levelPrevious = levels?.[1] || null;
   const levelClassCurrent = levelCurrent ? classificar(levelCurrent.score_final) : null;
+  const levelForcaAxes = levelCurrent?.forca ? FORCA_EXERCICIOS
+    .filter(ex => levelCurrent.forca[ex.key])
+    .map(ex => {
+      const { carga, reps, peso_corporal } = levelCurrent.forca[ex.key];
+      const result = scoreForcaRelativa({ exercicio: ex.key, sexo: profile?.sexo, cargaKg: carga, reps, pesoCorporalKg: peso_corporal });
+      return result ? { label: ex.label, value: result.score } : null;
+    })
+    .filter(Boolean) : [];
 
   const anamneseLatest = anamneses?.[0] || null;
 
@@ -243,6 +252,13 @@ export async function renderReport(main, clientId) {
           </div>
           ${renderDeltaBar('Score', levelCurrent.score_final, levelPrevious?.score_final, '')}
         </div>
+        ${(() => {
+          const radar = buildRadarChart(levelForcaAxes);
+          return radar ? `
+            <div class="report-section-title" style="font-size:12px;margin:14px 0 4px;">Perfil de Força Relativa</div>
+            ${radar.svg}
+          ` : '';
+        })()}
         ${renderMultiTrendChart([{ label: 'Score', color: CHART_COLORS[4], points: levelScoreSeries }], '', 'Evolução — Nível de Treinamento')}
         ${levelCurrent.general_note ? `<p class="report-postural-general">${escapeHtml(levelCurrent.general_note)}</p>` : ''}
       ` : ''}
@@ -391,33 +407,12 @@ function renderDeltaBar(label, current, previous, unit) {
 // pontos são ignoradas; se nenhuma sobrar, não renderiza nada (sem histórico
 // suficiente ainda pra comparar).
 function renderMultiTrendChart(seriesList, unit, title) {
-  const usable = seriesList.filter(s => s.points && s.points.length >= 2);
-  if (!usable.length) return '';
+  const chart = buildTrendChart(seriesList);
+  if (!chart) return '';
 
-  const allValues = usable.flatMap(s => s.points.map(p => p.value));
-  const min = Math.min(...allValues);
-  const max = Math.max(...allValues);
-  const range = (max - min) || 1;
-
-  const allDates = usable.flatMap(s => s.points.map(p => p.date)).sort();
-  const minDate = new Date(allDates[0] + 'T00:00:00').getTime();
-  const maxDate = new Date(allDates[allDates.length - 1] + 'T00:00:00').getTime();
-  const dateRange = (maxDate - minDate) || 1;
-
-  const w = 600;
-  const h = 140;
-  const x = (d) => ((new Date(d + 'T00:00:00').getTime() - minDate) / dateRange) * w;
-  const y = (v) => h - ((v - min) / range) * (h - 30) - 15;
-
-  const lines = usable.map(s => {
-    const pts = s.points.map(p => `${x(p.date)},${y(p.value)}`).join(' ');
-    const dots = s.points.map(p => `<circle cx="${x(p.date)}" cy="${y(p.value)}" r="3" fill="${s.color}"/>`).join('');
-    return `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2"/>${dots}`;
-  }).join('');
-
-  const legend = usable.length > 1 ? `
+  const legend = chart.legend ? `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;">
-      ${usable.map(s => `
+      ${chart.legend.map(s => `
         <span style="font-size:10px;color:var(--report-muted);display:inline-flex;align-items:center;gap:4px;">
           <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};"></span>${escapeHtml(s.label)}
         </span>
@@ -428,10 +423,10 @@ function renderMultiTrendChart(seriesList, unit, title) {
   return `
     <div class="report-section-title" style="font-size:12px;margin:14px 0 8px;">${title}</div>
     <div class="report-chart">
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:140px;">${lines}</svg>
+      ${chart.svg}
       <div class="report-chart-dates">
-        <span>${formatDate(allDates[0])}</span>
-        <span>${formatDate(allDates[allDates.length - 1])}</span>
+        <span>${formatDate(chart.firstDate)}</span>
+        <span>${formatDate(chart.lastDate)}</span>
       </div>
       ${legend}
     </div>
