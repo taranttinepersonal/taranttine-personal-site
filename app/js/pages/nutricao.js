@@ -1,5 +1,8 @@
 import { signOut } from '../auth.js';
-import { fetchTarget, saveTarget, fetchEntriesForDate, estimateFromDescription, saveEntry, deleteEntry } from '../lib/nutrition.js';
+import {
+  fetchTarget, saveTarget, fetchEntriesForDate, estimateFromDescription, saveEntry, deleteEntry,
+  fetchBodyComposition, fetchGoalHint, calculateTargetSuggestion,
+} from '../lib/nutrition.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
 
 const MEAL_TYPES = [
@@ -15,8 +18,9 @@ export async function renderNutricao(session) {
 
   const clientId = session.user.id;
   const dateISO = todayISO();
-  const [target, entries, diet] = await Promise.all([
+  const [target, entries, diet, bodyComp, goalHint] = await Promise.all([
     fetchTarget(clientId), fetchEntriesForDate(clientId, dateISO), fetchVisibleDiet(clientId),
+    fetchBodyComposition(clientId), fetchGoalHint(clientId),
   ]);
 
   const totals = entries.reduce((acc, e) => ({
@@ -41,7 +45,7 @@ export async function renderNutricao(session) {
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
-      ${renderTargetCard(target, totals)}
+      ${renderTargetCard(target, totals, bodyComp, goalHint)}
 
       <div class="ex-card">
         <div class="ex-name" style="margin-bottom:12px;">Registrar refeição</div>
@@ -71,12 +75,24 @@ export async function renderNutricao(session) {
   const navDieta = document.getElementById('nav-dieta');
   if (navDieta) navDieta.addEventListener('click', () => { window.location.hash = '/dieta'; });
 
-  wireTargetForm(clientId, session);
+  wireTargetForm(clientId, session, bodyComp);
   wireEstimateForm(clientId, session);
   wireDeleteButtons(session);
 }
 
-function renderTargetCard(target, totals) {
+const ACTIVITY_OPTIONS = [
+  { key: 'sedentario', label: 'Sedentário' },
+  { key: 'leve', label: 'Leve (1-3x/semana)' },
+  { key: 'moderado', label: 'Moderado (3-5x/semana)' },
+  { key: 'intenso', label: 'Intenso (5-7x/semana)' },
+];
+const GOAL_OPTIONS = [
+  { key: 'emagrecimento', label: 'Emagrecimento' },
+  { key: 'manutencao', label: 'Manutenção' },
+  { key: 'ganho_de_massa', label: 'Ganho de massa' },
+];
+
+function renderTargetCard(target, totals, bodyComp, goalHint) {
   const fields = [
     { key: 'calories', label: 'Calorias', unit: 'kcal' },
     { key: 'protein_g', label: 'Proteína', unit: 'g' },
@@ -106,6 +122,34 @@ function renderTargetCard(target, totals) {
       }).join('')}
       <button class="logout-link" id="toggle-target-form" style="margin-top:4px;">${target ? '✏️ Editar meta' : '🎯 Definir meta'}</button>
       <div id="target-form" style="display:none;margin-top:12px;">
+        ${bodyComp.weightKg && bodyComp.bodyFatPct ? `
+          <div class="stat-box" style="text-align:left;padding:10px;margin-bottom:10px;">
+            <div class="form-label" style="margin:0 0 6px;">🧮 Calcular a partir da sua avaliação</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">
+              ${bodyComp.weightKg}kg · ${bodyComp.bodyFatPct}% gordura (${bodyComp.source}, ${formatDate(bodyComp.recordedAt)})
+              ${goalHint ? ` · objetivo registrado: ${escapeHtml(goalHint)}` : ''}
+            </div>
+            <div class="ex-stats" style="grid-template-columns:1fr 1fr;margin-bottom:8px;">
+              <div>
+                <label class="form-label">Nível de atividade</label>
+                <select id="calc-activity" class="load-input" style="text-align:left;">
+                  ${ACTIVITY_OPTIONS.map(a => `<option value="${a.key}" ${a.key === 'moderado' ? 'selected' : ''}>${a.label}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Objetivo</label>
+                <select id="calc-goal" class="load-input" style="text-align:left;">
+                  ${GOAL_OPTIONS.map(g => `<option value="${g.key}" ${g.key === 'ganho_de_massa' ? 'selected' : ''}>${g.label}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <button class="logout-link" id="calc-target-btn">Calcular e preencher abaixo</button>
+          </div>
+        ` : `
+          <div style="font-size:11.5px;color:var(--faint);margin-bottom:10px;">
+            Sem peso/%gordura registrado ainda pra calcular automaticamente — registre uma bioimpedância ou um lançamento em Evolução, ou preencha a meta manualmente abaixo.
+          </div>
+        `}
         <div class="ex-stats" style="grid-template-columns:1fr 1fr;margin-bottom:10px;">
           <div class="stat-box" style="text-align:left;padding:10px;">
             <label class="form-label">Calorias (kcal)</label>
@@ -131,12 +175,28 @@ function renderTargetCard(target, totals) {
   `;
 }
 
-function wireTargetForm(clientId, session) {
+function wireTargetForm(clientId, session, bodyComp) {
   const toggleBtn = document.getElementById('toggle-target-form');
   const form = document.getElementById('target-form');
   toggleBtn.addEventListener('click', () => {
     form.style.display = form.style.display === 'none' ? 'block' : 'none';
   });
+  const calcBtn = document.getElementById('calc-target-btn');
+  if (calcBtn) {
+    calcBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const suggestion = calculateTargetSuggestion({
+        weightKg: bodyComp.weightKg,
+        bodyFatPct: bodyComp.bodyFatPct,
+        activityLevel: document.getElementById('calc-activity').value,
+        goal: document.getElementById('calc-goal').value,
+      });
+      document.getElementById('t-calories').value = suggestion.calories;
+      document.getElementById('t-protein').value = suggestion.protein_g;
+      document.getElementById('t-carb').value = suggestion.carb_g;
+      document.getElementById('t-fat').value = suggestion.fat_g;
+    });
+  }
   document.getElementById('save-target-btn').addEventListener('click', async () => {
     const msg = document.getElementById('target-msg');
     msg.textContent = '';
@@ -238,6 +298,11 @@ function renderEntryCard(entry) {
       </div>
     </div>
   `;
+}
+
+function formatDate(isoDate) {
+  if (!isoDate) return '';
+  return new Date(isoDate + 'T00:00:00').toLocaleDateString('pt-BR');
 }
 
 function todayISO() {
