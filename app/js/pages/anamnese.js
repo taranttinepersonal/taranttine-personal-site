@@ -22,6 +22,7 @@ export async function renderAnamnese(session) {
       <button class="logout-link" id="nav-treino">🏋 Treino</button>
       <button class="logout-link" id="nav-progresso" style="margin-left:12px;">📈 Evolução</button>
       <button class="logout-link" id="nav-indicacao" style="margin-left:12px;">🎁 Indicação</button>
+      <button class="logout-link" id="nav-nutricao" style="margin-left:12px;">🍽 Nutrição</button>
       ${diet ? `<button class="logout-link" id="nav-dieta" style="margin-left:12px;">🍎 Dieta</button>` : ''}
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
@@ -43,6 +44,7 @@ export async function renderAnamnese(session) {
   document.getElementById('nav-treino').addEventListener('click', () => { window.location.hash = '/treino'; });
   document.getElementById('nav-progresso').addEventListener('click', () => { window.location.hash = '/progresso'; });
   document.getElementById('nav-indicacao').addEventListener('click', () => { window.location.hash = '/indicacao'; });
+  document.getElementById('nav-nutricao').addEventListener('click', () => { window.location.hash = '/nutricao'; });
   const navDieta = document.getElementById('nav-dieta');
   if (navDieta) navDieta.addEventListener('click', () => { window.location.hash = '/dieta'; });
   document.getElementById('logout-btn').addEventListener('click', () => signOut());
