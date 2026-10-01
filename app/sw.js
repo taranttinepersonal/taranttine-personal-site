@@ -29,7 +29,7 @@ try {
   // push notifications unavailable this session; offline caching still works
 }
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const APP_CACHE = `taranttine-app-${VERSION}`;
 const DATA_CACHE = `taranttine-data-${VERSION}`;
 const GIF_CACHE = `taranttine-gifs-${VERSION}`;
