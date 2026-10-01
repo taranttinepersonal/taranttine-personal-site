@@ -262,7 +262,8 @@ function wireEstimateForm(clientId, session) {
         }
       });
     } catch (err) {
-      msg.textContent = 'Não consegui estimar agora. Tente de novo.';
+      console.error('estimateFromDescription failed', err);
+      msg.textContent = 'Não consegui estimar: ' + err.message;
       msg.classList.add('error');
     } finally {
       btn.disabled = false;
