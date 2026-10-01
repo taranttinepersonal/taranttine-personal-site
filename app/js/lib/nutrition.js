@@ -38,10 +38,16 @@ export async function fetchBodyComposition(clientId) {
   return { weightKg: null, bodyFatPct: null, source: null, recordedAt: null, age, sexo };
 }
 
-export async function fetchGoalHint(clientId) {
+const ERGOGENIC_KEYWORDS = ['hormôni', 'hormoni', 'esteroide', 'estero', 'anabolizante', 'trt', 'testosterona'];
+
+export async function fetchAnamneseHints(clientId) {
   const { data } = await supabase.from('anamneses').select('respostas')
     .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(1).maybeSingle();
-  return data?.respostas?.['Objetivo principal'] || data?.respostas?.['Descreva sua meta em detalhes'] || null;
+  const respostas = data?.respostas || {};
+  const goal = respostas['Objetivo principal'] || respostas['Descreva sua meta em detalhes'] || null;
+  const medicamentos = respostas['Medicamentos em uso'] || '';
+  const ergogenicSuspected = ERGOGENIC_KEYWORDS.some(kw => medicamentos.toLowerCase().includes(kw));
+  return { goal, medicamentos, ergogenicSuspected };
 }
 
 const ACTIVITY_FACTORS = {
@@ -57,21 +63,28 @@ const GOAL_ADJUSTMENTS = {
   ganho_de_massa: 0.10,
 };
 
-// Katch-McArdle (usa massa magra, não precisa de altura) + ajuste por
-// objetivo. Proteína 2g/kg e gordura 0,8g/kg de peso total (não massa magra),
-// carboidrato preenche o restante das calorias.
-export function calculateTargetSuggestion({ weightKg, bodyFatPct, activityLevel, goal }) {
+// Katch-McArdle — usa massa magra (peso x (1 - %gordura)), não precisa de altura.
+export function calculateBMR({ weightKg, bodyFatPct }) {
   const leanMassKg = weightKg * (1 - bodyFatPct / 100);
-  const bmr = 370 + 21.6 * leanMassKg;
+  return Math.round(370 + 21.6 * leanMassKg);
+}
+
+// BMR + ajuste por objetivo. Proteína 2g/kg (2,75g/kg com uso de recursos
+// ergogênicos — maior capacidade de síntese proteica/retenção de nitrogênio)
+// e gordura 0,8g/kg de peso total (não massa magra), carboidrato preenche o
+// restante das calorias.
+export function calculateTargetSuggestion({ weightKg, bodyFatPct, activityLevel, goal, ergogenic }) {
+  const bmr = calculateBMR({ weightKg, bodyFatPct });
   const tdee = bmr * (ACTIVITY_FACTORS[activityLevel] || ACTIVITY_FACTORS.moderado);
   const calories = Math.round(tdee * (1 + (GOAL_ADJUSTMENTS[goal] ?? 0)));
 
-  const protein_g = Math.round(weightKg * 2.0);
+  const proteinPerKg = ergogenic ? 2.75 : 2.0;
+  const protein_g = Math.round(weightKg * proteinPerKg);
   const fat_g = Math.round(weightKg * 0.8);
   const remainingCalories = calories - (protein_g * 4) - (fat_g * 9);
   const carb_g = Math.max(0, Math.round(remainingCalories / 4));
 
-  return { calories, protein_g, carb_g, fat_g };
+  return { bmr, calories, protein_g, carb_g, fat_g };
 }
 
 function calcAge(birthDate) {

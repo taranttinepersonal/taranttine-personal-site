@@ -1,7 +1,7 @@
 import { signOut } from '../auth.js';
 import {
   fetchTarget, saveTarget, fetchEntriesForDate, estimateFromDescription, saveEntry, deleteEntry,
-  fetchBodyComposition, fetchGoalHint, calculateTargetSuggestion,
+  fetchBodyComposition, fetchAnamneseHints, calculateTargetSuggestion, calculateBMR,
 } from '../lib/nutrition.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
 
@@ -18,9 +18,9 @@ export async function renderNutricao(session) {
 
   const clientId = session.user.id;
   const dateISO = todayISO();
-  const [target, entries, diet, bodyComp, goalHint] = await Promise.all([
+  const [target, entries, diet, bodyComp, anamneseHints] = await Promise.all([
     fetchTarget(clientId), fetchEntriesForDate(clientId, dateISO), fetchVisibleDiet(clientId),
-    fetchBodyComposition(clientId), fetchGoalHint(clientId),
+    fetchBodyComposition(clientId), fetchAnamneseHints(clientId),
   ]);
 
   const totals = entries.reduce((acc, e) => ({
@@ -45,7 +45,7 @@ export async function renderNutricao(session) {
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
-      ${renderTargetCard(target, totals, bodyComp, goalHint)}
+      ${renderTargetCard(target, totals, bodyComp, anamneseHints)}
 
       <div class="ex-card">
         <div class="ex-name" style="margin-bottom:12px;">Registrar refeição</div>
@@ -92,7 +92,8 @@ const GOAL_OPTIONS = [
   { key: 'ganho_de_massa', label: 'Ganho de massa' },
 ];
 
-function renderTargetCard(target, totals, bodyComp, goalHint) {
+function renderTargetCard(target, totals, bodyComp, anamneseHints) {
+  const { goal: goalHint, ergogenicSuspected } = anamneseHints;
   const fields = [
     { key: 'calories', label: 'Calorias', unit: 'kcal' },
     { key: 'protein_g', label: 'Proteína', unit: 'g' },
@@ -129,6 +130,10 @@ function renderTargetCard(target, totals, bodyComp, goalHint) {
               ${bodyComp.weightKg}kg · ${bodyComp.bodyFatPct}% gordura (${bodyComp.source}, ${formatDate(bodyComp.recordedAt)})
               ${goalHint ? ` · objetivo registrado: ${escapeHtml(goalHint)}` : ''}
             </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;background:var(--black3, rgba(255,255,255,0.04));border-radius:8px;padding:8px 10px;margin-bottom:10px;">
+              <span style="font-size:11.5px;color:var(--muted);">🔥 Metabolismo basal (BMR)</span>
+              <span style="font-size:14px;font-weight:700;color:var(--white);">${calculateBMR({ weightKg: bodyComp.weightKg, bodyFatPct: bodyComp.bodyFatPct })}kcal</span>
+            </div>
             <div class="ex-stats" style="grid-template-columns:1fr 1fr;margin-bottom:8px;">
               <div>
                 <label class="form-label">Nível de atividade</label>
@@ -143,6 +148,10 @@ function renderTargetCard(target, totals, bodyComp, goalHint) {
                 </select>
               </div>
             </div>
+            <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12.5px;color:var(--text);">
+              <input type="checkbox" id="calc-ergogenic" ${ergogenicSuspected ? 'checked' : ''} style="width:auto;">
+              Uso de recursos ergogênicos (proteína mais alta — 2,75g/kg)
+            </label>
             <button class="logout-link" id="calc-target-btn">Calcular e preencher abaixo</button>
           </div>
         ` : `
@@ -190,6 +199,7 @@ function wireTargetForm(clientId, session, bodyComp) {
         bodyFatPct: bodyComp.bodyFatPct,
         activityLevel: document.getElementById('calc-activity').value,
         goal: document.getElementById('calc-goal').value,
+        ergogenic: document.getElementById('calc-ergogenic').checked,
       });
       document.getElementById('t-calories').value = suggestion.calories;
       document.getElementById('t-protein').value = suggestion.protein_g;
