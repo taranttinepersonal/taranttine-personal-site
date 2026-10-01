@@ -18,7 +18,10 @@ exports.handler = async (event) => {
   const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { apikey: SERVICE_KEY, Authorization: authHeader },
   });
-  if (!userRes.ok) return { statusCode: 401, body: 'Invalid session' };
+  if (!userRes.ok) {
+    const errBody = await userRes.text();
+    return { statusCode: 401, body: `Invalid session (upstream ${userRes.status}): ${errBody}` };
+  }
 
   let payload;
   try {
