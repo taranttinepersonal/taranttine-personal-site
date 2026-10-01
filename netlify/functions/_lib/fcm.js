@@ -36,7 +36,7 @@ async function getGoogleAccessToken() {
   return tokenJson.access_token;
 }
 
-async function sendToTokens(accessToken, projectId, fcmTokens, notification) {
+async function sendToTokens(accessToken, projectId, fcmTokens, notification, link = 'https://taranttinepersonal.netlify.app/app/#/treino') {
   let sent = 0;
   let failed = 0;
   const staleTokens = [];
@@ -50,7 +50,7 @@ async function sendToTokens(accessToken, projectId, fcmTokens, notification) {
           message: {
             token: fcmToken,
             notification,
-            webpush: { fcm_options: { link: 'https://taranttinepersonal.netlify.app/app/#/treino' } },
+            webpush: { fcm_options: { link } },
           },
         }),
       });
