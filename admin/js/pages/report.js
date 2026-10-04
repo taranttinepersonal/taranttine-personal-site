@@ -3,6 +3,7 @@ import { sumSkinfolds, calcBodyFat } from '../../../app/js/lib/skinfold.js';
 import { classificar, FORCA_EXERCICIOS, scoreForcaRelativa } from '../../../app/js/lib/trainingLevel.js';
 import { MEASUREMENT_FIELDS } from '../../../app/js/lib/progress.js';
 import { buildTrendChart, buildRadarChart } from '../../../app/js/lib/chart.js';
+import { renderAnnotatedDataUrl, describeMetrics } from '../../../app/js/lib/posture.js';
 
 const BIOIMPEDANCE_FIELDS = [
   { key: 'peso', label: 'Peso', unit: 'kg' },
@@ -33,10 +34,10 @@ function seriesFrom(entries, key) {
 }
 
 const POSTURAL_ANGLES = [
-  { column: 'foto_lateral_direita', label: 'Lateral Direita' },
-  { column: 'foto_lateral_esquerda', label: 'Lateral Esquerda' },
-  { column: 'foto_posterior', label: 'Posterior' },
-  { column: 'foto_anterior', label: 'Anterior' },
+  { key: 'lateral_direita', column: 'foto_lateral_direita', label: 'Lateral Direita' },
+  { key: 'lateral_esquerda', column: 'foto_lateral_esquerda', label: 'Lateral Esquerda' },
+  { key: 'posterior', column: 'foto_posterior', label: 'Posterior' },
+  { key: 'anterior', column: 'foto_anterior', label: 'Anterior' },
 ];
 
 export async function renderReport(main, clientId) {
@@ -48,7 +49,7 @@ export async function renderReport(main, clientId) {
       .eq('client_id', clientId).order('recorded_at', { ascending: false }),
     supabase.from('progress_photos').select('id, storage_path, recorded_at')
       .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(6),
-    supabase.from('postural_assessments').select('recorded_at, notes, general_note, foto_anterior, foto_posterior, foto_lateral_direita, foto_lateral_esquerda')
+    supabase.from('postural_assessments').select('recorded_at, notes, general_note, analysis, foto_anterior, foto_posterior, foto_lateral_direita, foto_lateral_esquerda')
       .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(1),
     supabase.from('skinfold_assessments').select('*')
       .eq('client_id', clientId).order('recorded_at', { ascending: false }),
@@ -222,9 +223,9 @@ export async function renderReport(main, clientId) {
             ${posturalPhotosWithUrls.map(p => `
               <div class="postural-grid-photo">
                 ${p.url ? `
-                  <div class="postural-grid-photo-frame">
+                  <div class="postural-grid-photo-frame" data-view="${p.key}" ${posturalLatest.analysis?.[p.key] ? `style="aspect-ratio:${posturalLatest.analysis[p.key].w}/${posturalLatest.analysis[p.key].h};"` : ''}>
                     <img src="${p.url}" alt="${p.label}">
-                    <div class="postural-grid-overlay"></div>
+                    ${posturalLatest.analysis?.[p.key] ? '' : '<div class="postural-grid-overlay"></div>'}
                   </div>
                 ` : `<div class="postural-grid-photo-frame empty"></div>`}
                 <div class="postural-grid-photo-label">${p.label}</div>
@@ -237,6 +238,13 @@ export async function renderReport(main, clientId) {
             <div class="report-postural-row"><b>${item.label}</b><span>${escapeHtml(posturalLatest.notes[item.key])}</span></div>
           `).join('') || '<p class="report-empty">Sem itens registrados.</p>'}
           ${posturalLatest.general_note ? `<p class="report-postural-general">${escapeHtml(posturalLatest.general_note)}</p>` : ''}
+          ${posturalLatest.analysis ? `
+            <div class="report-section-title" style="font-size:12px;margin:16px 0 6px;">Medições por visão computacional</div>
+            ${POSTURAL_ANGLES.filter(a => posturalLatest.analysis[a.key]).map(a => `
+              <div class="report-postural-row"><b>${a.label}</b><span>${describeMetrics(a.key, posturalLatest.analysis[a.key].metrics).map(escapeHtml).join(' · ')}</span></div>
+            `).join('')}
+            <p class="report-postural-general">Ângulos estimados a partir de fotografia (2D); servem de apoio e foram revisados pelo avaliador.</p>
+          ` : ''}
           <div class="report-postural-date">Avaliado em ${formatDate(posturalLatest.recorded_at)}</div>
         </div>
       ` : `<p class="report-empty">Nenhuma avaliação postural registrada ainda.</p>`}
@@ -286,6 +294,8 @@ export async function renderReport(main, clientId) {
     </div>
   `;
 
+  const annotationsReady = annotatePosturalPhotos(main, posturalPhotosWithUrls, posturalLatest?.analysis);
+
   document.getElementById('report-print').addEventListener('click', () => window.print());
 
   main.querySelectorAll('.saved-report-open').forEach(link => {
@@ -306,6 +316,7 @@ export async function renderReport(main, clientId) {
       const { jsPDF } = await import('https://esm.sh/jspdf@2.5.2');
       const html2canvas = (await import('https://esm.sh/html2canvas@1.4.1')).default;
 
+      await annotationsReady;
       const el = main.querySelector('.report-doc');
       el.classList.add('pdf-export');
       const restoreImages = await inlineImagesAsDataUrls(el);
@@ -476,6 +487,24 @@ function collectSafeBreakpoints(root) {
     ys.add(node.getBoundingClientRect().top - rootTop);
   });
   return Array.from(ys).sort((a, b) => a - b);
+}
+
+// Troca as fotos posturais pelas versões anotadas (grade + planos + ângulos),
+// desenhadas a partir da análise salva — a foto original nunca é alterada.
+async function annotatePosturalPhotos(root, photos, analysis) {
+  if (!analysis) return;
+  await Promise.all(photos.map(async (p) => {
+    const viewAnalysis = analysis[p.key];
+    if (!p.url || !viewAnalysis) return;
+    try {
+      const blob = await (await fetch(p.url)).blob();
+      const dataUrl = await renderAnnotatedDataUrl(blob, p.key, viewAnalysis);
+      const img = root.querySelector(`.postural-grid-photo-frame[data-view="${p.key}"] img`);
+      if (img) img.src = dataUrl;
+    } catch (err) {
+      console.error('annotate postural photo failed', p.key, err);
+    }
+  }));
 }
 
 function calcAge(birthDate) {

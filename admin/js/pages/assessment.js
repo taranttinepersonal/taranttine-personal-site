@@ -5,6 +5,7 @@ import {
 } from '../../../app/js/lib/trainingLevel.js';
 import { fetchEntries, saveEntry, uploadPhoto, MEASUREMENT_FIELDS } from '../../../app/js/lib/progress.js';
 import { buildRadarChart } from '../../../app/js/lib/chart.js';
+import { detectLandmarks, computeMetrics, drawAnnotated, describeMetrics, suggestChecklist } from '../../../app/js/lib/posture.js';
 
 const TECNICA_EXERCICIOS = [
   { key: 'supino', label: 'Supino (empurrar)' },
@@ -255,6 +256,10 @@ export async function renderAssessment(main, clientId) {
             </div>
           `).join('')}
         </div>
+
+        <button class="admin-btn" id="post-analyze" type="button">🔍 Analisar fotos com IA</button>
+        <div class="admin-msg" id="post-analyze-msg" style="color:var(--muted);"></div>
+        <div id="post-analysis"></div>
 
         ${POSTURAL_CHECKLIST.map(item => `
           <label>${item.label}</label>
@@ -516,6 +521,76 @@ export async function renderAssessment(main, clientId) {
     });
   }
 
+  // análise por IA: detecta pontos nas fotos escolhidas e sugere o checklist
+  const postAnalysis = {};
+  for (const a of POSTURAL_ANGLES) {
+    document.getElementById(`post-photo-${a.key}`).addEventListener('change', () => {
+      delete postAnalysis[a.key];
+    });
+  }
+
+  document.getElementById('post-analyze').addEventListener('click', async () => {
+    const btn = document.getElementById('post-analyze');
+    const note = document.getElementById('post-analyze-msg');
+    const results = document.getElementById('post-analysis');
+    const chosen = POSTURAL_ANGLES.filter(a => document.getElementById(`post-photo-${a.key}`).files[0]);
+    if (!chosen.length) {
+      note.textContent = 'Escolha pelo menos uma foto primeiro.';
+      return;
+    }
+    btn.disabled = true;
+    note.classList.remove('error');
+    results.innerHTML = '';
+    try {
+      for (const a of chosen) {
+        note.textContent = `Analisando ${a.label}… (a primeira vez baixa o modelo de IA e leva alguns segundos)`;
+        const file = document.getElementById(`post-photo-${a.key}`).files[0];
+        const bitmap = await createImageBitmap(file);
+        const det = await detectLandmarks(bitmap);
+        if (!det) {
+          delete postAnalysis[a.key];
+          results.insertAdjacentHTML('beforeend', `<div class="admin-card"><b>${a.label}</b><div class="admin-row-sub">Nenhuma pessoa detectada — confira se o corpo inteiro aparece na foto.</div></div>`);
+          continue;
+        }
+        const metrics = computeMetrics(a.key, det);
+        postAnalysis[a.key] = { ...det, metrics };
+
+        const canvas = document.createElement('canvas');
+        drawAnnotated(canvas, bitmap, a.key, det, metrics, { maxWidth: 900 });
+        canvas.style.cssText = 'width:100%;border-radius:8px;display:block;';
+        const card = document.createElement('div');
+        card.className = 'admin-card';
+        card.innerHTML = `<div class="admin-section-title" style="margin-top:0;">${a.label}</div>`;
+        card.appendChild(canvas);
+        const list = document.createElement('div');
+        list.style.cssText = 'margin-top:8px;font-size:12px;color:var(--muted);line-height:1.6;';
+        list.innerHTML = describeMetrics(a.key, metrics).map(l => `<div>${escapeHtml(l)}</div>`).join('');
+        card.appendChild(list);
+        results.appendChild(card);
+      }
+
+      const suggestions = suggestChecklist(postAnalysis);
+      const filled = [];
+      for (const item of POSTURAL_CHECKLIST) {
+        const value = suggestions[item.key];
+        const select = document.getElementById(`post-${item.key}`);
+        if (value && !select.value && item.options.includes(value)) {
+          select.value = value;
+          filled.push(item.label);
+        }
+      }
+      note.textContent = filled.length
+        ? `✅ Análise concluída. Sugestões aplicadas em: ${filled.join(', ')} — são ângulos 2D de foto, confira antes de salvar.`
+        : '✅ Análise concluída. Nenhum campo vazio para sugerir — confira as medidas acima.';
+    } catch (err) {
+      console.error('post analysis failed', err);
+      note.textContent = 'Erro na análise: ' + err.message;
+      note.classList.add('error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   document.getElementById('post-save').addEventListener('click', async () => {
     const msg = document.getElementById('post-msg');
     const btn = document.getElementById('post-save');
@@ -548,6 +623,7 @@ export async function renderAssessment(main, clientId) {
         recorded_at: recordedAt,
         notes: Object.keys(notes).length ? notes : null,
         general_note: document.getElementById('post-general').value.trim() || null,
+        ...(Object.keys(postAnalysis).length ? { analysis: postAnalysis } : {}),
         ...photoPaths,
       };
       const { error } = await supabase.from('postural_assessments').insert([payload]);
