@@ -267,7 +267,7 @@ export function drawAnnotated(canvas, source, view, det, metrics, { maxWidth = 9
   ctx.fillStyle = TEAL;
   ctx.textAlign = 'right';
   ctx.font = font(19, 600);
-  ctx.fillText(VIEW_TAG[view] || view.toUpperCase(), W - 170 * s, 66 * s);
+  ctx.fillText(VIEW_TAG[view] || view.toUpperCase(), W - 230 * s, 66 * s);
   ctx.textAlign = 'left';
 
   const color = (flag) => (flag ? GOLD : TEAL);
@@ -338,10 +338,16 @@ export function drawAnnotated(canvas, source, view, det, metrics, { maxWidth = 9
 
   // rótulos na coluna esquerda, com conector fino até o ponto
   const colX = 60 * s;
+  const gap = 66 * s;
+  const sorted = labels.sort((a, b) => a.anchor.y - b.anchor.y);
+  const ys = [];
   let lastY = -Infinity;
-  labels.sort((a, b) => a.anchor.y - b.anchor.y).forEach((l) => {
-    const y = Math.max(l.anchor.y, lastY + 66 * s);
-    lastY = y;
+  sorted.forEach((l) => { lastY = Math.max(l.anchor.y, lastY + gap); ys.push(lastY); });
+  // empilhar rótulos perto do rodapé empurra o último pra fora da foto: sobe o bloco inteiro
+  const maxY = H - 70 * s;
+  for (let i = ys.length - 1; i >= 0; i--) ys[i] = Math.min(ys[i], maxY - (ys.length - 1 - i) * gap);
+  sorted.forEach((l, i) => {
+    const y = ys[i];
     const c = color(l.flag);
     ctx.lineJoin = 'round';
     ctx.strokeStyle = 'rgba(255,255,255,0.6)';

@@ -123,6 +123,10 @@ export async function renderReport(main, clientId) {
       .map(b => ({ date: b.recorded_at, value: Number(b[f.key]) }))
       .reverse(),
   }));
+  const hasComposition = latest?.weight_kg != null || latest?.body_fat_pct != null
+    || weightSeries.length >= 2 || bodyFatSeries.length >= 2;
+  const hasMeasurements = MEASUREMENT_FIELDS.some(f => latest?.measurements?.[f.key] != null)
+    || measurementSeries.some(s => s.points.length >= 2);
   const levelScoreSeries = (levels || [])
     .filter(l => l.score_final != null)
     .map(l => ({ date: l.recorded_at, value: Number(l.score_final) }))
@@ -177,6 +181,7 @@ export async function renderReport(main, clientId) {
         <p class="report-postural-general" style="margin:-4px 0 16px;">🎯 Objetivo: ${escapeHtml(anamneseLatest.respostas['Objetivo principal'])}</p>
       ` : ''}
 
+      ${hasComposition ? `
       <div class="report-section-title">Composição Corporal</div>
       <div class="report-bars">
         ${renderDeltaBar('Peso', latest?.weight_kg, previous?.weight_kg, 'kg')}
@@ -184,7 +189,9 @@ export async function renderReport(main, clientId) {
       </div>
       ${renderMultiTrendChart([{ label: 'Peso', color: CHART_COLORS[0], points: weightSeries }], 'kg', 'Evolução — Peso')}
       ${renderMultiTrendChart([{ label: '% Gordura', color: CHART_COLORS[1], points: bodyFatSeries }], '%', 'Evolução — % Gordura')}
+      ` : ''}
 
+      ${hasMeasurements ? `
       <div class="report-section-title">Medidas</div>
       <div class="report-bars">
         ${MEASUREMENT_FIELDS.map(f => renderDeltaBar(
@@ -192,6 +199,7 @@ export async function renderReport(main, clientId) {
         )).join('')}
       </div>
       ${renderMultiTrendChart(measurementSeries, 'cm', 'Evolução — Medidas')}
+      ` : ''}
 
       ${skinfoldResultCurrent ? `
         <div class="report-section-title">Composição Corporal — Dobras Cutâneas (Pollock 7 pontos)</div>

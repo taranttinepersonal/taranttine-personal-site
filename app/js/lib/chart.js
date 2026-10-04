@@ -12,16 +12,22 @@ export function buildTrendChart(seriesList) {
   const allDates = usable.flatMap(s => s.points.map(p => p.date)).sort();
   const minDate = new Date(allDates[0] + 'T00:00:00').getTime();
   const maxDate = new Date(allDates[allDates.length - 1] + 'T00:00:00').getTime();
+  const sameDay = maxDate === minDate;
   const dateRange = (maxDate - minDate) || 1;
 
   const w = 600;
   const h = 140;
-  const x = (d) => ((new Date(d + 'T00:00:00').getTime() - minDate) / dateRange) * w;
+  const pad = 6;
+  // registros todos no mesmo dia: espalha por ordem em vez de empilhar na borda
+  const x = (p, i, n) => pad + (sameDay
+    ? (n > 1 ? i / (n - 1) : 0.5)
+    : (new Date(p.date + 'T00:00:00').getTime() - minDate) / dateRange) * (w - 2 * pad);
   const y = (v) => h - ((v - min) / range) * (h - 30) - 15;
 
   const lines = usable.map(s => {
-    const pts = s.points.map(p => `${x(p.date)},${y(p.value)}`).join(' ');
-    const dots = s.points.map(p => `<circle cx="${x(p.date)}" cy="${y(p.value)}" r="3" fill="${s.color}"/>`).join('');
+    const n = s.points.length;
+    const pts = s.points.map((p, i) => `${x(p, i, n)},${y(p.value)}`).join(' ');
+    const dots = s.points.map((p, i) => `<circle cx="${x(p, i, n)}" cy="${y(p.value)}" r="3" fill="${s.color}"/>`).join('');
     return `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2"/>${dots}`;
   }).join('');
 
