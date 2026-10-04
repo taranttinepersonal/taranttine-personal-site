@@ -29,7 +29,7 @@ try {
   // push notifications unavailable this session; offline caching still works
 }
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const APP_CACHE = `taranttine-app-${VERSION}`;
 const DATA_CACHE = `taranttine-data-${VERSION}`;
 const GIF_CACHE = `taranttine-gifs-${VERSION}`;
@@ -101,7 +101,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.startsWith('/app/')) {
-    event.respondWith(staleWhileRevalidate(request, APP_CACHE));
+    event.respondWith(networkFirstWithTimeout(request, APP_CACHE, 4000));
     return;
   }
   // everything else (e.g. Google Fonts) passes straight through
@@ -129,12 +129,21 @@ async function cacheFirst(request, cacheName) {
   return fresh;
 }
 
-async function staleWhileRevalidate(request, cacheName) {
+// Código do app (JS/CSS/HTML): sempre tenta a versão nova da rede primeiro, pra
+// um deploy nunca ficar escondido atrás de cache velho; o cache só entra se
+// estiver offline ou a rede demorar mais que `ms`.
+async function networkFirstWithTimeout(request, cacheName, ms) {
   const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  const networkPromise = fetch(request).then((fresh) => {
-    cache.put(request, fresh.clone());
+  try {
+    const fresh = await Promise.race([
+      fetch(request),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+    ]);
+    if (fresh.ok) cache.put(request, fresh.clone());
     return fresh;
-  }).catch(() => cached);
-  return cached || networkPromise;
+  } catch (err) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw err;
+  }
 }

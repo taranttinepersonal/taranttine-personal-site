@@ -137,6 +137,18 @@ export async function renderReport(main, clientId) {
     }),
   ) : [];
 
+  const posturalPhotoHtml = (p) => `
+    <div class="postural-grid-photo">
+      ${p.url ? `
+        <div class="postural-grid-photo-frame" data-view="${p.key}" ${posturalLatest.analysis?.[p.key] ? `style="aspect-ratio:${posturalLatest.analysis[p.key].w}/${posturalLatest.analysis[p.key].h};"` : ''}>
+          <img src="${p.url}" alt="${p.label}">
+          ${posturalLatest.analysis?.[p.key] ? '' : '<div class="postural-grid-overlay"></div>'}
+        </div>
+      ` : `<div class="postural-grid-photo-frame empty"></div>`}
+      <div class="postural-grid-photo-label">${p.label}</div>
+    </div>
+  `;
+
   main.innerHTML = `
     <div class="admin-header no-print">
       <div class="admin-title">${escapeHtml(profile?.full_name || '')} · Relatório de Avaliação</div>
@@ -216,19 +228,13 @@ export async function renderReport(main, clientId) {
         </div>
       ` : ''}
 
-      <div class="report-section-title">Avaliação Postural</div>
+      <div class="report-section-title ${posturalLatest?.analysis ? 'print-page-break' : ''}">Avaliação Postural</div>
       ${posturalLatest ? `
         ${posturalPhotosWithUrls.some(p => p.url) ? `
-          <div class="postural-grid-photos">
-            ${posturalPhotosWithUrls.map(p => `
-              <div class="postural-grid-photo">
-                ${p.url ? `
-                  <div class="postural-grid-photo-frame" data-view="${p.key}" ${posturalLatest.analysis?.[p.key] ? `style="aspect-ratio:${posturalLatest.analysis[p.key].w}/${posturalLatest.analysis[p.key].h};"` : ''}>
-                    <img src="${p.url}" alt="${p.label}">
-                    ${posturalLatest.analysis?.[p.key] ? '' : '<div class="postural-grid-overlay"></div>'}
-                  </div>
-                ` : `<div class="postural-grid-photo-frame empty"></div>`}
-                <div class="postural-grid-photo-label">${p.label}</div>
+          <div class="postural-grid-photos ${posturalLatest.analysis ? 'tall' : ''}">
+            ${[0, 2].map(i => `
+              <div class="postural-grid-row">
+                ${posturalPhotosWithUrls.slice(i, i + 2).map(posturalPhotoHtml).join('')}
               </div>
             `).join('')}
           </div>
