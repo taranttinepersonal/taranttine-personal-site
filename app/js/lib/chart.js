@@ -35,7 +35,7 @@ export function buildTrendChart(seriesList) {
 
 // Radar/spider chart — usado pro perfil de força relativa (supino, agachamento,
 // terra, leg press) na Avaliação. axes: [{label, value}], value na escala 0..max.
-export function buildRadarChart(axes, { max = 4, size = 220, color = 'var(--report-accent, #00b894)', gridColor = 'var(--report-border, #ddd)' } = {}) {
+export function buildRadarChart(axes, { max = 4, size = 220, color = 'var(--report-accent, #00b894)', gridColor = 'var(--report-border, #ddd)', labelColor = 'var(--report-muted, #666)' } = {}) {
   const usable = axes.filter(a => a.value != null);
   if (usable.length < 3) return null;
 
@@ -69,11 +69,11 @@ export function buildRadarChart(axes, { max = 4, size = 220, color = 'var(--repo
   const labels = usable.map((a, i) => {
     const [x, y] = pointFor(i, max * 1.2);
     const anchor = Math.abs(x - cx) < 4 ? 'middle' : (x > cx ? 'start' : 'end');
-    return `<text x="${x}" y="${y}" font-size="11" text-anchor="${anchor}" dominant-baseline="middle" fill="${gridColor}">${a.label}</text>`;
+    return `<text x="${x}" y="${y}" font-size="11" text-anchor="${anchor}" dominant-baseline="middle" fill="${labelColor}">${a.label}</text>`;
   }).join('');
 
   return {
-    svg: `<svg viewBox="0 0 ${size} ${size}" style="width:100%;max-width:260px;height:auto;display:block;margin:0 auto;">
+    svg: `<svg viewBox="-70 -8 ${size + 140} ${size + 16}" style="width:100%;max-width:360px;height:auto;display:block;margin:0 auto;">
       ${rings}${axisLines}
       <polygon points="${valuePts}" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="2"/>
       ${valueDots}${labels}

@@ -181,9 +181,13 @@ export function suggestChecklist(analysis) {
   for (const view of ['anterior', 'posterior']) {
     (analysis[view]?.metrics?.knees || []).forEach((k) => { if (k.flag) kneeFlags.push(k.type); });
   }
-  const hyper = ['lateral_direita', 'lateral_esquerda']
-    .some((v) => analysis[v]?.metrics?.knee?.flag && analysis[v].metrics.knee.type === 'hiperextendido');
-  if (hyper) out.joelhos = 'Hiperextendido';
+  // positivo = hiperextensão; média dos perfis pra um lado só não decidir sozinho
+  const kneeSigned = ['lateral_direita', 'lateral_esquerda']
+    .map((v) => analysis[v]?.metrics?.knee)
+    .filter(Boolean)
+    .map((k) => (k.type === 'hiperextendido' ? k.angle : -k.angle));
+  const kneeAvg = kneeSigned.length ? kneeSigned.reduce((a, b) => a + b, 0) / kneeSigned.length : 0;
+  if (kneeAvg >= 4) out.joelhos = 'Hiperextendido';
   else if (kneeFlags.length) out.joelhos = kneeFlags.includes('valgo') ? 'Valgo' : 'Varo';
   else if (ant?.knees) out.joelhos = 'Neutro';
   return out;
@@ -339,6 +343,13 @@ export function drawAnnotated(canvas, source, view, det, metrics, { maxWidth = 9
     const y = Math.max(l.anchor.y, lastY + 66 * s);
     lastY = y;
     const c = color(l.flag);
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 4 * s;
+    ctx.font = font(25, 700);
+    ctx.strokeText(l.title, colX, y - 4 * s);
+    ctx.font = font(22, 600);
+    ctx.strokeText(l.status, colX, y + 22 * s);
     ctx.fillStyle = c;
     ctx.font = font(25, 700);
     ctx.fillText(l.title, colX, y - 4 * s);

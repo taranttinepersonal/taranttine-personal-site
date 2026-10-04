@@ -486,6 +486,14 @@ function collectSafeBreakpoints(root) {
   root.querySelectorAll(selector).forEach((node) => {
     ys.add(node.getBoundingClientRect().top - rootTop);
   });
+  // título de seção nunca fica sozinho no fim da página: tira os pontos de
+  // corte logo abaixo dele (o título vai junto com o primeiro bloco)
+  root.querySelectorAll('.report-section-title').forEach((title) => {
+    const r = title.getBoundingClientRect();
+    const top = r.top - rootTop;
+    const bottom = r.bottom - rootTop + 30;
+    Array.from(ys).forEach((y) => { if (y > top && y <= bottom) ys.delete(y); });
+  });
   return Array.from(ys).sort((a, b) => a - b);
 }
 

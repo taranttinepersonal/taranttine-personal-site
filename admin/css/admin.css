@@ -170,3 +170,9 @@
     repeating-linear-gradient(0deg, rgba(0,120,100,0.5) 0, rgba(0,120,100,0.5) 1px, transparent 1px, transparent 24px),
     repeating-linear-gradient(90deg, rgba(0,120,100,0.5) 0, rgba(0,120,100,0.5) 1px, transparent 1px, transparent 24px);
 }
+
+/* Impressão do navegador: não corta foto/barra no meio nem deixa título sozinho */
+.report-section-title { break-after: avoid; page-break-after: avoid; }
+.postural-grid-photo, .report-bar-item, .report-photo, .report-chart, .report-postural-row {
+  break-inside: avoid; page-break-inside: avoid;
+}

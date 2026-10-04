@@ -727,7 +727,7 @@ export async function renderAssessment(main, clientId) {
     document.getElementById('nv-score-p3').textContent = temporal.param3 ?? '—';
     document.getElementById('nv-score-p4').textContent = tecnicaScore != null ? round1(tecnicaScore) : '—';
     document.getElementById('nv-score-p5').textContent = forcaScore != null ? round1(forcaScore) : '—';
-    const radar = buildRadarChart(forcaAxes, { color: 'var(--green)', gridColor: 'var(--border)' });
+    const radar = buildRadarChart(forcaAxes, { color: 'var(--green)', gridColor: 'var(--border)', labelColor: 'var(--muted)' });
     document.getElementById('nv-radar').innerHTML = radar
       ? `<div style="font-size:10px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Perfil de Força Relativa</div>${radar.svg}`
       : '';
