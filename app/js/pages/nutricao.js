@@ -4,6 +4,8 @@ import {
   fetchBodyComposition, fetchAnamneseHints, calculateTargetSuggestion, calculateBMR,
 } from '../lib/nutrition.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
+import { fetchDailyHistory, fetchWeightSeries, summarizeHistory, renderHistoryHtml, localISO } from '../lib/nutritionHistory.js';
+import { buildTrendChart } from '../lib/chart.js';
 
 const MEAL_TYPES = [
   { key: 'cafe', label: 'Café da manhã' },
@@ -47,6 +49,17 @@ export async function renderNutricao(session) {
     <div class="main">
       ${renderTargetCard(target, totals, bodyComp, anamneseHints)}
 
+      <div class="ex-card" id="history-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div class="ex-name">Histórico</div>
+          <div style="display:flex;gap:6px;">
+            <button class="logout-link" data-history-days="7" style="font-weight:700;color:var(--green);">7 dias</button>
+            <button class="logout-link" data-history-days="30">30 dias</button>
+          </div>
+        </div>
+        <div id="history-body"><div class="loading-state" style="padding:12px 0;">Carregando histórico...</div></div>
+      </div>
+
       <div class="ex-card">
         <div class="ex-name" style="margin-bottom:12px;">Registrar refeição</div>
         <label class="form-label">Refeição</label>
@@ -75,6 +88,7 @@ export async function renderNutricao(session) {
   const navDieta = document.getElementById('nav-dieta');
   if (navDieta) navDieta.addEventListener('click', () => { window.location.hash = '/dieta'; });
 
+  wireHistory(clientId, target);
   wireTargetForm(clientId, session, bodyComp);
   wireEstimateForm(clientId, session);
   wireDeleteButtons(session);
@@ -317,7 +331,28 @@ function formatDate(isoDate) {
 }
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return localISO();
+}
+
+function wireHistory(clientId, target) {
+  const body = document.getElementById('history-body');
+  const buttons = document.querySelectorAll('[data-history-days]');
+  async function load(days) {
+    buttons.forEach(b => {
+      const on = Number(b.dataset.historyDays) === days;
+      b.style.fontWeight = on ? '700' : '';
+      b.style.color = on ? 'var(--green)' : '';
+    });
+    body.innerHTML = '<div class="loading-state" style="padding:12px 0;">Carregando histórico...</div>';
+    const [daily, weightSeries] = await Promise.all([fetchDailyHistory(clientId, days), fetchWeightSeries(clientId, days)]);
+    if (!daily.length) {
+      body.innerHTML = '<div class="loading-state" style="padding:12px 0;">Não consegui carregar o histórico agora.</div>';
+      return;
+    }
+    body.innerHTML = renderHistoryHtml({ daily, summary: summarizeHistory(daily, target), target, weightSeries, buildTrendChart });
+  }
+  buttons.forEach(b => b.addEventListener('click', () => load(Number(b.dataset.historyDays))));
+  load(7);
 }
 
 function escapeHtml(str) {

@@ -66,6 +66,7 @@ export async function renderClients(main) {
           <a class="admin-btn" href="#/cliente/${c.id}/dados">Dados</a>
           <a class="admin-btn" href="#/cliente/${c.id}/treino">Treino</a>
           <a class="admin-btn" href="#/cliente/${c.id}/dieta">Dieta</a>
+          <a class="admin-btn" href="#/cliente/${c.id}/nutricao">Nutrição</a>
           <a class="admin-btn" href="#/cliente/${c.id}/evolucao">Evolução</a>
           <a class="admin-btn" href="#/cliente/${c.id}/avaliacao">Avaliação</a>
           <a class="admin-btn" href="#/cliente/${c.id}/relatorio">Relatório</a>
