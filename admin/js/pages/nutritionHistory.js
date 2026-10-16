@@ -1,6 +1,6 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
 import {
-  fetchTarget, fetchBodyComposition, fetchAnamneseHints, calculateBMR, calculateTargetSuggestion, saveTarget,
+  fetchTarget, fetchBodyComposition, fetchAnamneseHints, calculateBMR, bmrRange, calculateTargetSuggestion, saveTarget,
 } from '../../../app/js/lib/nutrition.js';
 import { fetchDailyHistory, fetchWeightSeries, summarizeHistory, renderHistoryHtml } from '../../../app/js/lib/nutritionHistory.js';
 import { buildTrendChart } from '../../../app/js/lib/chart.js';
@@ -8,17 +8,13 @@ import { buildTrendChart } from '../../../app/js/lib/chart.js';
 export async function renderNutritionHistory(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
-  const [{ data: profile }, initialTarget, bodyComp, anamneseHints, { data: bio }] = await Promise.all([
+  const [{ data: profile }, initialTarget, bodyComp, anamneseHints] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', clientId).single(),
     fetchTarget(clientId),
     fetchBodyComposition(clientId),
     fetchAnamneseHints(clientId),
-    supabase.from('bioimpedance_assessments').select('recorded_at, taxa_metabolica_basal')
-      .eq('client_id', clientId).not('taxa_metabolica_basal', 'is', null)
-      .order('recorded_at', { ascending: false }).limit(1),
   ]);
   let target = initialTarget;
-  const deviceBmr = bio?.[0] ? { value: Math.round(Number(bio[0].taxa_metabolica_basal)), recordedAt: bio[0].recorded_at } : null;
 
   main.innerHTML = `
     <div class="admin-header">
@@ -28,7 +24,7 @@ export async function renderNutritionHistory(main, clientId) {
     <div class="admin-card">
       <div id="current-target">${renderCurrentTarget(target)}</div>
     </div>
-    ${renderCalculator(bodyComp, anamneseHints, deviceBmr, target)}
+    ${renderCalculator(bodyComp, anamneseHints, target)}
     <div class="admin-card">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <button class="admin-btn primary" data-days="7">7 dias</button>
@@ -76,9 +72,9 @@ export async function renderNutritionHistory(main, clientId) {
       weightKg, bodyFatPct,
       activityLevel: $('calc-activity').value,
       goal: $('calc-goal').value,
-      ergogenic: $('calc-ergogenic').checked,
     });
-    $('calc-bmr').textContent = `${s.bmr}kcal`;
+    const r = bmrRange(s.bmr);
+    $('calc-bmr').textContent = `~${s.bmr}kcal (${r.low}–${r.high})`;
     $('tg-calories').value = s.calories;
     $('tg-protein').value = s.protein_g;
     $('tg-carb').value = s.carb_g;
@@ -132,9 +128,10 @@ function renderCurrentTarget(target) {
     : `<div class="admin-row-sub">Este cliente ainda não tem meta definida. Use a calculadora abaixo ou peça pra ele definir no app.</div>`;
 }
 
-function renderCalculator(bodyComp, anamneseHints, deviceBmr, target) {
+function renderCalculator(bodyComp, anamneseHints, target) {
   const hasComp = bodyComp.weightKg && bodyComp.bodyFatPct;
   const bmr = hasComp ? calculateBMR({ weightKg: bodyComp.weightKg, bodyFatPct: bodyComp.bodyFatPct }) : null;
+  const range = bmr ? bmrRange(bmr) : null;
   return `
     <div class="admin-card admin-form">
       <div class="admin-section-title" style="margin-top:0;">🧮 Calculadora de meta</div>
@@ -154,14 +151,11 @@ function renderCalculator(bodyComp, anamneseHints, deviceBmr, target) {
           ${GOAL_OPTIONS.map(g => `<option value="${g.key}" ${g.key === 'ganho_de_massa' ? 'selected' : ''}>${g.label}</option>`).join('')}
         </select></div>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-        <input type="checkbox" id="calc-ergogenic" ${anamneseHints.ergogenicSuspected ? 'checked' : ''} style="width:auto;margin:0;">
-        Uso de recursos ergogênicos (proteína 2,75g/kg)
-      </label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;">
-        <div class="admin-row-sub">🔥 Basal calculado (Katch-McArdle, estimativa): <b style="color:var(--white);" id="calc-bmr">${bmr ? `${bmr}kcal` : '—'}</b></div>
-        <div class="admin-row-sub">⚖️ Basal da balança: <b style="color:var(--white);">${deviceBmr ? `${deviceBmr.value}kcal` : '—'}</b>${deviceBmr ? ` (${formatDate(deviceBmr.recordedAt)})` : ''}</div>
+        <div class="admin-row-sub">🔥 Basal estimado (Katch-McArdle): <b style="color:var(--white);" id="calc-bmr">${bmr ? `~${bmr}kcal (${range.low}–${range.high})` : '—'}</b></div>
+        <div class="admin-row-sub">⚖️ Basal da balança: <b style="color:var(--white);">${bodyComp.deviceBmr ? `${bodyComp.deviceBmr}kcal` : '—'}</b></div>
       </div>
+      <div class="admin-row-sub" style="margin:-4px 0 10px;">Proteína calculada pela massa magra: 2,2 g/kg (2,4 g/kg no emagrecimento).</div>
       <button class="admin-btn" id="calc-run">Calcular sugestão</button>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0 12px;margin-top:12px;">
         <div><label>Calorias</label><input type="number" id="tg-calories" value="${target?.calories ?? ''}"></div>

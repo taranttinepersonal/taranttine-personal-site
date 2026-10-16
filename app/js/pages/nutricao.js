@@ -1,7 +1,7 @@
 import { signOut } from '../auth.js';
 import {
   fetchTarget, saveTarget, fetchEntriesForDate, estimateFromDescription, saveEntry, deleteEntry,
-  fetchBodyComposition, fetchAnamneseHints, calculateTargetSuggestion, calculateBMR,
+  fetchBodyComposition, fetchAnamneseHints, calculateTargetSuggestion, calculateBMR, bmrRange,
 } from '../lib/nutrition.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
 import { fetchDailyHistory, fetchWeightSeries, summarizeHistory, renderHistoryHtml, localISO } from '../lib/nutritionHistory.js';
@@ -107,7 +107,9 @@ const GOAL_OPTIONS = [
 ];
 
 function renderTargetCard(target, totals, bodyComp, anamneseHints) {
-  const { goal: goalHint, ergogenicSuspected } = anamneseHints;
+  const { goal: goalHint } = anamneseHints;
+  const bmr = bodyComp.weightKg && bodyComp.bodyFatPct ? calculateBMR({ weightKg: bodyComp.weightKg, bodyFatPct: bodyComp.bodyFatPct }) : null;
+  const range = bmr ? bmrRange(bmr) : null;
   const fields = [
     { key: 'calories', label: 'Calorias', unit: 'kcal' },
     { key: 'protein_g', label: 'Proteína', unit: 'g' },
@@ -144,9 +146,19 @@ function renderTargetCard(target, totals, bodyComp, anamneseHints) {
               ${bodyComp.weightKg}kg · ${bodyComp.bodyFatPct}% gordura (${bodyComp.source}, ${formatDate(bodyComp.recordedAt)})
               ${goalHint ? ` · objetivo registrado: ${escapeHtml(goalHint)}` : ''}
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;background:var(--black3, rgba(255,255,255,0.04));border-radius:8px;padding:8px 10px;margin-bottom:10px;">
-              <span style="font-size:11.5px;color:var(--muted);">🔥 Metabolismo basal (BMR)</span>
-              <span style="font-size:14px;font-weight:700;color:var(--white);">${calculateBMR({ weightKg: bodyComp.weightKg, bodyFatPct: bodyComp.bodyFatPct })}kcal</span>
+            <div style="background:var(--black3, rgba(255,255,255,0.04));border-radius:8px;padding:8px 10px;margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:11.5px;color:var(--muted);">🔥 Metabolismo basal estimado</span>
+                <span style="font-size:14px;font-weight:700;color:var(--white);">~${bmr}kcal</span>
+              </div>
+              <div style="font-size:11px;color:var(--faint);margin-top:2px;">Faixa provável: ${range.low}–${range.high}kcal</div>
+              ${bodyComp.deviceBmr ? `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                  <span style="font-size:11.5px;color:var(--muted);">⚖️ Basal mostrado pela balança</span>
+                  <span style="font-size:13px;font-weight:600;color:var(--text);">${bodyComp.deviceBmr}kcal</span>
+                </div>
+                <div style="font-size:11px;color:var(--faint);margin-top:2px;">Os dois são estimativas por fórmulas diferentes, é normal não baterem.</div>
+              ` : ''}
             </div>
             <div class="ex-stats" style="grid-template-columns:1fr 1fr;margin-bottom:8px;">
               <div>
@@ -162,10 +174,6 @@ function renderTargetCard(target, totals, bodyComp, anamneseHints) {
                 </select>
               </div>
             </div>
-            <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12.5px;color:var(--text);">
-              <input type="checkbox" id="calc-ergogenic" ${ergogenicSuspected ? 'checked' : ''} style="width:auto;">
-              Uso de recursos ergogênicos (proteína mais alta — 2,75g/kg)
-            </label>
             <button class="logout-link" id="calc-target-btn">Calcular e preencher abaixo</button>
           </div>
         ` : `
@@ -213,7 +221,6 @@ function wireTargetForm(clientId, session, bodyComp) {
         bodyFatPct: bodyComp.bodyFatPct,
         activityLevel: document.getElementById('calc-activity').value,
         goal: document.getElementById('calc-goal').value,
-        ergogenic: document.getElementById('calc-ergogenic').checked,
       });
       document.getElementById('t-calories').value = suggestion.calories;
       document.getElementById('t-protein').value = suggestion.protein_g;
