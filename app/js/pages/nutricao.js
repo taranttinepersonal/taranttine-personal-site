@@ -107,7 +107,7 @@ const GOAL_OPTIONS = [
 ];
 
 function renderTargetCard(target, totals, bodyComp, anamneseHints) {
-  const { goal: goalHint } = anamneseHints;
+  const { goal: goalHint, hormoneUse } = anamneseHints;
   const bmr = bodyComp.weightKg && bodyComp.bodyFatPct ? calculateBMR({ weightKg: bodyComp.weightKg, bodyFatPct: bodyComp.bodyFatPct }) : null;
   const range = bmr ? bmrRange(bmr) : null;
   const fields = [
@@ -174,6 +174,12 @@ function renderTargetCard(target, totals, bodyComp, anamneseHints) {
                 </select>
               </div>
             </div>
+            ${hormoneUse ? `
+              <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12.5px;color:var(--text);">
+                <input type="checkbox" id="calc-hormone" checked style="width:auto;">
+                Uso de hormônios (proteína 2,75g/kg)
+              </label>
+            ` : ''}
             <button class="logout-link" id="calc-target-btn">Calcular e preencher abaixo</button>
           </div>
         ` : `
@@ -221,6 +227,7 @@ function wireTargetForm(clientId, session, bodyComp) {
         bodyFatPct: bodyComp.bodyFatPct,
         activityLevel: document.getElementById('calc-activity').value,
         goal: document.getElementById('calc-goal').value,
+        hormoneUse: document.getElementById('calc-hormone')?.checked || false,
       });
       document.getElementById('t-calories').value = suggestion.calories;
       document.getElementById('t-protein').value = suggestion.protein_g;

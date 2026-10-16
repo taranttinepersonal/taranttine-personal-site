@@ -41,12 +41,16 @@ export async function fetchBodyComposition(clientId) {
   return { weightKg: null, bodyFatPct: null, source: null, recordedAt: null, age, sexo, deviceBmr };
 }
 
+const HORMONE_KEYWORDS = ['hormôni', 'hormoni', 'esteroide', 'estero', 'anabolizante', 'trt', 'testosterona'];
+
 export async function fetchAnamneseHints(clientId) {
   const { data } = await supabase.from('anamneses').select('respostas')
     .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(1).maybeSingle();
   const respostas = data?.respostas || {};
   const goal = respostas['Objetivo principal'] || respostas['Descreva sua meta em detalhes'] || null;
-  return { goal };
+  const medicamentos = respostas['Medicamentos em uso'] || '';
+  const hormoneUse = HORMONE_KEYWORDS.some(kw => medicamentos.toLowerCase().includes(kw));
+  return { goal, hormoneUse };
 }
 
 const ACTIVITY_FACTORS = {
@@ -77,15 +81,19 @@ export function bmrRange(bmr) {
 // Proteína pela massa magra: 2,2 g/kg de massa magra (2,4 no emagrecimento,
 // pra proteger músculo no déficit). Em quem é magro equivale a ~1,6-2,0 g/kg
 // de peso total; em quem tem muita gordura evita superestimar a meta.
+// Quem usa hormônios (indicado na anamnese, aplicado pelo treinador) segue
+// 2,75 g/kg de peso total, pela maior capacidade de síntese/retenção de nitrogênio.
 // Gordura 0,8g/kg de peso total; carboidrato preenche o restante das calorias.
-export function calculateTargetSuggestion({ weightKg, bodyFatPct, activityLevel, goal }) {
+export function calculateTargetSuggestion({ weightKg, bodyFatPct, activityLevel, goal, hormoneUse = false }) {
   const bmr = calculateBMR({ weightKg, bodyFatPct });
   const tdee = bmr * (ACTIVITY_FACTORS[activityLevel] || ACTIVITY_FACTORS.moderado);
   const calories = Math.round(tdee * (1 + (GOAL_ADJUSTMENTS[goal] ?? 0)));
 
   const leanMassKg = weightKg * (1 - bodyFatPct / 100);
   const proteinPerKgLean = goal === 'emagrecimento' ? 2.4 : 2.2;
-  const protein_g = Math.round(leanMassKg * proteinPerKgLean);
+  const protein_g = hormoneUse
+    ? Math.round(weightKg * 2.75)
+    : Math.round(leanMassKg * proteinPerKgLean);
   const fat_g = Math.round(weightKg * 0.8);
   const remainingCalories = calories - (protein_g * 4) - (fat_g * 9);
   const carb_g = Math.max(0, Math.round(remainingCalories / 4));

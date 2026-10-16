@@ -72,6 +72,7 @@ export async function renderNutritionHistory(main, clientId) {
       weightKg, bodyFatPct,
       activityLevel: $('calc-activity').value,
       goal: $('calc-goal').value,
+      hormoneUse: $('calc-hormone').checked,
     });
     const r = bmrRange(s.bmr);
     $('calc-bmr').textContent = `~${s.bmr}kcal (${r.low}–${r.high})`;
@@ -151,11 +152,15 @@ function renderCalculator(bodyComp, anamneseHints, target) {
           ${GOAL_OPTIONS.map(g => `<option value="${g.key}" ${g.key === 'ganho_de_massa' ? 'selected' : ''}>${g.label}</option>`).join('')}
         </select></div>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+        <input type="checkbox" id="calc-hormone" ${anamneseHints.hormoneUse ? 'checked' : ''} style="width:auto;margin:0;">
+        Aluno usa hormônios (proteína 2,75 g/kg de peso total)${anamneseHints.hormoneUse ? ' · indicado na anamnese' : ''}
+      </label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;">
         <div class="admin-row-sub">🔥 Basal estimado (Katch-McArdle): <b style="color:var(--white);" id="calc-bmr">${bmr ? `~${bmr}kcal (${range.low}–${range.high})` : '—'}</b></div>
         <div class="admin-row-sub">⚖️ Basal da balança: <b style="color:var(--white);">${bodyComp.deviceBmr ? `${bodyComp.deviceBmr}kcal` : '—'}</b></div>
       </div>
-      <div class="admin-row-sub" style="margin:-4px 0 10px;">Proteína calculada pela massa magra: 2,2 g/kg (2,4 g/kg no emagrecimento).</div>
+      <div class="admin-row-sub" style="margin:-4px 0 10px;">Proteína calculada pela massa magra: 2,2 g/kg (2,4 g/kg no emagrecimento), ou 2,75 g/kg de peso total se o aluno usa hormônios.</div>
       <button class="admin-btn" id="calc-run">Calcular sugestão</button>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0 12px;margin-top:12px;">
         <div><label>Calorias</label><input type="number" id="tg-calories" value="${target?.calories ?? ''}"></div>
