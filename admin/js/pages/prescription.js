@@ -7,6 +7,7 @@ import {
   loadTaco, MODELS, DEFAULT_SLOTS, excludedFoods, guessGoal, mealTargets, autoSelectModels,
   buildMeal, substitutionOptions, statusOf, foodName,
 } from '../../../app/js/lib/prescription.js';
+import { measureText, planToWhatsApp, planPrintHtml } from '../../../app/js/lib/planDoc.js';
 
 const ACTIVITY = [['sedentario', 'Sedentário'], ['leve', 'Leve (1-3x/sem)'], ['moderado', 'Moderado (3-5x/sem)'], ['intenso', 'Intenso (5-7x/sem)']];
 const GOALS = [['emagrecimento', 'Emagrecimento'], ['manutencao', 'Manutenção'], ['ganho_de_massa', 'Ganho de massa']];
@@ -18,7 +19,7 @@ export async function renderPrescription(main, clientId) {
   main.closest('.admin-shell')?.classList.add('wide');
 
   const [{ data: profile }, bodyComp, hints, anam, taco] = await Promise.all([
-    supabase.from('profiles').select('full_name, birth_date, sexo').eq('id', clientId).single(),
+    supabase.from('profiles').select('full_name, birth_date, sexo, phone').eq('id', clientId).single(),
     fetchBodyComposition(clientId),
     fetchAnamneseHints(clientId),
     fetchNutritionAnamneses(clientId),
@@ -37,9 +38,11 @@ export async function renderPrescription(main, clientId) {
     slots: DEFAULT_SLOTS.map(s => ({ ...s })),
     models: null,
     edits: {},
+    ...deliveryDefaults(bodyComp.weightKg),
   });
   let st;
   try { st = JSON.parse(localStorage.getItem(draftKey)) || fresh(); } catch { st = fresh(); }
+  st = { ...deliveryDefaults(st.weightKg), ...st };
 
   function save() {
     try { localStorage.setItem(draftKey, JSON.stringify(st)); } catch { /* rascunho é só conveniência */ }
@@ -77,15 +80,69 @@ export async function renderPrescription(main, clientId) {
       ${renderDistribution(c)}
       ${c ? renderDayBar(c) : ''}
       ${c ? c.meals.map((m, i) => (m ? renderMeal(i, m, c.mts[i]) : '')).join('') : ''}
+      ${c ? renderDelivery() : ''}
       <div class="admin-card rx-actions">
         <button class="admin-btn" id="rx-reset">↺ Remontar automaticamente</button>
-        <button class="admin-btn" disabled title="Fase 2">📄 Gerar PDF</button>
-        <button class="admin-btn" disabled title="Fase 2">📲 Enviar para o app</button>
-        <button class="admin-btn" disabled title="Fase 2">💬 WhatsApp</button>
-        <span class="admin-row-sub">Rascunho salvo automaticamente neste navegador. PDF, app e WhatsApp chegam na fase 2.</span>
+        <button class="admin-btn primary" id="rx-pdf" ${c ? '' : 'disabled'}>📄 Gerar PDF</button>
+        <button class="admin-btn primary" id="rx-send" ${c ? '' : 'disabled'}>📲 Enviar para o app</button>
+        <button class="admin-btn primary" id="rx-wa" ${c ? '' : 'disabled'}>💬 WhatsApp</button>
+        <span class="admin-row-sub">Rascunho salvo automaticamente neste navegador.</span>
+        <div class="admin-msg" id="rx-msg"></div>
       </div>
     `;
     window.scrollTo(0, y);
+  }
+
+  function renderDelivery() {
+    return `
+      <div class="admin-card admin-form">
+        <div class="admin-section-title" style="margin-top:0;">Entrega</div>
+        <div class="field-row">
+          <div><label>Água (L por dia)</label><input type="number" step="0.1" data-k="agua" value="${esc(st.agua)}"></div>
+          <div><label>Próximo retorno</label><input type="date" data-k="retorno" value="${esc(st.retorno)}"></div>
+        </div>
+        <label>Orientações (uma por linha)</label>
+        <textarea data-k="orient" rows="4">${esc(st.orient)}</textarea>
+        <label>Assinatura no PDF</label>
+        <input type="text" data-k="assinatura" value="${esc(st.assinatura)}">
+      </div>
+    `;
+  }
+
+  // Fotografia do plano: tudo o que o PDF, o app e o WhatsApp precisam,
+  // sem depender de recalcular depois.
+  function buildPlan(c) {
+    const MEAL_TYPE = { cafe: 'cafe', almoco: 'almoco', jantar: 'jantar' };
+    const refeicoes = c.meals.map((m, i) => {
+      if (!m) return null;
+      const s = st.slots[i];
+      const itens = m.items.filter(it => it.livre || it.g > 0);
+      const trocas = itens.filter(it => !it.livre).map(it => {
+        const opcoes = substitutionOptions(it, taco, excluded).slice(0, 3).map(o => {
+          const f = taco.get(o.id);
+          return { id: o.id, nome: o.nome, g: o.g, kcal: (f.kcal || 0) * o.g / 100, prot: f.prot * o.g / 100, carb: f.carb * o.g / 100, gord: f.gord * o.g / 100 };
+        });
+        return opcoes.length ? { item: itens.indexOf(it), de: `${it.nome} ${it.g} g`, opcoes } : null;
+      }).filter(Boolean);
+      return {
+        key: s.key, nome: s.nome, hora: s.hora, mealType: MEAL_TYPE[s.key] || 'lanche',
+        kcal: m.tot.kcal, prot: m.tot.prot, carb: m.tot.carb, gord: m.tot.gord,
+        itens: itens.map(it => ({ id: it.id, nome: it.nome, g: it.g, livre: it.livre, medida: it.livre ? '' : measureText(it.id, it.g), kcal: it.kcal, prot: it.prot, carb: it.carb, gord: it.gord })),
+        trocas,
+      };
+    }).filter(Boolean);
+    return {
+      versao: 1,
+      entregue_em: localISO(),
+      cliente: { nome: profile?.full_name || '', peso: Number(st.weightKg) || null, objetivo: st.goal },
+      meta: { kcal: Math.round(c.day.kcal), prot: Math.round(c.day.prot), carb: Math.round(c.day.carb), gord: Math.round(c.day.gord) },
+      alvo: { kcal: c.target.calories, prot: c.target.protein_g, carb: c.target.carb_g, gord: c.target.fat_g },
+      agua_l: Number(st.agua) || null,
+      retorno: st.retorno || null,
+      orientacoes: String(st.orient || '').split('\n').map(x => x.trim()).filter(Boolean),
+      profissional: st.assinatura,
+      refeicoes,
+    };
   }
 
   function renderClientCard() {
@@ -255,15 +312,67 @@ export async function renderPrescription(main, clientId) {
     render();
   });
 
-  main.addEventListener('click', (e) => {
-    if (e.target.id !== 'rx-reset') return;
-    st.models = null;
-    st.edits = {};
-    save();
-    render();
+  main.addEventListener('click', async (e) => {
+    const id = e.target.id;
+    const msg = document.getElementById('rx-msg');
+    if (id === 'rx-reset') {
+      st.models = null;
+      st.edits = {};
+      save();
+      render();
+      return;
+    }
+    const c = compute();
+    if (!c || !['rx-pdf', 'rx-send', 'rx-wa'].includes(id)) return;
+    const plan = buildPlan(c);
+    if (id === 'rx-pdf') {
+      const w = window.open('', '_blank');
+      if (!w) { msg.className = 'admin-msg error'; msg.textContent = 'O navegador bloqueou a nova janela. Libere pop-ups para este site e tente de novo.'; return; }
+      w.document.write(planPrintHtml(plan, `${location.origin}/app/icons/icon-512.png`));
+      w.document.close();
+      w.onload = () => setTimeout(() => w.print(), 400);
+      msg.className = 'admin-msg'; msg.textContent = 'PDF aberto em outra janela. Na impressão, escolha "Salvar como PDF" ou a sua impressora.';
+    } else if (id === 'rx-send') {
+      e.target.disabled = true;
+      const { error } = await supabase.from('nutrition_plans').insert({ client_id: clientId, plan });
+      e.target.disabled = false;
+      if (error) {
+        console.error('send plan failed', error);
+        msg.className = 'admin-msg error';
+        msg.textContent = 'Não consegui enviar. Confira se o comando do banco (0025 + 0026) já foi rodado no Supabase.';
+        return;
+      }
+      msg.className = 'admin-msg'; msg.textContent = '✅ Plano enviado. O aluno já vê na aba Dieta do app.';
+    } else if (id === 'rx-wa') {
+      const digits = String(profile?.phone || '').replace(/\D/g, '');
+      const phone = digits ? (digits.startsWith('55') ? digits : `55${digits}`) : '';
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(planToWhatsApp(plan))}`, '_blank');
+      msg.className = 'admin-msg'; msg.textContent = phone ? 'WhatsApp aberto com a mensagem pronta.' : 'WhatsApp aberto. Este aluno não tem telefone cadastrado: escolha o contato lá.';
+    }
   });
 
   render();
+}
+
+function deliveryDefaults(weightKg) {
+  const ret = new Date();
+  ret.setDate(ret.getDate() + 28);
+  return {
+    agua: weightKg ? Math.round(Number(weightKg) * 35 / 100) / 10 : '',
+    retorno: localISO(ret),
+    orient: [
+      'Verduras e legumes crus estão liberados à vontade.',
+      'Prefira temperos naturais: alho, cebola, ervas, limão.',
+      'Prepare as marmitas da semana para não depender de improviso.',
+      'Se sair do plano numa refeição, siga normalmente na próxima.',
+      'Registre suas refeições na aba Nutrição do app.',
+    ].join('\n'),
+    assinatura: 'Nutricionista · CRN-3 nº ______',
+  };
+}
+
+function localISO(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function age(birth) {

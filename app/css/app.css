@@ -143,3 +143,63 @@ body.ciclo-mode .load-input::placeholder { color: #E8A0B0; opacity: .7; }
 .nf-input { width: 100%; background: var(--black3); border: 1.5px solid var(--border2); border-radius: 8px; padding: 10px; color: var(--text); font: inherit; font-size: 14px; }
 .nf-input:focus { outline: none; border-color: var(--green); }
 textarea.nf-input { resize: vertical; min-height: 56px; }
+
+/* Plano alimentar estruturado (aba Dieta) — visual futurista */
+.pl { display: grid; gap: 12px; position: relative; }
+.pl:before { content: ""; position: absolute; inset: -20px -16px auto; height: 360px; background: radial-gradient(120% 70% at 85% 0%, rgba(216,181,110,.16), transparent 60%), radial-gradient(90% 60% at 0% 30%, rgba(0,184,148,.09), transparent 60%); pointer-events: none; z-index: 0; }
+.pl > * { position: relative; z-index: 1; }
+.pl-glass { background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); border: 1px solid rgba(255,255,255,.09); border-radius: 22px; padding: 16px; }
+.pl-lbl { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; font-size: 11px; color: #d8b56e; }
+.pl-ring { display: grid; grid-template-columns: 132px 1fr; gap: 14px; align-items: center; position: relative; }
+.pl-ring-svg { grid-row: 1; grid-column: 1; filter: drop-shadow(0 0 6px rgba(216,181,110,.5)); }
+.pl-ring-c { grid-row: 1; grid-column: 1; display: grid; place-items: center; text-align: center; align-content: center; }
+.pl-ring-c b { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; color: #fff; line-height: 1; }
+.pl-ring-c span { font-size: 10px; color: #8d8a84; }
+.pl-macros { grid-row: 1; grid-column: 2; display: grid; gap: 10px; }
+.pl-mr { display: grid; gap: 4px; font-size: 11px; color: #bdbab3; }
+.pl-mr > div:first-child { display: flex; justify-content: space-between; }
+.pl-mr b { color: #fff; font-weight: 600; }
+.pl-bar { height: 5px; border-radius: 9px; background: rgba(255,255,255,.08); overflow: hidden; }
+.pl-bar i { display: block; height: 100%; border-radius: 9px; }
+.pl-next { border-color: rgba(216,181,110,.45); box-shadow: 0 0 0 1px rgba(216,181,110,.12), 0 0 40px rgba(216,181,110,.10); }
+.pl-next h3 { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; text-transform: uppercase; color: #fff; margin: 2px 0; }
+.pl-meta { font-size: 11.5px; color: #9a978f; }
+.pl-items { margin-top: 10px; display: grid; gap: 7px; }
+.pl-it { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.04); }
+.pl-it b { font-weight: 600; color: var(--text); }
+.pl-it span { color: #8d8a84; font-size: 11.5px; text-align: right; }
+.pl-btns { display: flex; gap: 8px; margin-top: 12px; }
+.pl-btns button { flex: 1; padding: 12px; border-radius: 14px; font-weight: 600; font-size: 13.5px; cursor: pointer; font-family: inherit; }
+.pl-b1 { background: linear-gradient(135deg, #e4c27c, #a8803e); color: #141414; border: 0; }
+.pl-b1:disabled { opacity: .6; }
+.pl-b2 { background: transparent; border: 1px solid rgba(255,255,255,.15); color: var(--text); }
+.pl-done { flex: 1; text-align: center; padding: 12px; color: var(--green); font-weight: 600; }
+.pl-tl { display: grid; gap: 6px; position: relative; }
+.pl-tl:before { content: ""; position: absolute; left: 19px; top: 10px; bottom: 10px; width: 2px; background: linear-gradient(180deg, #00B894, rgba(216,181,110,.6), rgba(255,255,255,.08)); }
+.pl-ti { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 16px; background: transparent; border: 0; text-align: left; color: var(--text); font-family: inherit; cursor: pointer; }
+.pl-ti:hover { background: rgba(255,255,255,.03); }
+.pl-dot { width: 12px; height: 12px; border-radius: 50%; margin-left: 13px; border: 2px solid rgba(255,255,255,.25); background: var(--black); position: relative; z-index: 1; }
+.pl-ti.done .pl-dot { background: #00B894; border-color: #00B894; box-shadow: 0 0 10px rgba(0,184,148,.7); }
+.pl-ti.now .pl-dot { background: #d8b56e; border-color: #d8b56e; box-shadow: 0 0 12px rgba(216,181,110,.9); }
+.pl-ti b { font-size: 13px; font-weight: 600; display: block; }
+.pl-ti span { font-size: 11px; color: #8d8a84; }
+.pl-ti em { font-style: normal; font-family: 'Barlow Condensed', sans-serif; font-size: 15px; color: #bdbab3; }
+.pl-ti.done b { color: #9a978f; text-decoration: line-through; text-decoration-color: rgba(0,184,148,.6); }
+.pl-orient p { font-size: 12.5px; color: #cfccc5; margin-top: 6px; line-height: 1.45; }
+.pl-foot { font-size: 12px; color: #8d8a84; text-align: center; }
+.pl-hdr { display: flex; align-items: center; gap: 10px; }
+.pl-back { width: 36px; height: 36px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: transparent; color: #bdbab3; font-size: 16px; cursor: pointer; }
+.pl-hero h2 { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 28px; text-transform: uppercase; color: #fff; line-height: 1; }
+.pl-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pl-pills div { font-size: 11px; padding: 5px 9px; border-radius: 20px; background: rgba(255,255,255,.06); color: #d6d3cc; }
+.pl-pills b { color: #fff; }
+.pl-food { padding: 13px 14px; }
+.pl-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.pl-row b { font-size: 15px; font-weight: 600; color: var(--text); }
+.pl-row em { font-style: normal; font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; color: #d8b56e; white-space: nowrap; }
+.pl-row em.free { color: #00B894; font-size: 15px; }
+.pl-hm { font-size: 11.5px; color: #8d8a84; margin-top: 1px; }
+.pl-swap { margin-top: 9px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.pl-swap .k { font-family: 'Barlow Condensed', sans-serif; letter-spacing: .14em; font-size: 10px; color: #6f6c66; text-transform: uppercase; }
+.pl-swap button { font-size: 11.5px; padding: 6px 9px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: transparent; color: #cfccc5; cursor: pointer; font-family: inherit; }
+.pl-swap button.sel { border-color: #00B894; background: rgba(0,184,148,.12); color: #fff; }

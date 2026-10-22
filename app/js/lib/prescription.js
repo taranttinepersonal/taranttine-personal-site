@@ -221,7 +221,7 @@ export function substitutionOptions(item, taco, excluded) {
     const f = taco.get(id);
     const grams = !m || !f[m] ? item.g : round5(amount / f[m] * 100);
     return { id, nome: foodName(f), g: grams };
-  });
+  }).filter(o => o.g > 0 && o.g <= Math.max(2.5 * item.g, 30));
 }
 
 export function statusOf(planned, target, tol) {
