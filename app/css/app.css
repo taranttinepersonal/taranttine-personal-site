@@ -134,3 +134,12 @@ body.ciclo-mode .load-input::placeholder { color: #E8A0B0; opacity: .7; }
 .photo-thumb { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: var(--black3); }
 .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .photo-date { position: absolute; bottom: 0; left: 0; right: 0; font-size: 9px; color: var(--white); background: rgba(0,0,0,0.6); padding: 3px 6px; text-align: center; }
+
+/* Anamnese nutricional (etapa 1) */
+.nf-block { display: grid; gap: 4px; }
+.nf-title { margin-bottom: 4px; }
+.nf-hint { font-size: 12.5px; color: var(--muted); line-height: 1.45; margin-bottom: 6px; }
+.nf-label { margin: 10px 0 4px; }
+.nf-input { width: 100%; background: var(--black3); border: 1.5px solid var(--border2); border-radius: 8px; padding: 10px; color: var(--text); font: inherit; font-size: 14px; }
+.nf-input:focus { outline: none; border-color: var(--green); }
+textarea.nf-input { resize: vertical; min-height: 56px; }

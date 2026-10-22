@@ -4,15 +4,20 @@ import {
 } from '../../../app/js/lib/nutrition.js';
 import { fetchDailyHistory, fetchWeightSeries, summarizeHistory, renderHistoryHtml } from '../../../app/js/lib/nutritionHistory.js';
 import { buildTrendChart } from '../../../app/js/lib/chart.js';
+import {
+  ETAPA1, ETAPA2, renderBlocks, collectBlocks, fetchNutritionAnamneses, saveNutritionAnamnese, fetchNutritionConsult,
+} from '../../../app/js/lib/nutritionAnamnese.js';
 
 export async function renderNutritionHistory(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
-  const [{ data: profile }, initialTarget, bodyComp, anamneseHints] = await Promise.all([
+  const [{ data: profile }, initialTarget, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', clientId).single(),
     fetchTarget(clientId),
     fetchBodyComposition(clientId),
     fetchAnamneseHints(clientId),
+    fetchNutritionConsult(clientId),
+    fetchNutritionAnamneses(clientId),
   ]);
   let target = initialTarget;
 
@@ -24,6 +29,7 @@ export async function renderNutritionHistory(main, clientId) {
     <div class="admin-card">
       <div id="current-target">${renderCurrentTarget(target)}</div>
     </div>
+    ${renderNutriAnamnese(nutritionConsult, nutriAnamneses)}
     ${renderCalculator(bodyComp, anamneseHints, target)}
     <div class="admin-card">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -52,6 +58,46 @@ export async function renderNutritionHistory(main, clientId) {
     }
     body.innerHTML = renderHistoryHtml({ daily, summary: summarizeHistory(daily, target), target, weightSeries, buildTrendChart });
   }
+
+  const consultToggle = document.getElementById('nutri-consult');
+  const consultMsg = document.getElementById('nutri-consult-msg');
+  consultToggle.addEventListener('change', async () => {
+    const { error } = await supabase.from('profiles').update({ nutrition_consult: consultToggle.checked }).eq('id', clientId);
+    if (error) {
+      console.error('toggle nutrition_consult failed', error);
+      consultToggle.checked = !consultToggle.checked;
+      consultMsg.className = 'admin-msg error';
+      consultMsg.textContent = 'Não consegui salvar. Confira se a atualização do banco (0025) já foi aplicada.';
+      return;
+    }
+    consultMsg.className = 'admin-msg';
+    consultMsg.textContent = consultToggle.checked
+      ? 'Liberado: o aluno já vê a anamnese nutricional na aba Nutrição do app.'
+      : 'Desligado: a anamnese nutricional saiu do app do aluno.';
+  });
+
+  const na2Btn = document.getElementById('save-na2');
+  const na2Msg = document.getElementById('na2-msg');
+  na2Btn.addEventListener('click', async () => {
+    const respostas = collectBlocks(ETAPA2, 'na2');
+    if (!Object.keys(respostas).length) {
+      na2Msg.className = 'admin-msg error';
+      na2Msg.textContent = 'Preencha pelo menos um campo antes de salvar.';
+      return;
+    }
+    na2Btn.disabled = true;
+    try {
+      await saveNutritionAnamnese(clientId, 2, respostas);
+      na2Msg.className = 'admin-msg';
+      na2Msg.textContent = 'Etapa 2 salva.';
+    } catch (e) {
+      console.error('save etapa 2 failed', e);
+      na2Msg.className = 'admin-msg error';
+      na2Msg.textContent = 'Não consegui salvar a etapa 2. Tente de novo.';
+    } finally {
+      na2Btn.disabled = false;
+    }
+  });
 
   let currentDays = 7;
   buttons.forEach(b => b.addEventListener('click', () => { currentDays = Number(b.dataset.days); load(currentDays); }));
@@ -122,6 +168,38 @@ const GOAL_OPTIONS = [
   { key: 'manutencao', label: 'Manutenção' },
   { key: 'ganho_de_massa', label: 'Ganho de massa' },
 ];
+
+function renderNutriAnamnese(nutritionConsult, { etapa1, etapa2 }) {
+  const answered = etapa1 ? ETAPA1.map(b => {
+    const rows = b.fields.filter(f => etapa1.respostas?.[f.label]);
+    if (!rows.length) return '';
+    return `<div class="admin-row-sub" style="margin:12px 0 4px;color:var(--white);font-weight:600;">${escapeHtml(b.title)}</div>` +
+      rows.map(f => `<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <span style="color:var(--muted);">${escapeHtml(f.short || f.label)}</span>
+        <span style="text-align:right;white-space:pre-wrap;">${escapeHtml(etapa1.respostas[f.label])}</span></div>`).join('');
+  }).join('') : '';
+  return `
+    <div class="admin-card">
+      <div class="admin-section-title" style="margin-top:0;">📝 Anamnese nutricional</div>
+      <label style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="nutri-consult" ${nutritionConsult ? 'checked' : ''} style="width:auto;margin:0;">
+        Consultoria nutricional liberada para este aluno (mostra a etapa 1 no app)
+      </label>
+      <div class="admin-msg" id="nutri-consult-msg"></div>
+      <div class="admin-section-title">Etapa 1 · respondida pelo aluno</div>
+      ${etapa1
+        ? `<div class="admin-row-sub">Respondida em ${formatDate(etapa1.recorded_at)}</div>${answered}`
+        : '<div class="admin-row-sub">O aluno ainda não respondeu.</div>'}
+    </div>
+    <div class="admin-card admin-form">
+      <div class="admin-section-title" style="margin-top:0;">Etapa 2 · preenchida na consulta</div>
+      ${etapa2 ? `<div class="admin-row-sub" style="margin-bottom:6px;">Última atualização: ${formatDate(etapa2.recorded_at)}</div>` : ''}
+      ${renderBlocks(ETAPA2, 'na2', etapa2?.respostas || {}, { titleClass: 'admin-section-title', hintClass: 'admin-row-sub' })}
+      <button class="admin-btn primary" id="save-na2" style="margin-top:14px;">Salvar etapa 2</button>
+      <div class="admin-msg" id="na2-msg"></div>
+    </div>
+  `;
+}
 
 function renderCurrentTarget(target) {
   return target

@@ -3,6 +3,7 @@ import {
   fetchTarget, saveTarget, fetchEntriesForDate, estimateFromDescription, saveEntry, deleteEntry,
   fetchBodyComposition, fetchAnamneseHints, calculateTargetSuggestion, calculateBMR, bmrRange,
 } from '../lib/nutrition.js';
+import { fetchNutritionConsult, fetchNutritionAnamneses } from '../lib/nutritionAnamnese.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
 import { fetchDailyHistory, fetchWeightSeries, summarizeHistory, renderHistoryHtml, localISO } from '../lib/nutritionHistory.js';
 import { buildTrendChart } from '../lib/chart.js';
@@ -20,9 +21,10 @@ export async function renderNutricao(session) {
 
   const clientId = session.user.id;
   const dateISO = todayISO();
-  const [target, entries, diet, bodyComp, anamneseHints] = await Promise.all([
+  const [target, entries, diet, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses] = await Promise.all([
     fetchTarget(clientId), fetchEntriesForDate(clientId, dateISO), fetchVisibleDiet(clientId),
     fetchBodyComposition(clientId), fetchAnamneseHints(clientId),
+    fetchNutritionConsult(clientId), fetchNutritionAnamneses(clientId),
   ]);
 
   const totals = entries.reduce((acc, e) => ({
@@ -47,6 +49,7 @@ export async function renderNutricao(session) {
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
+      ${nutritionConsult ? renderAnamneseNutriCard(nutriAnamneses.etapa1) : ''}
       ${renderTargetCard(target, totals, bodyComp, anamneseHints)}
 
       <div class="ex-card" id="history-card">
@@ -105,6 +108,20 @@ const GOAL_OPTIONS = [
   { key: 'manutencao', label: 'Manutenção' },
   { key: 'ganho_de_massa', label: 'Ganho de massa' },
 ];
+
+function renderAnamneseNutriCard(etapa1) {
+  return `
+    <div class="ex-card" style="border-color:${etapa1 ? 'var(--border)' : 'var(--green)'};">
+      <div class="ex-name" style="margin-bottom:4px;">📝 Anamnese nutricional</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.45;">
+        ${etapa1
+          ? `Respondida em ${new Date(etapa1.recorded_at + 'T00:00:00').toLocaleDateString('pt-BR')}. O restante a gente completa juntos na consulta.`
+          : 'Responda antes da sua consulta: sua rotina, o que você comeu ontem e suas preferências. Leva uns 10 minutos.'}
+      </div>
+      <button class="logout-link" onclick="window.location.hash='/anamnese-nutricional'" style="font-weight:700;color:var(--green);">${etapa1 ? '✏️ Ver ou atualizar respostas' : '👉 Responder agora'}</button>
+    </div>
+  `;
+}
 
 function renderTargetCard(target, totals, bodyComp, anamneseHints) {
   const { goal: goalHint, hormoneUse } = anamneseHints;
