@@ -1,16 +1,19 @@
 import { supabase } from '../supabaseClient.js';
+import { fetchCycle, planStillVisible } from './cycle.js';
 
 // Plano estruturado (aba Prescrição do painel) tem prioridade; se não
 // houver, cai no plano antigo em texto/PDF (diet_plans). Quem só precisa
 // saber se existe dieta (botão do menu) usa o retorno como booleano.
 export async function fetchVisibleDiet(clientId) {
-  const { data: np, error: npError } = await supabase
+  const [{ data: np, error: npError }, cycle] = await Promise.all([supabase
     .from('nutrition_plans')
     .select('plan, created_at')
     .eq('client_id', clientId)
     .order('created_at', { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle(), fetchCycle(clientId)]);
+  // Encerrou o acompanhamento há mais de 30 dias: o plano sai do app.
+  if (!planStillVisible(cycle)) return null;
   if (!npError && np?.plan) return { kind: 'plan', plan: np.plan, created_at: np.created_at };
   const { data, error } = await supabase
     .from('diet_plans')

@@ -255,3 +255,19 @@
 .rx-screen-item.atencao { background: rgba(226,184,92,.07); border: 1px solid rgba(226,184,92,.3); }
 .rx-screen-item.atencao > b { color: #e2c07a; }
 .rx-screen-item span { color: var(--text); }
+
+/* Ciclo de acompanhamento */
+.cy-bar { position: relative; height: 8px; border-radius: 9px; background: var(--black3, #1c1c20); margin-top: 12px; overflow: visible; }
+.cy-bar i { display: block; height: 100%; border-radius: 9px; background: linear-gradient(90deg, #b8924a, #d8b56e); }
+.cy-bar span { position: absolute; top: -4px; width: 2px; height: 16px; background: var(--muted); }
+
+/* Roteiro A.M.E. */
+.ame-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 10px; }
+.ame-block { border: 1px solid var(--border2); border-radius: 10px; padding: 10px 12px; }
+.ame-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.ame-head b { font-size: 12.5px; color: var(--white); }
+.ame-head span { font-size: 11px; color: #d8b56e; }
+.ame-item { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.4; color: var(--text); margin: 5px 0; cursor: pointer; }
+.ame-item input { margin-top: 2px; accent-color: #b8924a; }
+.ame-item.done span { color: var(--muted); }
+.ame-item em { font-style: normal; font-size: 10px; color: #d8b56e; border: 1px solid rgba(216,181,110,.5); border-radius: 6px; padding: 0 4px; margin-left: 4px; }

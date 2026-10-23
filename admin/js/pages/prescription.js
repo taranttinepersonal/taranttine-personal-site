@@ -11,6 +11,7 @@ import { measureText, planToWhatsApp, planPrintHtml } from '../../../app/js/lib/
 import { SUPPLEMENTS, EVIDENCE_LABEL, defaultDose, supplementAlerts } from '../../../app/js/lib/supplements.js';
 import { screen, screeningHtml } from '../../../app/js/lib/screening.js';
 import { fetchCheckins } from '../../../app/js/lib/checkin.js';
+import { fetchConsent } from '../../../app/js/lib/consent.js';
 
 const ACTIVITY = [['sedentario', 'Sedentário'], ['leve', 'Leve (1-3x/sem)'], ['moderado', 'Moderado (3-5x/sem)'], ['intenso', 'Intenso (5-7x/sem)']];
 const GOALS = [['emagrecimento', 'Emagrecimento'], ['manutencao', 'Manutenção'], ['ganho_de_massa', 'Ganho de massa']];
@@ -21,7 +22,7 @@ export async function renderPrescription(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando a prescrição...</div>`;
   main.closest('.admin-shell')?.classList.add('wide');
 
-  const [{ data: profile }, bodyComp, hints, anam, taco, { data: customRows }, { data: modelRows }, recentCheckins] = await Promise.all([
+  const [{ data: profile }, bodyComp, hints, anam, taco, { data: customRows }, { data: modelRows }, recentCheckins, consent] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date, sexo, phone').eq('id', clientId).single(),
     fetchBodyComposition(clientId),
     fetchAnamneseHints(clientId),
@@ -30,6 +31,7 @@ export async function renderPrescription(main, clientId) {
     supabase.from('custom_foods').select('*'),
     supabase.from('meal_models').select('*'),
     fetchCheckins(clientId, 6).catch(() => []),
+    fetchConsent(clientId),
   ]).then(r => r);
   registerCustomFoods(taco, customRows);
   const triagem = screen({
@@ -88,6 +90,7 @@ export async function renderPrescription(main, clientId) {
         <div class="admin-title">${esc(profile?.full_name || '')} · Prescrição</div>
         <a href="#/cliente/${clientId}/nutricao" class="admin-btn">← Nutrição</a>
       </div>
+      ${renderAme()}
       ${screeningHtml(triagem, esc)}
       <div class="rx-grid">
         ${renderClientCard()}
@@ -108,6 +111,55 @@ export async function renderPrescription(main, clientId) {
       </div>
     `;
     window.scrollTo(0, y);
+  }
+
+  // Roteiro da consulta pelo Protocolo A.M.E.: organização estratégica,
+  // coleta de dados e condução do plano. Itens com "auto" se marcam sozinhos
+  // a partir do que já está registrado.
+  function renderAme() {
+    const recent = bodyComp.recordedAt && (Date.now() - new Date(String(bodyComp.recordedAt).slice(0, 10) + 'T00:00:00')) / 86400000 <= 30;
+    const auto = {
+      termo: !!consent, etapa1: !!anam.etapa1, etapa2: !!anam.etapa2,
+      triagem: triagem.every(t => t.nivel !== 'encaminhar'), medidas: !!recent,
+    };
+    const blocks = [
+      ['Antes · organização', '10 min', [
+        ['termo', 'Termo LGPD aceito no app'], ['etapa1', 'Etapa 1 da anamnese respondida pelo aluno'],
+        ['revisar', 'Li a etapa 1, o recordatório de 24 h e os últimos check-ins'], ['triagem', 'Triagem sem encaminhamento pendente'],
+      ]],
+      ['0–5 min · abertura', '5 min', [
+        ['objetivo', 'Objetivo nas palavras do aluno e prazo que ele imagina'], ['expect', 'Combinei como funciona: plano hoje, check-in semanal, retorno mensal'],
+      ]],
+      ['5–25 min · coleta (anamnese)', '20 min', [
+        ['etapa2', 'Etapa 2 preenchida no painel (saúde, relação com a comida, SCOFF, ciclo)'], ['rotina', 'Rotina real: horários, trabalho, treino, quem cozinha, orçamento'],
+      ]],
+      ['25–40 min · coleta (medidas)', '15 min', [
+        ['medidas', 'Bioimpedância ou dobras dos últimos 30 dias (condições do protocolo conferidas)'], ['fotos', 'Fotos e circunferências, se combinado'],
+      ]],
+      ['40–55 min · condução do plano', '15 min', [
+        ['meta', 'Meta calórica e de proteína explicadas em linguagem simples'], ['montar', 'Refeições montadas com ele: preferências, trocas e o que não come'],
+        ['supps', 'Suplementos: só o que tem indicação, com dose e horário'],
+      ]],
+      ['55–60 min · combinados', '5 min', [
+        ['agua', 'Água, data do retorno e check-in semanal combinados'], ['app', 'Mostrei o plano no app e o botão "Comi esta refeição"'],
+      ]],
+      ['Depois · entrega no mesmo dia', '', [
+        ['entrega', 'Plano enviado para o app + PDF + WhatsApp'], ['ciclo', 'Ciclo de 12 semanas iniciado na aba Nutrição'],
+      ]],
+    ];
+    st.ame = st.ame || {};
+    const all = blocks.flatMap(b => b[2]);
+    const isDone = k => (k in auto ? auto[k] : !!st.ame[k]);
+    const done = all.filter(([k]) => isDone(k)).length;
+    return `
+      <details class="admin-card ame" ${done < all.length ? 'open' : ''}>
+        <summary class="admin-section-title" style="margin-top:0;cursor:pointer;">🧭 Roteiro da consulta · Protocolo A.M.E. <span class="admin-row-sub" style="text-transform:none;font-family:Inter,sans-serif;">· ${done} de ${all.length}</span></summary>
+        <div class="ame-grid">${blocks.map(([t, min, items]) => `
+          <div class="ame-block"><div class="ame-head"><b>${t}</b>${min ? `<span>${min}</span>` : ''}</div>
+            ${items.map(([k, label]) => `<label class="ame-item ${isDone(k) ? 'done' : ''}"><input type="checkbox" data-ame="${k}" ${isDone(k) ? 'checked' : ''} ${k in auto ? 'disabled' : ''}> <span>${label}${k in auto ? ' <em>auto</em>' : ''}</span></label>`).join('')}
+          </div>`).join('')}
+        </div>
+      </details>`;
   }
 
   function renderSupplements() {
@@ -349,7 +401,10 @@ export async function renderPrescription(main, clientId) {
 
   main.addEventListener('change', (e) => {
     const el = e.target;
-    if (el.dataset.k) {
+    if (el.dataset.ame) {
+      st.ame = st.ame || {};
+      st.ame[el.dataset.ame] = el.checked;
+    } else if (el.dataset.k) {
       st[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.value;
     } else if (el.dataset.slot != null) {
       const s = st.slots[Number(el.dataset.slot)];

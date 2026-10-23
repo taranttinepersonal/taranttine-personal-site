@@ -65,7 +65,19 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-export function planPrintHtml(plan, logoUrl) {
+// Guia entregue no encerramento do acompanhamento (PDF final).
+export const AUTONOMY_GUIDE = [
+  ['Mantenha a estrutura', 'Os mesmos horários aproximados e o mesmo número de refeições. É a rotina que segura o resultado, não a perfeição.'],
+  ['Proteína em toda refeição', 'Use as quantidades deste plano como referência. Sem balança: uma porção do tamanho da palma da mão por refeição principal.'],
+  ['Monte o prato sem balança', 'Metade do prato com legumes e verduras, um quarto com proteína, um quarto com carboidrato (arroz, feijão, batata, mandioca).'],
+  ['Pese-se com método', '1x por semana, ao acordar, depois do banheiro. Olhe a média de 4 semanas, nunca um dia isolado.'],
+  ['Regra de volta', 'Se a média de 4 semanas subir mais de 2 kg, volte às quantidades deste plano por 2 semanas, pesando os alimentos.'],
+  ['Eventos e fim de semana', 'Aproveite sem compensar no dia seguinte com jejum ou restrição. Na refeição seguinte, volte ao plano normal.'],
+  ['Base que não muda', 'Sono de 7 a 9 horas, água ao longo do dia e treino de força mantido. Sem isso, nenhuma dieta se sustenta.'],
+  ['Quando me chamar', 'Fome que não passa, perda de controle com a comida, cansaço fora do normal, exame alterado ou um objetivo novo.'],
+];
+
+export function planPrintHtml(plan, logoUrl, { final = false } = {}) {
   const m = plan.meta;
   const totalMacroKcal = (m.prot * 4 + m.carb * 4 + m.gord * 9) || 1;
   const pct = x => Math.round(x / totalMacroKcal * 100);
@@ -117,9 +129,9 @@ tr:last-child td{border-bottom:0}
 .sign .line{border-top:1px solid var(--ink);width:260px;padding-top:6px;font-size:9pt;text-align:center}.sign .line b{display:block;font-size:10pt}
 .next{font-size:9.5pt}.next b{font-family:'Barlow Condensed';font-size:13pt;color:var(--gold)}
 </style></head><body>
-<header class="cover"><img src="${esc(logoUrl)}"><div><div class="eyebrow">Taranttine Personal · Consultoria</div><h1>Plano alimentar</h1>
+<header class="cover"><img src="${esc(logoUrl)}"><div><div class="eyebrow">Taranttine Personal · Consultoria</div><h1>${final ? 'Plano de manutenção' : 'Plano alimentar'}</h1>
 <div class="who"><b>${esc(plan.cliente.nome)}</b>${plan.cliente.peso ? ` · ${String(plan.cliente.peso).replace('.', ',')} kg` : ''}${plan.cliente.objetivo ? ` · objetivo: ${esc(goalLabel(plan.cliente.objetivo))}` : ''}</div></div>
-<div class="date">Entregue em<br><b>${fmtBR(plan.entregue_em)}</b><br>Válido até o retorno</div></header>
+<div class="date">Entregue em<br><b>${fmtBR(plan.entregue_em)}</b><br>${final ? 'Para seguir por conta própria' : 'Válido até o retorno'}</div></header>
 <div class="summary"><div class="goal"><span class="lbl">Sua meta diária</span><span class="kcal">${n0(m.kcal)} <small>kcal</small></span>
 <span style="font-size:9pt;color:var(--muted)">${plan.refeicoes.length} refeições${plan.agua_l ? ` · água: ${String(plan.agua_l).replace('.', ',')} L por dia` : ''}</span></div>
 <div class="macros"><span class="lbl">Macronutrientes do dia</span>
@@ -130,6 +142,7 @@ tr:last-child td{border-bottom:0}
 ${meals}
 ${plan.suplementos?.length ? `<div class="orient"><h4>Suplementação</h4><table class="supt"><thead><tr><th>Suplemento</th><th>Dose</th><th>Quando</th></tr></thead><tbody>${plan.suplementos.map(x => `<tr><td><b>${esc(x.nome)}</b><div class="sc">${esc(x.cuidado || '')}</div></td><td class="q">${esc(x.dose)}</td><td class="m">${esc(x.horario)}</td></tr>`).join('')}</tbody></table></div>` : ''}
 ${plan.orientacoes?.length ? `<div class="orient"><h4>Orientações</h4><ul>${plan.orientacoes.map(o => `<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}
-<div class="sign"><div class="next">${plan.retorno ? `Próximo retorno<br><b>${fmtBR(plan.retorno)}</b>` : ''}</div><div class="line"><b>Taranttine Junior</b>${esc(plan.profissional || 'Personal Trainer · Nutrição')}</div></div>
+${final ? `<div class="orient" style="break-before:page;"><h4>Como seguir sozinho(a)</h4><table class="supt"><tbody>${AUTONOMY_GUIDE.map(([t, x]) => `<tr><td style="width:170px;"><b>${esc(t)}</b></td><td>${esc(x)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+<div class="sign"><div class="next">${final ? 'Fim do acompanhamento<br><b>Plano de manutenção</b>' : plan.retorno ? `Próximo retorno<br><b>${fmtBR(plan.retorno)}</b>` : ''}</div><div class="line"><b>Taranttine Junior</b>${esc(plan.profissional || 'Personal Trainer · Nutrição')}</div></div>
 </body></html>`;
 }

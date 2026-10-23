@@ -10,6 +10,7 @@ import {
 import { QUESTIONS as CK_QUESTIONS, fetchCheckins, flagsOf, answerText } from '../../../app/js/lib/checkin.js';
 import { screen, screeningHtml } from '../../../app/js/lib/screening.js';
 import { fetchConsent, CONSENT_VERSION } from '../../../app/js/lib/consent.js';
+import { mountCycleCard } from './nutritionCycle.js';
 
 export async function renderNutritionHistory(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
@@ -39,6 +40,7 @@ export async function renderNutritionHistory(main, clientId) {
       saude: { medicamentos: anamneseHints.medicamentos, doencas: anamneseHints.doencas, cirurgias: anamneseHints.cirurgias },
       r1: nutriAnamneses.etapa1?.respostas, r2: nutriAnamneses.etapa2?.respostas, checkins,
     }), escapeHtml)}
+    <div id="cycle-card"></div>
     <div class="admin-card"><div class="admin-row-sub" style="margin:0;">🔒 Termo LGPD (versão ${CONSENT_VERSION}): ${consent
       ? `<b>aceito em ${new Date(consent.aceito_em).toLocaleDateString('pt-BR')}</b> · IA para estimar refeições: <b>${consent.uso_ia ? 'autorizada' : 'não autorizada'}</b>`
       : '<b style="color:#e17055;">ainda não aceito</b> — o aluno vê o termo antes da anamnese e do check-in.'}</div></div>
@@ -55,6 +57,7 @@ export async function renderNutritionHistory(main, clientId) {
     </div>
   `;
 
+  mountCycleCard(document.getElementById('cycle-card'), clientId);
   const body = document.getElementById('nutri-history-body');
   const buttons = main.querySelectorAll('[data-days]');
 
