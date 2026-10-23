@@ -11,11 +11,12 @@ import { QUESTIONS as CK_QUESTIONS, fetchCheckins, flagsOf, answerText } from '.
 import { screen, screeningHtml } from '../../../app/js/lib/screening.js';
 import { fetchConsent, CONSENT_VERSION } from '../../../app/js/lib/consent.js';
 import { mountCycleCard } from './nutritionCycle.js';
+import { fetchLabs, latestByCode, statusOf } from '../../../app/js/lib/labs.js';
 
 export async function renderNutritionHistory(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
-  const [{ data: profile }, initialTarget, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses, checkins, consent] = await Promise.all([
+  const [{ data: profile }, initialTarget, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses, checkins, consent, labs] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date, sexo').eq('id', clientId).single(),
     fetchTarget(clientId),
     fetchBodyComposition(clientId),
@@ -24,6 +25,7 @@ export async function renderNutritionHistory(main, clientId) {
     fetchNutritionAnamneses(clientId),
     fetchCheckins(clientId, 8),
     fetchConsent(clientId),
+    fetchLabs(clientId),
   ]);
   let target = initialTarget;
 
@@ -38,8 +40,9 @@ export async function renderNutritionHistory(main, clientId) {
     ${screeningHtml(screen({
       idade: profile?.birth_date ? Math.floor((Date.now() - new Date(profile.birth_date + 'T00:00:00')) / 31557600000) : null, sexo: profile?.sexo,
       saude: { medicamentos: anamneseHints.medicamentos, doencas: anamneseHints.doencas, cirurgias: anamneseHints.cirurgias },
-      r1: nutriAnamneses.etapa1?.respostas, r2: nutriAnamneses.etapa2?.respostas, checkins,
+      r1: nutriAnamneses.etapa1?.respostas, r2: nutriAnamneses.etapa2?.respostas, checkins, labs: labs || [],
     }), escapeHtml)}
+    ${renderLabsSummary(clientId, labs)}
     <div id="cycle-card"></div>
     <div class="admin-card"><div class="admin-row-sub" style="margin:0;">🔒 Termo LGPD (versão ${CONSENT_VERSION}): ${consent
       ? `<b>aceito em ${new Date(consent.aceito_em).toLocaleDateString('pt-BR')}</b> · IA para estimar refeições: <b>${consent.uso_ia ? 'autorizada' : 'não autorizada'}</b>`
@@ -185,6 +188,17 @@ const GOAL_OPTIONS = [
   { key: 'manutencao', label: 'Manutenção' },
   { key: 'ganho_de_massa', label: 'Ganho de massa' },
 ];
+
+function renderLabsSummary(clientId, labs) {
+  if (labs === null) return `<div class="admin-card"><div class="admin-section-title" style="margin-top:0;">🧪 Exames</div><div class="admin-row-sub">Rode o comando do banco 0033 no Supabase para ativar os exames.</div></div>`;
+  const latest = Object.values(latestByCode(labs));
+  const alt = latest.filter(r => ['alto', 'baixo'].includes(statusOf(r).nivel)).length;
+  const last = labs[0]?.data;
+  return `<div class="admin-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div><div class="admin-section-title" style="margin:0;">🧪 Exames</div>
+    <div class="admin-row-sub">${labs.length ? `${latest.length} exame(s) registrados · último em ${new Date(last + 'T00:00:00').toLocaleDateString('pt-BR')} · <b>${alt}</b> fora da referência` : 'Nenhum exame registrado. O aluno também pode lançar pelo app.'}</div></div>
+    <a class="admin-btn primary" href="#/cliente/${clientId}/exames">Abrir exames</a></div>`;
+}
 
 function renderCheckinHistory(checkins) {
   if (!checkins.length) return `<div class="admin-card"><div class="admin-section-title" style="margin-top:0;">✅ Check-ins semanais</div><div class="admin-row-sub">Nenhum check-in ainda. O aluno responde na aba Nutrição do app.</div></div>`;

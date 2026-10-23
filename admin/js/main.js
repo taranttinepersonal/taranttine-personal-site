@@ -8,6 +8,7 @@ import { renderAnnouncements } from './pages/announcements.js';
 import { renderDiet } from './pages/diet.js';
 import { renderProgress } from './pages/progress.js';
 import { renderNutritionHistory } from './pages/nutritionHistory.js';
+import { renderLabs } from './pages/labs.js';
 import { renderPrescription } from './pages/prescription.js';
 import { renderLibrary } from './pages/library.js';
 import { renderCheckins } from './pages/checkins.js';
@@ -142,6 +143,7 @@ async function handleDynamicRoutes() {
   const dadosMatch = hash.match(/^\/cliente\/([^/]+)\/dados$/);
   const avaliacaoMatch = hash.match(/^\/cliente\/([^/]+)\/avaliacao$/);
   const relatorioMatch = hash.match(/^\/cliente\/([^/]+)\/relatorio$/);
+  const examesMatch = hash.match(/^\/cliente\/([^/]+)\/exames$/);
   const anamneseMatch = hash.match(/^\/cliente\/([^/]+)\/anamnese\/([^/]+)$/);
   if (treinoMatch) {
     if (!(await requireTrainer())) return;
@@ -171,6 +173,10 @@ async function handleDynamicRoutes() {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');
     renderAssessment(main, avaliacaoMatch[1]);
+  } else if (examesMatch) {
+    if (!(await requireTrainer())) return;
+    const main = renderShell('/clientes');
+    renderLabs(main, examesMatch[1]);
   } else if (relatorioMatch) {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');

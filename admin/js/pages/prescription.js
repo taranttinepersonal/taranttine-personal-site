@@ -12,6 +12,7 @@ import { SUPPLEMENTS, EVIDENCE_LABEL, defaultDose, supplementAlerts } from '../.
 import { screen, screeningHtml } from '../../../app/js/lib/screening.js';
 import { fetchCheckins } from '../../../app/js/lib/checkin.js';
 import { fetchConsent } from '../../../app/js/lib/consent.js';
+import { fetchLabs, latestByCode, labHealthText } from '../../../app/js/lib/labs.js';
 
 const ACTIVITY = [['sedentario', 'Sedentário'], ['leve', 'Leve (1-3x/sem)'], ['moderado', 'Moderado (3-5x/sem)'], ['intenso', 'Intenso (5-7x/sem)']];
 const GOALS = [['emagrecimento', 'Emagrecimento'], ['manutencao', 'Manutenção'], ['ganho_de_massa', 'Ganho de massa']];
@@ -22,7 +23,7 @@ export async function renderPrescription(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando a prescrição...</div>`;
   main.closest('.admin-shell')?.classList.add('wide');
 
-  const [{ data: profile }, bodyComp, hints, anam, taco, { data: customRows }, { data: modelRows }, recentCheckins, consent] = await Promise.all([
+  const [{ data: profile }, bodyComp, hints, anam, taco, { data: customRows }, { data: modelRows }, recentCheckins, consent, labs] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date, sexo, phone').eq('id', clientId).single(),
     fetchBodyComposition(clientId),
     fetchAnamneseHints(clientId),
@@ -32,12 +33,13 @@ export async function renderPrescription(main, clientId) {
     supabase.from('meal_models').select('*'),
     fetchCheckins(clientId, 6).catch(() => []),
     fetchConsent(clientId),
+    fetchLabs(clientId).then(r => r || []),
   ]).then(r => r);
   registerCustomFoods(taco, customRows);
   const triagem = screen({
     idade: profile?.birth_date ? age(profile.birth_date) : null, sexo: profile?.sexo,
     saude: { medicamentos: hints.medicamentos, doencas: hints.doencas, cirurgias: hints.cirurgias },
-    r1: anam.etapa1?.respostas, r2: anam.etapa2?.respostas, checkins: recentCheckins,
+    r1: anam.etapa1?.respostas, r2: anam.etapa2?.respostas, checkins: recentCheckins, labs,
   });
   const models = mergeModels(modelRows);
   const excluded = excludedFoods(anam.etapa1, taco, models);
@@ -59,7 +61,7 @@ export async function renderPrescription(main, clientId) {
   let st;
   try { st = JSON.parse(localStorage.getItem(draftKey)) || fresh(); } catch { st = fresh(); }
   st = { ...deliveryDefaults(st.weightKg), supps: {}, ...st };
-  const healthText = [hints.medicamentos, hints.doencas, anam.etapa2?.respostas?.['Diagnóstico de transtorno alimentar'], anam.etapa2?.respostas?.['Alergias ou intolerâncias'], anam.etapa1?.respostas?.['Restrição por escolha']].filter(x => x && !/^(nenhum|nenhuma|não|nao|-)$/i.test(String(x).trim())).join(' · ');
+  const healthText = [hints.medicamentos, hints.doencas, anam.etapa2?.respostas?.['Diagnóstico de transtorno alimentar'], anam.etapa2?.respostas?.['Alergias ou intolerâncias'], anam.etapa1?.respostas?.['Restrição por escolha'], labHealthText(latestByCode(labs), { idade: profile?.birth_date ? age(profile.birth_date) : null, sexo: profile?.sexo })].filter(x => x && !/^(nenhum|nenhuma|não|nao|-)$/i.test(String(x).trim())).join(' · ');
 
   function save() {
     try { localStorage.setItem(draftKey, JSON.stringify(st)); } catch { /* rascunho é só conveniência */ }
@@ -121,11 +123,12 @@ export async function renderPrescription(main, clientId) {
     const auto = {
       termo: !!consent, etapa1: !!anam.etapa1, etapa2: !!anam.etapa2,
       triagem: triagem.every(t => t.nivel !== 'encaminhar'), medidas: !!recent,
+      exames: !!labs[0] && (Date.now() - new Date(labs[0].data + 'T00:00:00')) / 86400000 <= 180,
     };
     const blocks = [
       ['Antes · organização', '10 min', [
         ['termo', 'Termo LGPD aceito no app'], ['etapa1', 'Etapa 1 da anamnese respondida pelo aluno'],
-        ['revisar', 'Li a etapa 1, o recordatório de 24 h e os últimos check-ins'], ['triagem', 'Triagem sem encaminhamento pendente'],
+        ['revisar', 'Li a etapa 1, o recordatório de 24 h e os últimos check-ins'], ['exames', 'Exames de sangue dos últimos 6 meses registrados'], ['triagem', 'Triagem sem encaminhamento pendente'],
       ]],
       ['0–5 min · abertura', '5 min', [
         ['objetivo', 'Objetivo nas palavras do aluno e prazo que ele imagina'], ['expect', 'Combinei como funciona: plano hoje, check-in semanal, retorno mensal'],

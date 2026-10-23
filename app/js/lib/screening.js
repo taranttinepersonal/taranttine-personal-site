@@ -33,7 +33,9 @@ export function scoffScore(r2) {
   return SCOFF_KEYS.filter(k => r2?.[k] === 'Sim').length;
 }
 
-// ctx = { idade, sexo, saude: {medicamentos, doencas, cirurgias}, r1, r2, checkins }
+import { labScreening, latestByCode } from './labs.js';
+
+// ctx = { idade, sexo, saude: {medicamentos, doencas, cirurgias}, r1, r2, checkins, labs }
 export function screen(ctx) {
   const out = [];
   const add = (nivel, titulo, motivo, para) => out.push({ nivel, titulo, motivo, para });
@@ -73,6 +75,8 @@ export function screen(ctx) {
     if (perda / semanas > 0.015) add('atencao', 'Perda de peso rápida', `${(perda * 100).toFixed(1).replace('.', ',')}% em ${semanas} semana(s) (mais de 1,5% por semana)`, 'rever o déficit; médico se não for intencional');
   }
 
+  if (ctx.labs?.length) out.push(...labScreening(latestByCode(ctx.labs), { idade: ctx.idade, sexo: ctx.sexo }));
+
   return out.sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === 'encaminhar' ? -1 : 1));
 }
 
@@ -85,7 +89,7 @@ export function screeningHtml(items, esc) {
           <b>${i.nivel === 'encaminhar' ? '⛔ Encaminhar' : '⚠️ Atenção'} · ${esc(i.titulo)}</b>
           <span>${esc(i.motivo)} → <b>${esc(i.para)}</b></span>
         </div>`).join('') : '<div class="admin-row-sub">✅ Nenhum sinal de alerta com o que está registrado.</div>'}
-      <div class="admin-row-sub" style="margin-top:8px;">Triagem não é diagnóstico: indica quando outro profissional precisa avaliar. Ela usa a anamnese de treino, as duas etapas da anamnese nutricional (inclui o SCOFF) e os check-ins.</div>
+      <div class="admin-row-sub" style="margin-top:8px;">Triagem não é diagnóstico: indica quando outro profissional precisa avaliar. Ela usa a anamnese de treino, as duas etapas da anamnese nutricional (inclui o SCOFF), os check-ins e os exames.</div>
     </div>
   `;
 }

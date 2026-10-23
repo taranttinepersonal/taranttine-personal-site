@@ -57,6 +57,7 @@ export async function renderNutricao(session) {
       ${nutritionConsult && !consent ? renderConsentCard() : ''}
       ${nutritionConsult && consent ? renderCheckinCard(lastCheckins[0]) : ''}
       ${nutritionConsult && consent ? renderAnamneseNutriCard(nutriAnamneses.etapa1) : ''}
+      ${nutritionConsult && consent ? renderExamesCard() : ''}
       ${renderTargetCard(target, totals, bodyComp, anamneseHints)}
 
       <div class="ex-card" id="history-card">
@@ -380,6 +381,16 @@ function wireManualForm(clientId, session) {
       btn.disabled = false;
     }
   });
+}
+
+function renderExamesCard() {
+  return `
+    <div class="ex-card">
+      <div class="ex-name" style="margin-bottom:4px;">🧪 Meus exames</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.45;">Registre os valores do seu exame de sangue para o plano levar em conta glicemia, ferro, vitaminas e mais.</div>
+      <button class="logout-link" onclick="window.location.hash='/exames'" style="font-weight:700;color:var(--green);">👉 Abrir meus exames</button>
+    </div>
+  `;
 }
 
 function renderConsentCard() {
