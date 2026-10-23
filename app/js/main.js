@@ -9,6 +9,7 @@ import { renderAnamnese } from './pages/anamnese.js';
 import { renderNutricao } from './pages/nutricao.js';
 import { renderAnamneseNutri } from './pages/anamneseNutri.js';
 import { renderCheckin } from './pages/checkin.js';
+import { renderTermo } from './pages/termo.js';
 
 // The trainer logs in through this same /app/ form (Supabase's redirect
 // allow-list only reliably resolves to /app/, not /admin/, regardless of
@@ -82,6 +83,12 @@ route('/anamnese-nutricional', async () => {
   const session = await getSession();
   if (!session) return navigate('/login');
   renderAnamneseNutri(session);
+});
+
+route('/termo', async () => {
+  const session = await getSession();
+  if (!session) return navigate('/login');
+  renderTermo(session);
 });
 
 setNotFound(() => navigate('/'));

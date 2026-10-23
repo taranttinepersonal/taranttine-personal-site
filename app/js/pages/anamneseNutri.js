@@ -1,4 +1,5 @@
 import { signOut } from '../auth.js';
+import { requireConsent } from './termo.js';
 import { ETAPA1, renderBlocks, collectBlocks, fetchNutritionAnamneses, saveNutritionAnamnese } from '../lib/nutritionAnamnese.js';
 
 export async function renderAnamneseNutri(session) {
@@ -6,6 +7,7 @@ export async function renderAnamneseNutri(session) {
   root.innerHTML = `<div class="loading-state">Carregando...</div>`;
 
   const clientId = session.user.id;
+  if (!(await requireConsent(clientId, '/anamnese-nutricional'))) return;
   const { etapa1 } = await fetchNutritionAnamneses(clientId);
 
   root.innerHTML = `

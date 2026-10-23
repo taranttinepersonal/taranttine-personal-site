@@ -9,11 +9,12 @@ import {
 } from '../../../app/js/lib/nutritionAnamnese.js';
 import { QUESTIONS as CK_QUESTIONS, fetchCheckins, flagsOf, answerText } from '../../../app/js/lib/checkin.js';
 import { screen, screeningHtml } from '../../../app/js/lib/screening.js';
+import { fetchConsent, CONSENT_VERSION } from '../../../app/js/lib/consent.js';
 
 export async function renderNutritionHistory(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
-  const [{ data: profile }, initialTarget, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses, checkins] = await Promise.all([
+  const [{ data: profile }, initialTarget, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses, checkins, consent] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date, sexo').eq('id', clientId).single(),
     fetchTarget(clientId),
     fetchBodyComposition(clientId),
@@ -21,6 +22,7 @@ export async function renderNutritionHistory(main, clientId) {
     fetchNutritionConsult(clientId),
     fetchNutritionAnamneses(clientId),
     fetchCheckins(clientId, 8),
+    fetchConsent(clientId),
   ]);
   let target = initialTarget;
 
@@ -37,6 +39,9 @@ export async function renderNutritionHistory(main, clientId) {
       saude: { medicamentos: anamneseHints.medicamentos, doencas: anamneseHints.doencas, cirurgias: anamneseHints.cirurgias },
       r1: nutriAnamneses.etapa1?.respostas, r2: nutriAnamneses.etapa2?.respostas, checkins,
     }), escapeHtml)}
+    <div class="admin-card"><div class="admin-row-sub" style="margin:0;">🔒 Termo LGPD (versão ${CONSENT_VERSION}): ${consent
+      ? `<b>aceito em ${new Date(consent.aceito_em).toLocaleDateString('pt-BR')}</b> · IA para estimar refeições: <b>${consent.uso_ia ? 'autorizada' : 'não autorizada'}</b>`
+      : '<b style="color:#e17055;">ainda não aceito</b> — o aluno vê o termo antes da anamnese e do check-in.'}</div></div>
     ${renderNutriAnamnese(nutritionConsult, nutriAnamneses)}
     ${renderCheckinHistory(checkins)}
     ${renderCalculator(bodyComp, anamneseHints, target)}

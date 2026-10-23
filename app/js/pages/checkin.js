@@ -1,4 +1,5 @@
 import { signOut } from '../auth.js';
+import { requireConsent } from './termo.js';
 import { supabase } from '../supabaseClient.js';
 import { QUESTIONS, REQUIRED, weekStart, fetchCheckins, saveCheckin } from '../lib/checkin.js';
 
@@ -6,6 +7,7 @@ export async function renderCheckin(session) {
   const root = document.getElementById('app-root');
   root.innerHTML = `<div class="loading-state">Carregando...</div>`;
   const clientId = session.user.id;
+  if (!(await requireConsent(clientId, '/checkin'))) return;
   const [history, { data: prof }] = await Promise.all([
     fetchCheckins(clientId, 1),
     supabase.from('profiles').select('sexo').eq('id', clientId).maybeSingle(),

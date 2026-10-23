@@ -214,3 +214,11 @@ textarea.nf-input { resize: vertical; min-height: 56px; }
 .ck-opts { display: flex; flex-wrap: wrap; gap: 6px; }
 .ck-opt { font-size: 12.5px; padding: 8px 11px; border-radius: 12px; border: 1px solid var(--border2); background: var(--black3); color: var(--text); cursor: pointer; font-family: inherit; }
 .ck-opt.sel { border-color: var(--green); background: rgba(0,184,148,.14); color: #fff; }
+
+/* Termo de consentimento */
+.tm-sec { margin-bottom: 10px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.tm-sec b { color: var(--white); font-size: 13px; }
+.tm-sec p { margin: 2px 0 0; }
+.tm-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: var(--text); margin-bottom: 12px; cursor: pointer; }
+.tm-check input { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; accent-color: var(--green); }
+.tm-check em { color: var(--faint); font-style: normal; font-size: 11.5px; }

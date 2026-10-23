@@ -6,6 +6,7 @@ import {
 import { fetchNutritionConsult, fetchNutritionAnamneses } from '../lib/nutritionAnamnese.js';
 import { fetchCheckins, weekStart } from '../lib/checkin.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
+import { fetchConsent } from '../lib/consent.js';
 import { fetchDailyHistory, fetchWeightSeries, summarizeHistory, renderHistoryHtml, localISO } from '../lib/nutritionHistory.js';
 import { buildTrendChart } from '../lib/chart.js';
 
@@ -22,11 +23,13 @@ export async function renderNutricao(session) {
 
   const clientId = session.user.id;
   const dateISO = todayISO();
-  const [target, entries, diet, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses, lastCheckins] = await Promise.all([
+  const [target, entries, diet, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses, lastCheckins, consent] = await Promise.all([
     fetchTarget(clientId), fetchEntriesForDate(clientId, dateISO), fetchVisibleDiet(clientId),
     fetchBodyComposition(clientId), fetchAnamneseHints(clientId),
     fetchNutritionConsult(clientId), fetchNutritionAnamneses(clientId), fetchCheckins(clientId, 1),
+    fetchConsent(clientId),
   ]);
+  const usaIa = !!consent?.uso_ia;
 
   const totals = entries.reduce((acc, e) => ({
     calories: acc.calories + (Number(e.calories) || 0),
@@ -47,11 +50,13 @@ export async function renderNutricao(session) {
       <button class="logout-link" id="nav-anamnese" style="margin-left:12px;">📋 Anamnese</button>
       <button class="logout-link" id="nav-indicacao" style="margin-left:12px;">🎁 Indicação</button>
       ${diet ? `<button class="logout-link" id="nav-dieta" style="margin-left:12px;">🍎 Dieta</button>` : ''}
+      <button class="logout-link" id="nav-termo" style="margin-left:12px;">🔒 Seus dados</button>
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
-      ${nutritionConsult ? renderCheckinCard(lastCheckins[0]) : ''}
-      ${nutritionConsult ? renderAnamneseNutriCard(nutriAnamneses.etapa1) : ''}
+      ${nutritionConsult && !consent ? renderConsentCard() : ''}
+      ${nutritionConsult && consent ? renderCheckinCard(lastCheckins[0]) : ''}
+      ${nutritionConsult && consent ? renderAnamneseNutriCard(nutriAnamneses.etapa1) : ''}
       ${renderTargetCard(target, totals, bodyComp, anamneseHints)}
 
       <div class="ex-card" id="history-card">
@@ -73,7 +78,12 @@ export async function renderNutricao(session) {
         </select>
         <label class="form-label">O que você comeu?</label>
         <textarea id="f-desc" class="load-input" style="text-align:left;min-height:70px;margin-bottom:10px;" placeholder="ex: 2 ovos mexidos, 1 fatia de pão integral, café com leite"></textarea>
-        <button class="send-btn" id="estimate-btn">Estimar com IA</button>
+        ${usaIa ? `<button class="send-btn" id="estimate-btn">Estimar com IA</button>` : `
+        <div class="ex-stats" style="grid-template-columns:1fr 1fr;margin-bottom:10px;">
+          ${[['kcal', 'Calorias (kcal)'], ['p', 'Proteína (g)'], ['c', 'Carbo (g)'], ['g', 'Gordura (g)']].map(([k, l]) => `<div><label class="form-label">${l}</label><input type="number" inputmode="decimal" min="0" id="f-${k}" class="load-input"></div>`).join('')}
+        </div>
+        <button class="send-btn" id="manual-save-btn">Salvar refeição</button>
+        <button class="logout-link" id="ia-optin" style="margin-top:8px;font-size:12px;">🤖 Quer que a IA calcule para você? Autorize em Seus dados</button>`}
         <div class="login-message" id="estimate-msg"></div>
         <div id="estimate-preview"></div>
       </div>
@@ -95,7 +105,9 @@ export async function renderNutricao(session) {
 
   wireHistory(clientId, target);
   wireTargetForm(clientId, session, bodyComp);
-  wireEstimateForm(clientId, session);
+  document.getElementById('nav-termo').addEventListener('click', () => openTermo('/nutricao'));
+  if (usaIa) wireEstimateForm(clientId, session);
+  else wireManualForm(clientId, session);
   wireDeleteButtons(session);
 }
 
@@ -339,6 +351,45 @@ function wireEstimateForm(clientId, session) {
       btn.disabled = false;
     }
   });
+}
+
+function openTermo(back) {
+  try { sessionStorage.setItem('termo-voltar', back); } catch { /* ignore */ }
+  window.location.hash = '/termo';
+}
+
+function wireManualForm(clientId, session) {
+  document.getElementById('ia-optin').addEventListener('click', () => openTermo('/nutricao'));
+  document.getElementById('manual-save-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('manual-save-btn');
+    const msg = document.getElementById('estimate-msg');
+    const description = document.getElementById('f-desc').value.trim();
+    const num = k => Number(String(document.getElementById(`f-${k}`).value).replace(',', '.')) || 0;
+    if (!description) { msg.textContent = 'Descreva o que você comeu primeiro.'; msg.classList.add('error'); return; }
+    if (!num('kcal')) { msg.textContent = 'Informe pelo menos as calorias.'; msg.classList.add('error'); return; }
+    btn.disabled = true;
+    try {
+      await saveEntry(clientId, {
+        loggedAt: todayISO(), mealType: document.getElementById('f-meal').value, description,
+        calories: num('kcal'), protein_g: num('p'), carb_g: num('c'), fat_g: num('g'), source: 'manual',
+      });
+      renderNutricao(session);
+    } catch (err) {
+      msg.textContent = 'Não consegui salvar o registro.';
+      msg.classList.add('error');
+      btn.disabled = false;
+    }
+  });
+}
+
+function renderConsentCard() {
+  return `
+    <div class="ex-card" style="border-color:var(--green);">
+      <div class="ex-name" style="margin-bottom:4px;">🔒 Antes de começar</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.45;">A consultoria usa dados de saúde. Leia como eles são cuidados e dê a sua autorização — leva 1 minuto.</div>
+      <button class="logout-link" onclick="sessionStorage.setItem('termo-voltar','/anamnese-nutricional');window.location.hash='/termo'" style="font-weight:700;color:var(--green);">👉 Ler e autorizar</button>
+    </div>
+  `;
 }
 
 function wireDeleteButtons(session) {
