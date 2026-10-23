@@ -75,6 +75,41 @@ export function refText(row) {
   return '—';
 }
 
+// Unidades: o laudo pode vir em outra unidade (mmol/L, nmol/L...). Converte
+// para a unidade da ficha quando a conversão é conhecida; senão avisa.
+const normUnit = u => String(u || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/μ/g, 'µ').replace(/\s+/g, '').replace(/ui/g, 'u').replace(/^u(?=[a-z])/, 'µ').replace('mcg', 'µg');
+const SAME = {
+  'mg/dl': ['mg/dl'], '%': ['%'], 'µu/ml': ['µu/ml', 'mu/l', 'µui/ml'], 'u/l': ['u/l', 'ui/l'], 'g/dl': ['g/dl'],
+  'ng/ml': ['ng/ml', 'µg/l'], 'µg/dl': ['µg/dl'], 'pg/ml': ['pg/ml', 'ng/l'], 'ng/dl': ['ng/dl'], 'mg/l': ['mg/l'],
+};
+const CONVERT = {
+  glicemia: { 'mmol/l': v => v * 18.016 },
+  ct: { 'mmol/l': v => v * 38.67 }, ldl: { 'mmol/l': v => v * 38.67 }, hdl: { 'mmol/l': v => v * 38.67 },
+  tg: { 'mmol/l': v => v * 88.57 },
+  creatinina: { 'µmol/l': v => v / 88.42 },
+  ureia: { 'mmol/l': v => v * 6.006 },
+  acido_urico: { 'µmol/l': v => v / 59.48 },
+  hemoglobina: { 'g/l': v => v / 10 },
+  ferro: { 'µmol/l': v => v * 5.585 },
+  b12: { 'pmol/l': v => v * 1.355 },
+  vitd: { 'nmol/l': v => v / 2.496 },
+  t4l: { 'pmol/l': v => v / 12.87 },
+  pcr: { 'mg/dl': v => v * 10 },
+  hba1c: { 'mmol/mol': v => v / 10.929 + 2.15 },
+};
+const round = v => (v == null ? null : Math.round(v * 100) / 100);
+
+// { valor, ref_min, ref_max, aviso } na unidade da ficha.
+export function toCatalogUnit(code, { valor, unidade, ref_min, ref_max }) {
+  const target = LAB_BY_CODE[code]?.unidade;
+  const u = normUnit(unidade), t = normUnit(target);
+  if (!unidade || u === t || (SAME[t] || []).includes(u)) return { valor, ref_min, ref_max, aviso: unidade ? null : 'unidade não informada no laudo: confira' };
+  const fn = CONVERT[code]?.[u];
+  if (fn) return { valor: round(fn(valor)), ref_min: ref_min == null ? null : round(fn(ref_min)), ref_max: ref_max == null ? null : round(fn(ref_max)), aviso: `convertido de ${unidade}` };
+  return { valor, ref_min, ref_max, aviso: `unidade do laudo (${unidade}) diferente de ${target}: confira antes de salvar` };
+}
+
 export async function fetchLabs(clientId) {
   const { data, error } = await supabase.from('lab_results').select('*')
     .eq('client_id', clientId).order('data', { ascending: false }).order('created_at', { ascending: false });

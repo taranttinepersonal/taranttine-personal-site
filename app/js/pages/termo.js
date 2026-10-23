@@ -28,6 +28,7 @@ export async function renderTermo(session) {
       <div class="ex-card">
         <label class="tm-check"><input type="checkbox" id="tm-saude" ${current ? 'checked' : ''}> <span><b>Autorizo</b> o uso dos meus dados de saúde para a consultoria de treino e nutrição, como descrito acima. <em>(obrigatório)</em></span></label>
         <label class="tm-check"><input type="checkbox" id="tm-ia" ${current?.uso_ia ? 'checked' : ''}> <span><b>Autorizo</b> o envio da descrição das minhas refeições, sem o meu nome, para a estimativa por inteligência artificial. <em>(opcional)</em></span></label>
+        <label class="tm-check"><input type="checkbox" id="tm-ia-ex" ${current?.uso_ia_exames ? 'checked' : ''}> <span><b>Autorizo</b> o envio do PDF ou da foto dos meus exames para a leitura por inteligência artificial, com conferência humana antes de salvar. <em>(opcional)</em></span></label>
         <button class="send-btn" id="tm-save" style="margin-top:12px;">${current ? 'Salvar minhas escolhas' : 'Aceitar e continuar'}</button>
         <div class="login-message" id="tm-msg"></div>
       </div>
@@ -44,7 +45,7 @@ export async function renderTermo(session) {
       if (!document.getElementById('tm-saude').checked) { msg.textContent = 'Para usar a consultoria, é preciso autorizar o uso dos dados de saúde.'; return; }
       b.disabled = true; b.textContent = 'Salvando...';
       try {
-        await saveConsent(clientId, { usoIa: document.getElementById('tm-ia').checked });
+        await saveConsent(clientId, { usoIa: document.getElementById('tm-ia').checked, usoIaExames: document.getElementById('tm-ia-ex').checked });
         try { sessionStorage.removeItem('termo-voltar'); } catch { /* ignore */ }
         window.location.hash = back;
       } catch (err) {

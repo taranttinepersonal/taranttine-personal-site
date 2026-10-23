@@ -45,7 +45,7 @@ export async function renderNutritionHistory(main, clientId) {
     ${renderLabsSummary(clientId, labs)}
     <div id="cycle-card"></div>
     <div class="admin-card"><div class="admin-row-sub" style="margin:0;">🔒 Termo LGPD (versão ${CONSENT_VERSION}): ${consent
-      ? `<b>aceito em ${new Date(consent.aceito_em).toLocaleDateString('pt-BR')}</b> · IA para estimar refeições: <b>${consent.uso_ia ? 'autorizada' : 'não autorizada'}</b>`
+      ? `<b>aceito em ${new Date(consent.aceito_em).toLocaleDateString('pt-BR')}</b> · IA para estimar refeições: <b>${consent.uso_ia ? 'autorizada' : 'não autorizada'}</b> · IA para ler exames: <b>${consent.uso_ia_exames ? 'autorizada' : 'não autorizada'}</b>`
       : '<b style="color:#e17055;">ainda não aceito</b> — o aluno vê o termo antes da anamnese e do check-in.'}</div></div>
     ${renderNutriAnamnese(nutritionConsult, nutriAnamneses)}
     ${renderCheckinHistory(checkins)}
