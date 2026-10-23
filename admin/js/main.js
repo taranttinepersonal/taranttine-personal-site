@@ -11,6 +11,7 @@ import { renderNutritionHistory } from './pages/nutritionHistory.js';
 import { renderPrescription } from './pages/prescription.js';
 import { renderLibrary } from './pages/library.js';
 import { renderCheckins } from './pages/checkins.js';
+import { renderWaitlist } from './pages/waitlist.js';
 import { renderReferrals } from './pages/referrals.js';
 import { renderClientData } from './pages/clientData.js';
 import { renderAssessment } from './pages/assessment.js';
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { path: '/indicacoes', label: 'Indicações' },
   { path: '/checkins', label: 'Check-ins' },
   { path: '/biblioteca', label: 'Biblioteca' },
+  { path: '/lista-espera', label: 'Lista de espera' },
 ];
 
 function renderShell(activePath, contentHtmlOrRenderer) {
@@ -108,6 +110,12 @@ route('/checkins', async () => {
   if (!(await requireTrainer())) return;
   const main = renderShell('/checkins');
   renderCheckins(main);
+});
+
+route('/lista-espera', async () => {
+  if (!(await requireTrainer())) return;
+  const main = renderShell('/lista-espera');
+  renderWaitlist(main);
 });
 
 route('/biblioteca', async () => {

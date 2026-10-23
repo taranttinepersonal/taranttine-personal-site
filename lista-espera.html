@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Lista de espera — Consultoria Taranttine</title>
+<link rel="icon" href="/app/icons/favicon-32.png">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--black:#080808;--black2:#111;--black3:#1a1a1a;--border:#2a2a2a;--border2:#333;--text:#e8e8e8;--muted:#8a8a8a;--faint:#5a5a5a;--gold:#c9a25a;--gold2:#e2c07a;--green:#00B894}
+html{font-size:15px}
+body{font-family:'Inter',sans-serif;background:var(--black);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
+.hero{position:relative;overflow:hidden;padding:48px 20px 36px;text-align:center;background:radial-gradient(ellipse 80% 70% at 75% 0%,rgba(216,181,110,.16),transparent 60%),radial-gradient(ellipse 70% 60% at 0% 40%,rgba(0,184,148,.08),transparent 60%),var(--black)}
+.hero:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:26px 26px;mask-image:linear-gradient(180deg,#000,transparent 85%);pointer-events:none}
+.hero>*{position:relative}
+.logo{width:84px;height:84px;border-radius:50%;box-shadow:0 0 0 2px rgba(216,181,110,.6),0 10px 30px rgba(0,0,0,.6)}
+.eyebrow{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);font-size:12px;margin-top:16px}
+h1{font-family:'Barlow Condensed',sans-serif;font-weight:900;text-transform:uppercase;font-size:clamp(34px,9vw,52px);line-height:.95;margin:8px auto 12px;max-width:16ch;background:linear-gradient(180deg,#fff 0%,#a9adb3 55%,#e9ebee 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 span{background:linear-gradient(180deg,#f3d99a,#b8893f 60%,#e8c67e);-webkit-background-clip:text;background-clip:text}
+.lede{color:#c9c6bf;max-width:42ch;margin:0 auto;line-height:1.55;font-size:15px}
+.wrap{max-width:520px;margin:0 auto;padding:0 18px 60px}
+.card{background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:20px;margin-top:16px}
+.feat{display:grid;gap:12px}
+.feat div{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.45;color:#d6d3cc}
+.feat b{color:#fff;font-weight:600;display:block}
+.feat i{font-style:normal;font-size:20px;line-height:1.2}
+.lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.2em;text-transform:uppercase;font-size:12px;color:var(--gold2);margin-bottom:12px}
+label{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+input,select,textarea{width:100%;background:var(--black3);border:1.5px solid var(--border2);border-radius:10px;padding:12px;color:var(--text);font:inherit;font-size:15px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green)}
+textarea{min-height:76px;resize:vertical}
+.consent{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:12.5px;color:#bdbab3;line-height:1.5;text-transform:none;letter-spacing:0;font-weight:400}
+.consent input{width:auto;margin-top:3px}
+button{width:100%;margin-top:18px;padding:15px;border:0;border-radius:14px;background:linear-gradient(135deg,#e4c27c,#a8803e);color:#141414;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit}
+button:disabled{opacity:.6}
+.msg{margin-top:10px;font-size:13px;color:#f0a3a3;min-height:18px}
+.ok{text-align:center;padding:30px 20px}
+.ok h2{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:30px;text-transform:uppercase;color:#fff;margin:10px 0 8px}
+.ok p{color:#c9c6bf;line-height:1.55}
+.foot{text-align:center;font-size:11.5px;color:var(--faint);margin-top:22px;line-height:1.6}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="hero">
+  <img class="logo" src="/app/icons/icon-192.png" alt="Taranttine Personal">
+  <div class="eyebrow">Taranttine Personal · Junho de 2027</div>
+  <h1>Treino e nutrição em <span>um só plano</span></h1>
+  <p class="lede">A consultoria integrada começa em junho de 2027. Entre na lista de espera e seja avisado primeiro quando as vagas abrirem.</p>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <div class="lbl">Como vai funcionar</div>
+    <div class="feat">
+      <div><i>📋</i><span><b>Avaliação completa</b>Anamnese, composição corporal e rotina, para o plano caber na sua vida.</span></div>
+      <div><i>🍽</i><span><b>Plano alimentar no mesmo dia</b>Montado junto com o seu treino, com trocas já calculadas para você variar.</span></div>
+      <div><i>📲</i><span><b>Tudo no app</b>Treino, plano, registro das refeições e check-in semanal num lugar só.</span></div>
+      <div><i>🔁</i><span><b>Acompanhamento de verdade</b>Ajustes a partir do que você vive na semana, não de uma tabela genérica.</span></div>
+    </div>
+  </section>
+
+  <section class="card" id="form-card">
+    <div class="lbl">Entrar na lista de espera</div>
+    <form id="wl-form" novalidate>
+      <label for="wl-nome">Nome</label>
+      <input id="wl-nome" autocomplete="name" required>
+      <label for="wl-whats">WhatsApp</label>
+      <input id="wl-whats" type="tel" inputmode="tel" autocomplete="tel" placeholder="(67) 99999-9999" required>
+      <label for="wl-email">E-mail (opcional)</label>
+      <input id="wl-email" type="email" autocomplete="email">
+      <label for="wl-obj">Seu objetivo principal</label>
+      <select id="wl-obj">
+        <option>Emagrecer</option><option>Ganhar massa muscular</option><option>Melhorar a saúde e a rotina</option><option>Desempenho no esporte</option><option>Outro</option>
+      </select>
+      <label for="wl-mod">Formato</label>
+      <select id="wl-mod">
+        <option>Presencial em Dourados</option><option>Online</option><option>Ainda não sei</option>
+      </select>
+      <label for="wl-aluno">Já treina comigo?</label>
+      <select id="wl-aluno"><option>Não</option><option>Sim, sou aluno(a)</option></select>
+      <label for="wl-msg">Quer contar algo? (opcional)</label>
+      <textarea id="wl-msg" placeholder="Ex: rotina corrida, já tentei várias dietas..."></textarea>
+      <label class="consent"><input type="checkbox" id="wl-ok"> Autorizo o uso destes dados só para contato sobre a consultoria. Posso pedir para sair da lista a qualquer momento.</label>
+      <button type="submit" id="wl-send">Quero ser avisado</button>
+      <div class="msg" id="wl-msg-out" role="status"></div>
+    </form>
+  </section>
+
+  <section class="card ok" id="ok-card" hidden>
+    <div style="font-size:40px">✅</div>
+    <h2>Você está na lista</h2>
+    <p>Assim que as vagas abrirem, eu te chamo no WhatsApp antes de divulgar para todo mundo.</p>
+  </section>
+
+  <p class="foot">Taranttine Personal · Dourados/MS<br>Seus dados ficam guardados com segurança e não são compartilhados.</p>
+</main>
+
+<script>
+(function () {
+  var form = document.getElementById('wl-form');
+  var out = document.getElementById('wl-msg-out');
+  var btn = document.getElementById('wl-send');
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    out.textContent = '';
+    var v = function (id) { return document.getElementById(id).value.trim(); };
+    var digits = v('wl-whats').replace(/\D/g, '');
+    if (!v('wl-nome')) { out.textContent = 'Preencha o seu nome.'; return; }
+    if (digits.length < 10) { out.textContent = 'Confira o WhatsApp com DDD.'; return; }
+    if (!document.getElementById('wl-ok').checked) { out.textContent = 'Marque a autorização para entrar na lista.'; return; }
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    try {
+      var params = new URLSearchParams(location.search);
+      var resp = await fetch('https://zqopjmijrmlifwnzthfb.supabase.co/rest/v1/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_ce3Q3zOJmatnEIoEqM8kRw_53x6OrC3', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          nome: v('wl-nome'), whatsapp: v('wl-whats'), email: v('wl-email') || null,
+          objetivo: v('wl-obj'), modalidade: v('wl-mod'), ja_aluno: v('wl-aluno'), mensagem: v('wl-msg') || null,
+          consentimento: true, origem: params.get('origem') || document.referrer || 'direto', status: 'novo'
+        })
+      });
+      if (!resp.ok) throw new Error(String(resp.status));
+      document.getElementById('form-card').hidden = true;
+      document.getElementById('ok-card').hidden = false;
+      window.scrollTo(0, 0);
+    } catch (err) {
+      out.textContent = 'Não consegui enviar agora. Tente de novo em instantes ou me chame no WhatsApp.';
+      btn.disabled = false; btn.textContent = 'Quero ser avisado';
+    }
+  });
+})();
+</script>
+</body>
+</html>
