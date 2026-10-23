@@ -50,7 +50,8 @@ export async function fetchAnamneseHints(clientId) {
   const goal = respostas['Objetivo principal'] || respostas['Descreva sua meta em detalhes'] || null;
   const medicamentos = respostas['Medicamentos em uso'] || '';
   const hormoneUse = HORMONE_KEYWORDS.some(kw => medicamentos.toLowerCase().includes(kw));
-  return { goal, hormoneUse };
+  const doencas = respostas['Doenças diagnosticadas'] || '';
+  return { goal, hormoneUse, medicamentos, doencas };
 }
 
 const ACTIVITY_FACTORS = {

@@ -38,6 +38,38 @@ export function foodName(food) {
   return FRIENDLY[food.id] || food.nome;
 }
 
+// Alimentos próprios (custom_foods) entram no mesmo mapa da TACO com a
+// chave "c:<id>" e, se tiverem grupo, nas listas de substituição.
+let groups = null;
+function currentGroups() { return groups || SUB_GROUPS; }
+
+export function registerCustomFoods(taco, rows) {
+  groups = SUB_GROUPS.map(g => ({ ...g, ids: [...g.ids] }));
+  (rows || []).forEach(r => {
+    const key = `c:${r.id}`;
+    taco.set(key, {
+      id: key, nome: r.nome, grupo: r.grupo || 'Alimentos próprios', kcal: Number(r.kcal), prot: Number(r.prot) || 0,
+      carb: Number(r.carb) || 0, gord: Number(r.gord) || 0, fibra: r.fibra, custom: true,
+      unidadeNome: r.unidade_nome || null, unidadeG: Number(r.unidade_g) || null, soUnidade: !!r.so_unidade,
+    });
+    if (r.grupo) {
+      let g = groups.find(x => x.nome === r.grupo);
+      if (!g) { g = { nome: r.grupo, ids: [] }; groups.push(g); }
+      g.ids.push(key);
+    }
+  });
+}
+
+// Modelos do banco substituem os padrão de mesmo código; inativos somem.
+export function mergeModels(rows) {
+  const byCode = new Map(MODELS.map(m => [m.code, { ...m, padrao: true }]));
+  (rows || []).forEach(r => {
+    if (r.ativo === false) { byCode.delete(r.code); return; }
+    byCode.set(r.code, { code: r.code, tipo: r.tipo, nome: r.nome, items: r.items, padrao: false, dbId: r.id });
+  });
+  return [...byCode.values()];
+}
+
 // Grupos de substituição: alimentos que se trocam entre si.
 export const SUB_GROUPS = [
   { nome: 'Cereais e tubérculos', ids: [3, 1, 88, 129, 91, 533] },
@@ -95,7 +127,7 @@ const SYNONYMS = {
 
 // Alimentos que este cliente não pode ou não quer comer, a partir da
 // anamnese (restrição por escolha + "não come de jeito nenhum").
-export function excludedFoods(etapa1, taco) {
+export function excludedFoods(etapa1, taco, models = MODELS) {
   const r = etapa1?.respostas || {};
   const out = new Set();
   const restr = norm(r['Restrição por escolha']);
@@ -107,7 +139,7 @@ export function excludedFoods(etapa1, taco) {
   if (dislikes) {
     const words = dislikes.split(/[^a-z]+/).filter(w => w.length >= 3 && !['nao', 'come', 'nem', 'com', 'sem', 'que', 'tipo'].includes(w));
     words.forEach(w => (SYNONYMS[w] || []).forEach(id => out.add(id)));
-    const usedIds = new Set(MODELS.flatMap(m => m.items.map(i => i[0])).concat(SUB_GROUPS.flatMap(g => g.ids)));
+    const usedIds = new Set(models.flatMap(m => m.items.map(i => i[0])).concat(currentGroups().flatMap(g => g.ids)));
     usedIds.forEach(id => {
       const f = taco.get(id);
       if (!f) return;
@@ -140,10 +172,10 @@ export function mealTargets(target, slots) {
 
 // Escolhe automaticamente um modelo por refeição, evitando alimentos
 // excluídos e repetindo o mínimo possível (almoço ≠ jantar).
-export function autoSelectModels(slots, excluded) {
+export function autoSelectModels(slots, excluded, models = MODELS) {
   const used = new Set();
   return slots.map(s => {
-    const candidates = MODELS.filter(m => m.tipo === s.tipo);
+    const candidates = models.filter(m => m.tipo === s.tipo);
     const clean = candidates.filter(m => !m.items.some(([id]) => excluded.has(id)));
     const pool = clean.length ? clean : candidates;
     const pick = pool.find(m => !used.has(m.code)) || pool[0];
@@ -153,7 +185,7 @@ export function autoSelectModels(slots, excluded) {
 }
 
 function groupOf(id) {
-  return SUB_GROUPS.find(g => g.ids.includes(id)) || null;
+  return currentGroups().find(g => g.ids.includes(id)) || null;
 }
 
 function firstAllowed(id, excluded) {
@@ -173,7 +205,7 @@ function round5(x) {
 export function buildMeal(model, mt, taco, excluded, edits = {}, { plantCredit = 0.5 } = {}) {
   const swaps = edits.swaps || {};
   const grams = edits.grams || {};
-  const base = model.items.map(([id, g, role]) => {
+  const base = model.items.filter(([id]) => taco.has(id)).map(([id, g, role]) => {
     const f = taco.get(id);
     return { id, g, role, f, prot: f.prot * g / 100, carb: f.carb * g / 100, gord: f.gord * g / 100 };
   });

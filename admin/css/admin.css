@@ -238,3 +238,11 @@
 .rx-role.auto { color: #f0a3a3; }
 .rx-free { color: var(--green); font-size: 11px; }
 .rx-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.rx-in.wide { width: 210px; }
+.rx-evid { display: inline-block; font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; padding: 1px 7px; border-radius: 99px; margin: 3px 0; }
+.rx-evid.forte { color: var(--green); background: rgba(0,184,148,.1); }
+.rx-evid.moderada { color: #e2c07a; background: rgba(216,181,110,.1); }
+.rx-evid.limitada { color: #d9a066; background: rgba(217,160,102,.1); }
+.rx-supp-alert { font-size: 11.5px; color: #f0a3a3; margin: 2px 0; }
+.rx-supps td { vertical-align: top; }

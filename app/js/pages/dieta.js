@@ -86,7 +86,7 @@ async function renderPlan(host, clientId, plan, session) {
     const itens = r.itens.map((it, ii) => {
       const t = r.trocas.find(x => x.item === ii);
       const opt = t && chosen[ii] != null ? t.opcoes[chosen[ii]] : null;
-      return opt ? { ...it, nome: opt.nome, g: opt.g, medida: '', kcal: opt.kcal, prot: opt.prot, carb: opt.carb, gord: opt.gord, trocado: true } : it;
+      return opt ? { ...it, nome: opt.nome, g: opt.g, qtd: null, medida: '', kcal: opt.kcal, prot: opt.prot, carb: opt.carb, gord: opt.gord, trocado: true } : it;
     });
     const tot = itens.reduce((a, i) => ({ kcal: a.kcal + (i.kcal || 0), prot: a.prot + (i.prot || 0), carb: a.carb + (i.carb || 0), gord: a.gord + (i.gord || 0) }), { kcal: 0, prot: 0, carb: 0, gord: 0 });
     return { ...r, itens, tot };
@@ -129,7 +129,7 @@ async function renderPlan(host, clientId, plan, session) {
             <div class="pl-lbl">Próxima refeição · ${untilText(next.hora)}</div>
             <h3>${esc(next.hora)} · ${esc(next.nome)}</h3>
             <div class="pl-meta">${fmt(next.tot.kcal)} kcal · P ${fmt(next.tot.prot)} g · C ${fmt(next.tot.carb)} g · G ${fmt(next.tot.gord)} g</div>
-            <div class="pl-items">${next.itens.map(i => `<div class="pl-it"><b>${esc(i.nome)}</b><span>${i.livre ? 'à vontade' : `${i.g} g${i.medida ? ` · ${esc(i.medida.replace('≈ ', ''))}` : ''}`}</span></div>`).join('')}</div>
+            <div class="pl-items">${next.itens.map(i => `<div class="pl-it"><b>${esc(i.nome)}</b><span>${i.livre ? 'à vontade' : `${esc(i.qtd || `${i.g} g`)}${i.medida ? ` · ${esc(i.medida.replace('≈ ', ''))}` : ''}`}</span></div>`).join('')}</div>
             <div class="pl-btns"><button class="pl-b1" data-eat="${ni}">✓ Comi esta refeição</button><button class="pl-b2" data-open="${ni}">⇄ Trocar</button></div>
           </div>` : `<div class="pl-glass pl-next"><div class="pl-lbl">Dia completo</div><h3>Todas as refeições feitas ✅</h3></div>`}
         <div class="pl-tl">
@@ -139,6 +139,7 @@ async function renderPlan(host, clientId, plan, session) {
             return `<button class="pl-ti ${cls}" data-open="${i}"><span class="pl-dot"></span><div><b>${esc(r.nome)}</b><span>${esc(r.hora)}${i === ni ? ' · agora' : ''}</span></div><em>${fmt(v.tot.kcal)}</em></button>`;
           }).join('')}
         </div>
+        ${plan.suplementos?.length ? `<div class="pl-glass pl-orient"><div class="pl-lbl">Suplementação</div>${plan.suplementos.map(x => `<div class="pl-supp"><b>💊 ${esc(x.nome)}</b><span>${esc(x.dose)} · ${esc(x.horario)}</span></div>`).join('')}</div>` : ''}
         ${plan.orientacoes?.length ? `<div class="pl-glass pl-orient"><div class="pl-lbl">Orientações</div>${plan.orientacoes.map(o => `<p>✅ ${esc(o)}</p>`).join('')}</div>` : ''}
         <div class="pl-foot">${plan.agua_l ? `💧 Água: ${String(plan.agua_l).replace('.', ',')} L por dia` : ''}${plan.retorno ? ` · 📅 Retorno: ${fmtDate(plan.retorno)}` : ''}</div>
         <div class="login-message" id="pl-msg"></div>
@@ -158,7 +159,7 @@ async function renderPlan(host, clientId, plan, session) {
         const orig = plan.refeicoes[mi].itens[ii];
         return `
           <div class="pl-glass pl-food">
-            <div class="pl-row"><b>${esc(it.nome)}</b><em class="${it.livre ? 'free' : ''}">${it.livre ? 'à vontade' : `${it.g} g`}</em></div>
+            <div class="pl-row"><b>${esc(it.nome)}</b><em class="${it.livre ? 'free' : ''}">${it.livre ? 'à vontade' : esc(it.qtd || `${it.g} g`)}</em></div>
             ${it.medida ? `<div class="pl-hm">${esc(it.medida)}</div>` : ''}
             ${t ? `<div class="pl-swap"><span class="k">Trocar por</span>
               <button class="${chosen[ii] == null ? 'sel' : ''}" data-swap="${mi}:${ii}:">${esc(orig.nome)} ${orig.g} g</button>

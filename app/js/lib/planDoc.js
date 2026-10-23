@@ -42,10 +42,15 @@ export function planToWhatsApp(plan) {
   lines.push('');
   plan.refeicoes.forEach(r => {
     lines.push(`*${r.hora} · ${r.nome}*`);
-    r.itens.forEach(i => lines.push(`✅ ${i.nome}: ${i.livre ? 'à vontade' : `${i.g} g`}${i.medida ? ` (${i.medida})` : ''}`));
+    r.itens.forEach(i => lines.push(`✅ ${i.nome}: ${i.livre ? 'à vontade' : (i.qtd || `${i.g} g`)}${i.medida ? ` (${i.medida})` : ''}`));
     r.trocas.forEach(t => lines.push(`   ↔ ${t.de} pode trocar por: ${t.opcoes.map(o => `${o.nome} ${o.g} g`).join(' · ')}`));
     lines.push('');
   });
+  if (plan.suplementos?.length) {
+    lines.push('*Suplementação*');
+    plan.suplementos.forEach(x => lines.push(`💊 ${x.nome}: ${x.dose} · ${x.horario}`));
+    lines.push('');
+  }
   if (plan.orientacoes?.length) {
     lines.push('*Orientações*');
     plan.orientacoes.forEach(o => lines.push(`✅ ${o}`));
@@ -67,7 +72,7 @@ export function planPrintHtml(plan, logoUrl) {
   const meals = plan.refeicoes.map(r => `
     <section class="meal"><div class="mh"><span class="time">${esc(r.hora)}</span><h3>${esc(r.nome)}</h3><span class="mac">${n0(r.kcal)} kcal · P ${n0(r.prot)} g · C ${n0(r.carb)} g · G ${n0(r.gord)} g</span></div>
     <table><thead><tr><th>Alimento</th><th>Quantidade</th><th>Medida caseira</th></tr></thead><tbody>
-    ${r.itens.map(i => `<tr><td>${esc(i.nome)}</td><td class="q">${i.livre ? 'à vontade' : `${i.g} g`}</td><td class="m">${esc(i.medida || '—')}</td></tr>`).join('')}
+    ${r.itens.map(i => `<tr><td>${esc(i.nome)}</td><td class="q">${i.livre ? 'à vontade' : esc(i.qtd || `${i.g} g`)}</td><td class="m">${esc(i.medida || '—')}</td></tr>`).join('')}
     </tbody></table>
     ${r.trocas.length ? `<div class="subs"><div class="st">Pode trocar por</div><ul>${r.trocas.map(t => `<li><b>${esc(t.de)}</b><span>→ ${esc(t.opcoes.map(o => `${o.nome} ${o.g} g`).join(' · '))}</span></li>`).join('')}</ul></div>` : ''}
     </section>`).join('');
@@ -107,6 +112,7 @@ tr:last-child td{border-bottom:0}
 .orient{break-inside:avoid;margin-top:16px;border:1px solid var(--line);border-radius:6px;padding:12px 14px}
 .orient h4{font-family:'Barlow Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:12pt;margin-bottom:6px}
 .orient ul{padding-left:16px;display:grid;gap:4px;font-size:9.5pt}
+.supt td{padding:6px 8px}.supt th{padding:4px 8px}.supt td.q{width:150px;white-space:normal}.supt .sc{font-size:8.5pt;color:var(--muted);font-weight:400}
 .sign{break-inside:avoid;margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
 .sign .line{border-top:1px solid var(--ink);width:260px;padding-top:6px;font-size:9pt;text-align:center}.sign .line b{display:block;font-size:10pt}
 .next{font-size:9.5pt}.next b{font-family:'Barlow Condensed';font-size:13pt;color:var(--gold)}
@@ -122,6 +128,7 @@ tr:last-child td{border-bottom:0}
 <div class="mrow"><span>Gordura</span><div class="bar"><i style="width:${pct(m.gord * 9)}%"></i></div><b>${n0(m.gord)} g</b></div></div></div>
 <div class="howto"><b>Como usar:</b> siga os horários como referência e não como regra rígida. Pese os alimentos nas primeiras semanas; depois a medida caseira basta. Sempre que quiser variar, use as opções de <b>"Pode trocar por"</b>: elas já estão calculadas na quantidade certa.</div>
 ${meals}
+${plan.suplementos?.length ? `<div class="orient"><h4>Suplementação</h4><table class="supt"><thead><tr><th>Suplemento</th><th>Dose</th><th>Quando</th></tr></thead><tbody>${plan.suplementos.map(x => `<tr><td><b>${esc(x.nome)}</b><div class="sc">${esc(x.cuidado || '')}</div></td><td class="q">${esc(x.dose)}</td><td class="m">${esc(x.horario)}</td></tr>`).join('')}</tbody></table></div>` : ''}
 ${plan.orientacoes?.length ? `<div class="orient"><h4>Orientações</h4><ul>${plan.orientacoes.map(o => `<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}
 <div class="sign"><div class="next">${plan.retorno ? `Próximo retorno<br><b>${fmtBR(plan.retorno)}</b>` : ''}</div><div class="line"><b>Taranttine Junior</b>${esc(plan.profissional || 'Personal Trainer · Nutrição')}</div></div>
 </body></html>`;

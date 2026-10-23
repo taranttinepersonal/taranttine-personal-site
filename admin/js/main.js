@@ -9,6 +9,7 @@ import { renderDiet } from './pages/diet.js';
 import { renderProgress } from './pages/progress.js';
 import { renderNutritionHistory } from './pages/nutritionHistory.js';
 import { renderPrescription } from './pages/prescription.js';
+import { renderLibrary } from './pages/library.js';
 import { renderReferrals } from './pages/referrals.js';
 import { renderClientData } from './pages/clientData.js';
 import { renderAssessment } from './pages/assessment.js';
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { path: '/clientes', label: 'Clientes' },
   { path: '/avisos', label: 'Avisos' },
   { path: '/indicacoes', label: 'Indicações' },
+  { path: '/biblioteca', label: 'Biblioteca' },
 ];
 
 function renderShell(activePath, contentHtmlOrRenderer) {
@@ -98,6 +100,12 @@ route('/avisos', async () => {
   if (!(await requireTrainer())) return;
   const main = renderShell('/avisos');
   renderAnnouncements(main);
+});
+
+route('/biblioteca', async () => {
+  if (!(await requireTrainer())) return;
+  const main = renderShell('/biblioteca');
+  renderLibrary(main);
 });
 
 route('/indicacoes', async () => {

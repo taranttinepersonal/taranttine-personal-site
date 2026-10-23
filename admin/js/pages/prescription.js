@@ -4,10 +4,11 @@ import {
 } from '../../../app/js/lib/nutrition.js';
 import { fetchNutritionAnamneses } from '../../../app/js/lib/nutritionAnamnese.js';
 import {
-  loadTaco, MODELS, DEFAULT_SLOTS, excludedFoods, guessGoal, mealTargets, autoSelectModels,
+  loadTaco, registerCustomFoods, mergeModels, DEFAULT_SLOTS, excludedFoods, guessGoal, mealTargets, autoSelectModels,
   buildMeal, substitutionOptions, statusOf, foodName,
 } from '../../../app/js/lib/prescription.js';
 import { measureText, planToWhatsApp, planPrintHtml } from '../../../app/js/lib/planDoc.js';
+import { SUPPLEMENTS, EVIDENCE_LABEL, defaultDose, supplementAlerts } from '../../../app/js/lib/supplements.js';
 
 const ACTIVITY = [['sedentario', 'Sedentário'], ['leve', 'Leve (1-3x/sem)'], ['moderado', 'Moderado (3-5x/sem)'], ['intenso', 'Intenso (5-7x/sem)']];
 const GOALS = [['emagrecimento', 'Emagrecimento'], ['manutencao', 'Manutenção'], ['ganho_de_massa', 'Ganho de massa']];
@@ -18,14 +19,18 @@ export async function renderPrescription(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando a prescrição...</div>`;
   main.closest('.admin-shell')?.classList.add('wide');
 
-  const [{ data: profile }, bodyComp, hints, anam, taco] = await Promise.all([
+  const [{ data: profile }, bodyComp, hints, anam, taco, { data: customRows }, { data: modelRows }] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date, sexo, phone').eq('id', clientId).single(),
     fetchBodyComposition(clientId),
     fetchAnamneseHints(clientId),
     fetchNutritionAnamneses(clientId),
     loadTaco(),
-  ]);
-  const excluded = excludedFoods(anam.etapa1, taco);
+    supabase.from('custom_foods').select('*'),
+    supabase.from('meal_models').select('*'),
+  ]).then(r => r);
+  registerCustomFoods(taco, customRows);
+  const models = mergeModels(modelRows);
+  const excluded = excludedFoods(anam.etapa1, taco, models);
   const draftKey = `prescricao-rascunho-${clientId}`;
 
   const fresh = () => ({
@@ -38,11 +43,13 @@ export async function renderPrescription(main, clientId) {
     slots: DEFAULT_SLOTS.map(s => ({ ...s })),
     models: null,
     edits: {},
+    supps: {},
     ...deliveryDefaults(bodyComp.weightKg),
   });
   let st;
   try { st = JSON.parse(localStorage.getItem(draftKey)) || fresh(); } catch { st = fresh(); }
-  st = { ...deliveryDefaults(st.weightKg), ...st };
+  st = { ...deliveryDefaults(st.weightKg), supps: {}, ...st };
+  const healthText = [hints.medicamentos, hints.doencas, anam.etapa2?.respostas?.['Diagnóstico de transtorno alimentar'], anam.etapa2?.respostas?.['Alergias ou intolerâncias'], anam.etapa1?.respostas?.['Restrição por escolha']].filter(x => x && !/^(nenhum|nenhuma|não|nao|-)$/i.test(String(x).trim())).join(' · ');
 
   function save() {
     try { localStorage.setItem(draftKey, JSON.stringify(st)); } catch { /* rascunho é só conveniência */ }
@@ -53,10 +60,10 @@ export async function renderPrescription(main, clientId) {
     if (!w || !bf) return null;
     const target = calculateTargetSuggestion({ weightKg: w, bodyFatPct: bf, activityLevel: st.activity, goal: st.goal, hormoneUse: st.hormoneUse });
     const mts = mealTargets(target, st.slots);
-    if (!st.models || st.models.length !== st.slots.length) st.models = autoSelectModels(st.slots, excluded);
+    if (!st.models || st.models.length !== st.slots.length) st.models = autoSelectModels(st.slots, excluded, models);
     const meals = st.slots.map((s, i) => {
       if (!s.ativo) return null;
-      const model = MODELS.find(m => m.code === st.models[i]) || MODELS.find(m => m.tipo === s.tipo);
+      const model = models.find(m => m.code === st.models[i]) || models.find(m => m.tipo === s.tipo);
       return { model, ...buildMeal(model, mts[i], taco, excluded, st.edits[i] || {}, { plantCredit: st.plantCredit / 100 }) };
     });
     const day = meals.filter(Boolean).reduce((a, m) => ({
@@ -80,6 +87,7 @@ export async function renderPrescription(main, clientId) {
       ${renderDistribution(c)}
       ${c ? renderDayBar(c) : ''}
       ${c ? c.meals.map((m, i) => (m ? renderMeal(i, m, c.mts[i]) : '')).join('') : ''}
+      ${c ? renderSupplements() : ''}
       ${c ? renderDelivery() : ''}
       <div class="admin-card rx-actions">
         <button class="admin-btn" id="rx-reset">↺ Remontar automaticamente</button>
@@ -91,6 +99,32 @@ export async function renderPrescription(main, clientId) {
       </div>
     `;
     window.scrollTo(0, y);
+  }
+
+  function renderSupplements() {
+    const chosen = SUPPLEMENTS.filter(x => st.supps[x.id]?.on).length;
+    return `
+      <div class="admin-card">
+        <div class="admin-section-title" style="margin-top:0;">Suplementação <span class="admin-row-sub" style="text-transform:none;font-family:Inter,sans-serif;">· do seu Guia de Bolso · ${chosen} selecionado(s)</span></div>
+        ${healthText ? `<div class="admin-row-sub" style="margin-bottom:8px;">Lido da anamnese para os alertas: ${esc(healthText)}</div>` : '<div class="admin-row-sub" style="margin-bottom:8px;">Sem medicamentos ou doenças registrados na anamnese.</div>'}
+        <div class="rx-scroll"><table class="rx-table rx-supps">
+          <thead><tr><th></th><th>Suplemento</th><th>Dose</th><th>Quando</th></tr></thead>
+          <tbody>${SUPPLEMENTS.map(x => {
+            const cur = st.supps[x.id] || {};
+            const alerts = supplementAlerts(x, healthText);
+            return `
+              <tr class="${cur.on ? '' : 'off'}">
+                <td><input type="checkbox" data-supp="${x.id}" data-sf="on" ${cur.on ? 'checked' : ''}></td>
+                <td><div class="rx-food">${esc(x.nome)}</div><span class="rx-evid ${x.evidencia}">${EVIDENCE_LABEL[x.evidencia]}</span>
+                  ${alerts.map(a => `<div class="rx-supp-alert">⚠️ ${esc(a)}</div>`).join('')}
+                  <div class="admin-row-sub">${esc(x.cuidado)}</div></td>
+                <td><input class="rx-in wide" data-supp="${x.id}" data-sf="dose" value="${esc(cur.dose ?? defaultDose(x, st.weightKg))}"></td>
+                <td><input class="rx-in wide" data-supp="${x.id}" data-sf="horario" value="${esc(cur.horario ?? x.horario)}"></td>
+              </tr>`;
+          }).join('')}</tbody>
+        </table></div>
+      </div>
+    `;
   }
 
   function renderDelivery() {
@@ -127,7 +161,7 @@ export async function renderPrescription(main, clientId) {
       return {
         key: s.key, nome: s.nome, hora: s.hora, mealType: MEAL_TYPE[s.key] || 'lanche',
         kcal: m.tot.kcal, prot: m.tot.prot, carb: m.tot.carb, gord: m.tot.gord,
-        itens: itens.map(it => ({ id: it.id, nome: it.nome, g: it.g, livre: it.livre, medida: it.livre ? '' : measureText(it.id, it.g), kcal: it.kcal, prot: it.prot, carb: it.carb, gord: it.gord })),
+        itens: itens.map(it => ({ id: it.id, nome: it.nome, g: it.g, livre: it.livre, qtd: unitQty(it), medida: it.livre ? '' : measureFor(it), kcal: it.kcal, prot: it.prot, carb: it.carb, gord: it.gord })),
         trocas,
       };
     }).filter(Boolean);
@@ -141,8 +175,30 @@ export async function renderPrescription(main, clientId) {
       retorno: st.retorno || null,
       orientacoes: String(st.orient || '').split('\n').map(x => x.trim()).filter(Boolean),
       profissional: st.assinatura,
+      suplementos: SUPPLEMENTS.filter(x => st.supps[x.id]?.on).map(x => ({
+        id: x.id, nome: x.nome, evidencia: x.evidencia,
+        dose: st.supps[x.id].dose ?? defaultDose(x, st.weightKg), horario: st.supps[x.id].horario ?? x.horario, cuidado: x.cuidado,
+      })),
       refeicoes,
     };
+  }
+
+  // Alimento próprio com unidade: receita aparece só em porções; os demais
+  // ganham a medida caseira cadastrada.
+  function unitQty(it) {
+    const f = it.food;
+    if (!f?.soUnidade || !f.unidadeG) return null;
+    const n = Math.round(it.g / f.unidadeG * 2) / 2;
+    return `${String(n).replace('.', ',')} ${f.unidadeNome || 'porção'}`;
+  }
+  function measureFor(it) {
+    const f = it.food;
+    if (f?.custom) {
+      if (f.soUnidade || !f.unidadeG) return '';
+      const n = Math.round(it.g / f.unidadeG * 2) / 2;
+      return n > 0 ? `≈ ${String(n).replace('.', ',')} ${f.unidadeNome || ''}`.trim() : '';
+    }
+    return measureText(it.id, it.g);
   }
 
   function renderClientCard() {
@@ -248,12 +304,12 @@ export async function renderPrescription(main, clientId) {
   function renderMeal(i, m, mt) {
     const s = st.slots[i];
     const status = statusOf(m.tot.kcal, mt.kcal, 0.10);
-    const models = MODELS.filter(x => x.tipo === s.tipo);
+    const opts = models.filter(x => x.tipo === s.tipo);
     return `
       <div class="admin-card rx-meal">
         <div class="rx-meal-head">
           <div><span class="rx-time">${esc(s.hora)}</span><span class="rx-meal-name">${esc(s.nome)}</span></div>
-          <select data-model="${i}">${models.map(x => `<option value="${x.code}" ${x.code === m.model.code ? 'selected' : ''}>${x.code} · ${esc(x.nome)}</option>`).join('')}</select>
+          <select data-model="${i}">${opts.map(x => `<option value="${x.code}" ${x.code === m.model.code ? 'selected' : ''}>${x.code} · ${esc(x.nome)}</option>`).join('')}</select>
         </div>
         <div class="rx-meal-meta">
           Meta ${mt.kcal} kcal · P ${mt.prot} · C ${mt.carb} · G ${mt.gord}
@@ -289,6 +345,9 @@ export async function renderPrescription(main, clientId) {
     } else if (el.dataset.slot != null) {
       const s = st.slots[Number(el.dataset.slot)];
       s[el.dataset.f] = el.type === 'checkbox' ? el.checked : (el.type === 'number' ? Number(el.value) : el.value);
+    } else if (el.dataset.supp) {
+      const cur = st.supps[el.dataset.supp] = st.supps[el.dataset.supp] || {};
+      cur[el.dataset.sf] = el.type === 'checkbox' ? el.checked : el.value;
     } else if (el.dataset.model != null) {
       const i = Number(el.dataset.model);
       st.models[i] = el.value;
