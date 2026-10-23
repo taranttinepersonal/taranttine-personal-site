@@ -7,17 +7,19 @@ import { buildTrendChart } from '../../../app/js/lib/chart.js';
 import {
   ETAPA1, ETAPA2, renderBlocks, collectBlocks, fetchNutritionAnamneses, saveNutritionAnamnese, fetchNutritionConsult,
 } from '../../../app/js/lib/nutritionAnamnese.js';
+import { QUESTIONS as CK_QUESTIONS, fetchCheckins, flagsOf, answerText } from '../../../app/js/lib/checkin.js';
 
 export async function renderNutritionHistory(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
-  const [{ data: profile }, initialTarget, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses] = await Promise.all([
+  const [{ data: profile }, initialTarget, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses, checkins] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', clientId).single(),
     fetchTarget(clientId),
     fetchBodyComposition(clientId),
     fetchAnamneseHints(clientId),
     fetchNutritionConsult(clientId),
     fetchNutritionAnamneses(clientId),
+    fetchCheckins(clientId, 8),
   ]);
   let target = initialTarget;
 
@@ -30,6 +32,7 @@ export async function renderNutritionHistory(main, clientId) {
       <div id="current-target">${renderCurrentTarget(target)}</div>
     </div>
     ${renderNutriAnamnese(nutritionConsult, nutriAnamneses)}
+    ${renderCheckinHistory(checkins)}
     ${renderCalculator(bodyComp, anamneseHints, target)}
     <div class="admin-card">
       <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -168,6 +171,27 @@ const GOAL_OPTIONS = [
   { key: 'manutencao', label: 'Manutenção' },
   { key: 'ganho_de_massa', label: 'Ganho de massa' },
 ];
+
+function renderCheckinHistory(checkins) {
+  if (!checkins.length) return `<div class="admin-card"><div class="admin-section-title" style="margin-top:0;">✅ Check-ins semanais</div><div class="admin-row-sub">Nenhum check-in ainda. O aluno responde na aba Nutrição do app.</div></div>`;
+  const Q = Object.fromEntries(CK_QUESTIONS.map(q => [q.key, q]));
+  const fmt = iso => { const [, m, d] = String(iso).split('-'); return `${d}/${m}`; };
+  return `
+    <div class="admin-card">
+      <div class="admin-section-title" style="margin-top:0;">✅ Check-ins semanais</div>
+      <div class="rx-scroll"><table class="rx-table">
+        <thead><tr><th>Semana</th><th>Aderência</th><th>Fome</th><th>Sono</th><th>Energia</th><th>Água</th><th>Intestino</th><th>Peso</th><th>Atenção</th></tr></thead>
+        <tbody>${checkins.map(c => { const r = c.respostas || {}; return `<tr>
+          <td><b>${fmt(c.week_start)}</b></td><td>${escapeHtml(answerText(Q.adesao, r.adesao))}</td><td>${escapeHtml(answerText(Q.fome, r.fome))}</td>
+          <td>${escapeHtml(answerText(Q.sono_h, r.sono_h))} · ${escapeHtml(answerText(Q.sono_q, r.sono_q))}</td><td>${escapeHtml(answerText(Q.energia, r.energia))}</td>
+          <td>${escapeHtml(answerText(Q.agua, r.agua))}</td><td>${escapeHtml(answerText(Q.intestino, r.intestino))}</td><td>${escapeHtml(answerText(Q.peso, r.peso))}</td>
+          <td>${flagsOf(r).map(f => `<span class="rx-supp-alert" style="display:inline-block;margin-right:6px;">⚠️ ${escapeHtml(f)}</span>`).join('') || '<span class="admin-row-sub">—</span>'}</td></tr>
+          ${r.dificuldade || r.duvida ? `<tr><td></td><td colspan="8" class="admin-row-sub">${r.dificuldade ? `<b>Dificuldade:</b> ${escapeHtml(r.dificuldade)} ` : ''}${r.duvida ? `<b>Ajuste/dúvida:</b> ${escapeHtml(r.duvida)}` : ''}</td></tr>` : ''}`; }).join('')}
+        </tbody>
+      </table></div>
+    </div>
+  `;
+}
 
 function renderNutriAnamnese(nutritionConsult, { etapa1, etapa2 }) {
   const answered = etapa1 ? ETAPA1.map(b => {

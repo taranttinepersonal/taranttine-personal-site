@@ -4,6 +4,7 @@ import {
   fetchBodyComposition, fetchAnamneseHints, calculateTargetSuggestion, calculateBMR, bmrRange,
 } from '../lib/nutrition.js';
 import { fetchNutritionConsult, fetchNutritionAnamneses } from '../lib/nutritionAnamnese.js';
+import { fetchCheckins, weekStart } from '../lib/checkin.js';
 import { fetchVisibleDiet } from '../lib/diet.js';
 import { fetchDailyHistory, fetchWeightSeries, summarizeHistory, renderHistoryHtml, localISO } from '../lib/nutritionHistory.js';
 import { buildTrendChart } from '../lib/chart.js';
@@ -21,10 +22,10 @@ export async function renderNutricao(session) {
 
   const clientId = session.user.id;
   const dateISO = todayISO();
-  const [target, entries, diet, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses] = await Promise.all([
+  const [target, entries, diet, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses, lastCheckins] = await Promise.all([
     fetchTarget(clientId), fetchEntriesForDate(clientId, dateISO), fetchVisibleDiet(clientId),
     fetchBodyComposition(clientId), fetchAnamneseHints(clientId),
-    fetchNutritionConsult(clientId), fetchNutritionAnamneses(clientId),
+    fetchNutritionConsult(clientId), fetchNutritionAnamneses(clientId), fetchCheckins(clientId, 1),
   ]);
 
   const totals = entries.reduce((acc, e) => ({
@@ -49,6 +50,7 @@ export async function renderNutricao(session) {
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
+      ${nutritionConsult ? renderCheckinCard(lastCheckins[0]) : ''}
       ${nutritionConsult ? renderAnamneseNutriCard(nutriAnamneses.etapa1) : ''}
       ${renderTargetCard(target, totals, bodyComp, anamneseHints)}
 
@@ -108,6 +110,19 @@ const GOAL_OPTIONS = [
   { key: 'manutencao', label: 'Manutenção' },
   { key: 'ganho_de_massa', label: 'Ganho de massa' },
 ];
+
+function renderCheckinCard(last) {
+  const done = last && last.week_start === weekStart();
+  return `
+    <div class="ex-card" style="border-color:${done ? 'var(--border)' : 'var(--green)'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <div><div class="ex-name">✅ Check-in da semana</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">${done ? 'Feito nesta semana. Obrigado!' : 'Leva 1 minuto: sono, fome, água e como foi o plano.'}</div></div>
+        <button class="logout-link" onclick="window.location.hash='/checkin'" style="font-weight:700;color:var(--green);white-space:nowrap;">${done ? 'Ver / corrigir' : 'Responder'}</button>
+      </div>
+    </div>
+  `;
+}
 
 function renderAnamneseNutriCard(etapa1) {
   return `

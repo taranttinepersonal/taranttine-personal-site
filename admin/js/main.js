@@ -10,6 +10,7 @@ import { renderProgress } from './pages/progress.js';
 import { renderNutritionHistory } from './pages/nutritionHistory.js';
 import { renderPrescription } from './pages/prescription.js';
 import { renderLibrary } from './pages/library.js';
+import { renderCheckins } from './pages/checkins.js';
 import { renderReferrals } from './pages/referrals.js';
 import { renderClientData } from './pages/clientData.js';
 import { renderAssessment } from './pages/assessment.js';
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { path: '/clientes', label: 'Clientes' },
   { path: '/avisos', label: 'Avisos' },
   { path: '/indicacoes', label: 'Indicações' },
+  { path: '/checkins', label: 'Check-ins' },
   { path: '/biblioteca', label: 'Biblioteca' },
 ];
 
@@ -100,6 +102,12 @@ route('/avisos', async () => {
   if (!(await requireTrainer())) return;
   const main = renderShell('/avisos');
   renderAnnouncements(main);
+});
+
+route('/checkins', async () => {
+  if (!(await requireTrainer())) return;
+  const main = renderShell('/checkins');
+  renderCheckins(main);
 });
 
 route('/biblioteca', async () => {
