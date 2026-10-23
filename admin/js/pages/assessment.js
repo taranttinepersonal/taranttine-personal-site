@@ -1,4 +1,5 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
+import { CONDITIONS, CYCLE_PHASES, comparability, prepMessage } from '../../../app/js/lib/assessmentPrep.js';
 import { SKINFOLD_SITES, sumSkinfolds, calcBodyFat } from '../../../app/js/lib/skinfold.js';
 import {
   FORCA_EXERCICIOS, scoreForcaRelativa, computeTemporalScores, average, classificar,
@@ -60,6 +61,10 @@ const ANAMNESE_FIELDS = [
 
 export async function renderAssessment(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
+  // Busca separada: se a migração 0029 ainda não rodou, o resto da tela
+  // continua funcionando.
+  const { data: schedRow } = await supabase.from('profiles').select('next_assessment_at').eq('id', clientId).maybeSingle();
+  const nextAt = schedRow?.next_assessment_at || null;
 
   const [{ data: profile }, { data: skinfoldHistory }, { data: posturalHistory }, { data: bioimpedanceHistory }, { data: levelHistory }, { data: anamneseHistory }, { data: unlinked }, measurementHistory] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date, sexo, phone').eq('id', clientId).single(),
@@ -295,6 +300,20 @@ export async function renderAssessment(main, clientId) {
 
     <div class="tab-content" id="tab-bioimpedancia">
       <div class="admin-card admin-form">
+        <div class="admin-section-title" style="margin-top:0;">📅 Próxima avaliação</div>
+        <div class="admin-row-sub" style="margin-bottom:8px;">${nextAt ? `Agendada para <b style="color:var(--white);">${new Date(nextAt).toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</b>. O aluno vê o preparo no app e recebe lembrete na véspera.` : 'Nenhuma avaliação agendada. Ao agendar, o aluno recebe o preparo no app e um lembrete na véspera.'}</div>
+        <div class="field-row">
+          <div><label>Data</label><input type="date" id="sched-date" value="${nextAt ? localDate(nextAt) : ''}"></div>
+          <div><label>Horário</label><input type="time" id="sched-time" value="${nextAt ? localTime(nextAt) : '07:00'}"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+          <button class="admin-btn primary" id="sched-save">Agendar e avisar no app</button>
+          <button class="admin-btn" id="sched-wa">💬 Enviar preparo no WhatsApp</button>
+          ${nextAt ? '<button class="admin-btn danger" id="sched-clear">Cancelar agendamento</button>' : ''}
+        </div>
+        <div class="admin-msg" id="sched-msg"></div>
+      </div>
+      <div class="admin-card admin-form">
         <div class="admin-msg" style="margin-bottom:10px;background:var(--black3);color:var(--muted);">Feita numa clínica parceira (ex: InBody). Roda em paralelo às dobras cutâneas — os dois métodos não são comparáveis entre si.</div>
         <label>Data da avaliação</label>
         <input type="date" id="bio-date" value="${new Date().toISOString().slice(0, 10)}">
@@ -305,6 +324,12 @@ export async function renderAssessment(main, clientId) {
               <input type="number" step="${f.step}" id="bio-${f.key}">
             </div>
           `).join('')}
+        </div>
+        <div class="admin-section-title" style="margin-top:16px;">Preparo do aluno (protocolo)</div>
+        <div class="bio-conds">${CONDITIONS.map(c => `<label class="rx-check" style="margin-top:6px !important;"><input type="checkbox" id="cond-${c.key}" checked> ${c.label}</label>`).join('')}</div>
+        <div class="field-row">
+          <div><label>Horário da medida</label><input type="time" id="cond-hora" value="${new Date().toTimeString().slice(0, 5)}"></div>
+          ${String(profile?.sexo || '').toLowerCase().startsWith('f') ? `<div><label>Fase do ciclo</label><select id="cond-ciclo">${CYCLE_PHASES.map(p => `<option>${p}</option>`).join('')}</select></div>` : ''}
         </div>
         <label>Laudo completo (foto ou PDF)</label>
         <div class="postural-photo-grid" style="grid-template-columns:1fr;">
@@ -327,6 +352,7 @@ export async function renderAssessment(main, clientId) {
               <div>
                 <div class="admin-row-name">${formatDate(h.recorded_at)}</div>
                 <div class="admin-row-sub">${bioimpedanceSummary(h)}</div>
+                ${bioCompareBadge(h, bioimpedanceHistory)}
                 ${h.general_note ? `<div class="admin-row-sub" style="margin-top:4px;">💬 ${escapeHtml(h.general_note)}</div>` : ''}
                 ${h.attachment_path ? `<div class="admin-row-sub" style="margin-top:4px;">📎 Laudo anexado</div>` : ''}
               </div>
@@ -648,6 +674,11 @@ export async function renderAssessment(main, clientId) {
         client_id: clientId,
         recorded_at: document.getElementById('bio-date').value,
         general_note: document.getElementById('bio-general').value.trim() || null,
+        condicoes: {
+          ...Object.fromEntries(CONDITIONS.map(c => [c.key, document.getElementById(`cond-${c.key}`).checked])),
+          hora: document.getElementById('cond-hora').value || null,
+          ciclo: document.getElementById('cond-ciclo')?.value || null,
+        },
       };
       for (const f of BIOIMPEDANCE_FIELDS) {
         const val = document.getElementById(`bio-${f.key}`).value;
@@ -672,6 +703,42 @@ export async function renderAssessment(main, clientId) {
       msg.classList.add('error');
       btn.disabled = false;
     }
+  });
+
+  // agendamento da próxima avaliação
+  const schedMsg = document.getElementById('sched-msg');
+  const schedWhen = () => {
+    const d = document.getElementById('sched-date').value, t = document.getElementById('sched-time').value || '07:00';
+    return d ? new Date(`${d}T${t}:00`) : null;
+  };
+  document.getElementById('sched-save').addEventListener('click', async () => {
+    const when = schedWhen();
+    if (!when) { schedMsg.className = 'admin-msg error'; schedMsg.textContent = 'Escolha a data da avaliação.'; return; }
+    const { error } = await supabase.from('profiles').update({ next_assessment_at: when.toISOString() }).eq('id', clientId);
+    if (error) { schedMsg.className = 'admin-msg error'; schedMsg.textContent = 'Não consegui agendar. Confira se o comando do banco 0029 já foi rodado.'; return; }
+    schedMsg.className = 'admin-msg'; schedMsg.textContent = '✅ Agendada. O preparo já aparece no app do aluno.';
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const whenTxt = when.toLocaleString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const res = await fetch('/.netlify/functions/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ title: '📅 Avaliação agendada', body: `${whenTxt}. Abra o app na aba Evolução para ver como se preparar.`, target_client_id: clientId }),
+      });
+      if (res.ok) { const { sent } = await res.json(); schedMsg.textContent += ` Notificação enviada para ${sent} dispositivo(s).`; }
+    } catch (err) { console.error('push agendamento falhou', err); }
+    setTimeout(() => renderAssessment(main, clientId), 1500);
+  });
+  document.getElementById('sched-wa').addEventListener('click', () => {
+    const when = schedWhen();
+    const digits = String(profile?.phone || '').replace(/\D/g, '');
+    const phone = digits ? (digits.startsWith('55') ? digits : `55${digits}`) : '';
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(prepMessage((profile?.full_name || '').split(' ')[0], when ? when.toISOString() : null, profile?.sexo))}`, '_blank');
+  });
+  const clearBtn = document.getElementById('sched-clear');
+  if (clearBtn) clearBtn.addEventListener('click', async () => {
+    await supabase.from('profiles').update({ next_assessment_at: null }).eq('id', clientId);
+    renderAssessment(main, clientId);
   });
 
   // nível de treinamento
@@ -836,6 +903,26 @@ function measurementSummary(h) {
     if (val != null) parts.push(`${f.label.replace(' (cm)', '')}: ${val}cm`);
   }
   return parts.join(' · ') || '—';
+}
+
+function bioCompareBadge(h, history) {
+  if (!h.condicoes) return '';
+  const idx = history.indexOf(h);
+  const prev = history.slice(idx + 1).find(x => x.condicoes);
+  const c = comparability(h.condicoes, prev?.condicoes);
+  return c.ok
+    ? `<div class="admin-row-sub" style="margin-top:4px;color:var(--green);">✅ Preparo completo${h.condicoes.hora ? ` · ${h.condicoes.hora}` : ''} — comparável</div>`
+    : `<div class="admin-row-sub" style="margin-top:4px;color:#e2b85c;">⚠️ Comparar com cuidado: ${escapeHtml(c.reasons.join(', '))}</div>`;
+}
+
+function localDate(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function localTime(iso) {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 function bioimpedanceSummary(h) {

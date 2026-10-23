@@ -9,6 +9,7 @@ import { fetchVisibleDiet } from '../lib/diet.js';
 import { isBirthdayToday, getMotivationalQuote } from '../lib/birthday.js';
 import { getNutritionTip } from '../lib/nutritionTips.js';
 import { getSupplementTip } from '../lib/supplementTips.js';
+import { fetchNextAssessment, prepCardHtml } from '../lib/assessmentPrep.js';
 
 const TRAINER_WHATSAPP = '5567992567211';
 
@@ -23,10 +24,11 @@ export async function renderWorkout(session) {
   // profile, program and diet only depend on clientId — fetch them together
   // instead of waiting on each other, since every round trip here delays
   // the first paint of the workout screen.
-  const [{ data: profile }, { data: program, error: programError }, diet] = await Promise.all([
+  const [{ data: profile }, { data: program, error: programError }, diet, nextAssessment] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date, show_gifs, show_cycle_mode').eq('id', clientId).single(),
     supabase.from('workout_programs').select('id, title, subtitle, health_note, current_week, total_weeks').eq('client_id', clientId).eq('is_active', true).single(),
     fetchVisibleDiet(clientId),
+    fetchNextAssessment(supabase, clientId),
   ]);
 
   if (programError || !program) {
@@ -124,6 +126,7 @@ export async function renderWorkout(session) {
       ${days.map((d, i) => `<button class="tab-btn${i === 0 ? ' active' : ''}" data-day="${d.id}">Treino ${escapeHtml(d.label)}</button>`).join('')}
     </div>
     <div class="main">
+      ${prepCardHtml(nextAssessment, { compact: true })}
       ${days.map((d, i) => renderDay(d, sectionsByDay[d.id] || [], exercisesByDay[d.id] || [], historyByExercise, completedToday, i === 0, i, profile?.show_gifs !== false)).join('')}
     </div>
   `;

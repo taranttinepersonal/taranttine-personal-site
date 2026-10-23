@@ -3,14 +3,17 @@ import { fetchEntries, saveEntry, fetchPhotos, uploadPhoto, MEASUREMENT_FIELDS }
 import { fetchVisibleDiet } from '../lib/diet.js';
 import { computeTrainingStats } from '../lib/loadHistory.js';
 import { buildTrendChart } from '../lib/chart.js';
+import { supabase } from '../supabaseClient.js';
+import { fetchNextAssessment, prepCardHtml } from '../lib/assessmentPrep.js';
 
 export async function renderProgress(session) {
   const root = document.getElementById('app-root');
   root.innerHTML = `<div class="loading-state">Carregando sua evolução...</div>`;
 
   const clientId = session.user.id;
-  const [entries, photos, diet, trainingStats] = await Promise.all([
+  const [entries, photos, diet, trainingStats, nextAssessment] = await Promise.all([
     fetchEntries(clientId), fetchPhotos(clientId), fetchVisibleDiet(clientId), computeTrainingStats(clientId),
+    fetchNextAssessment(supabase, clientId),
   ]);
 
   root.innerHTML = `
@@ -28,6 +31,7 @@ export async function renderProgress(session) {
       <button class="logout-link" id="logout-btn" style="margin-left:12px;">Sair</button>
     </div>
     <div class="main">
+      ${prepCardHtml(nextAssessment)}
       ${renderWeekStats(trainingStats)}
       ${renderStrengthChart(trainingStats.loadWeeklySeries)}
       ${renderChart(entries)}
