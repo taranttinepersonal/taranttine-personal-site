@@ -1,4 +1,5 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
+import { LABS, fetchLabs, latestByCode, statusOf, refText, computeDerived } from '../../../app/js/lib/labs.js';
 import { sumSkinfolds, calcBodyFat } from '../../../app/js/lib/skinfold.js';
 import { classificar, FORCA_EXERCICIOS, scoreForcaRelativa } from '../../../app/js/lib/trainingLevel.js';
 import { MEASUREMENT_FIELDS } from '../../../app/js/lib/progress.js';
@@ -75,6 +76,7 @@ export async function renderReport(main, clientId) {
     fetchCheckins(clientId, 8).catch(() => []),
     supabase.from('nutrition_plans').select('plan, created_at').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
+  const labRows = await fetchLabs(clientId).catch(() => null) || [];
 
   const photosWithUrls = await Promise.all((photos || []).map(async (p) => {
     const { data: signed } = await supabase.storage.from('progress-photos').createSignedUrl(p.storage_path, 3600);
@@ -243,6 +245,7 @@ export async function renderReport(main, clientId) {
       ` : ''}
 
       ${renderNutritionSection(nutriPlanRow?.plan, nutriTarget, nutriDaily, nutriCheckins)}
+      ${renderLabsSection(labRows, { idade: profile?.birth_date ? calcAge(profile.birth_date) : null, sexo: profile?.sexo })}
 
       ${photosWithUrls.length ? `
         <div class="report-section-title">Fotos</div>
@@ -466,6 +469,23 @@ function renderNutritionSection(plan, target, daily, checkins) {
         ${row('Energia nos treinos', scaleText('energia'))}
       </div>` : ''}
   `;
+}
+
+function renderLabsSection(rows, ctx) {
+  if (!rows.length) return '';
+  const latest = latestByCode(rows);
+  const derived = computeDerived(latest, ctx).filter(d => d.valor != null && ['homa', 'tfg', 'nao_hdl'].includes(d.code));
+  const n = v => String(Number(v)).replace('.', ',');
+  const lines = LABS.filter(l => latest[l.code]).map(l => {
+    const r = latest[l.code], prev = rows.find(x => x.analito === l.code && x.id !== r.id), st = statusOf(r);
+    const color = st.nivel === 'ok' ? '#3fb28a' : st.nivel === 'sem_ref' ? 'var(--report-muted)' : '#e0a040';
+    return `<tr><td>${escapeHtml(l.nome)}</td><td>${prev ? `${n(prev.valor)} <small>(${formatDate(prev.data)})</small>` : '—'}</td><td><b>${n(r.valor)}</b> <small>${escapeHtml(r.unidade || l.unidade)} · ${formatDate(r.data)}</small></td><td>${refText(r)}</td><td style="color:${color}">${st.texto}</td></tr>`;
+  }).join('');
+  return `
+    <div class="report-section-title">Exames laboratoriais</div>
+    <table class="report-labs"><thead><tr><th>Exame</th><th>Anterior</th><th>Atual</th><th>Referência</th><th>Situação</th></tr></thead><tbody>${lines}</tbody></table>
+    ${derived.length ? `<div class="report-bars" style="margin-top:10px;">${derived.map(d => `<div class="report-bar-item"><div class="report-bar-label"><span>${escapeHtml(d.nome)}</span><span class="report-bar-value">${n(d.valor)}${d.unidade ? ` <small>${escapeHtml(d.unidade)}</small>` : ''}</span></div></div>`).join('')}</div>` : ''}
+    <p class="report-postural-general">Referência do laboratório de cada exame; glicemia e HbA1c pelas faixas da ADA. Leitura de acompanhamento, não é diagnóstico: valores alterados são avaliados junto com o médico.</p>`;
 }
 
 function renderDeltaBar(label, current, previous, unit) {

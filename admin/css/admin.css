@@ -271,3 +271,10 @@
 .ame-item input { margin-top: 2px; accent-color: #b8924a; }
 .ame-item.done span { color: var(--muted); }
 .ame-item em { font-style: normal; font-size: 10px; color: #d8b56e; border: 1px solid rgba(216,181,110,.5); border-radius: 6px; padding: 0 4px; margin-left: 4px; }
+
+/* Relatório · exames */
+.report-labs { width: 100%; border-collapse: collapse; font-size: 12px; }
+.report-labs th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--report-muted); padding: 4px 6px; border-bottom: 1px solid var(--report-border); }
+.report-labs td { padding: 5px 6px; border-bottom: 1px solid var(--report-border); vertical-align: top; }
+.report-labs small { color: var(--report-muted); }
+.report-labs tr { break-inside: avoid; }
