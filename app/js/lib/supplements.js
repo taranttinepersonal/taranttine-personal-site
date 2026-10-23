@@ -98,5 +98,6 @@ export function defaultDose(sup, weightKg) {
 export function supplementAlerts(sup, healthText) {
   const t = norm(healthText);
   if (!t) return [];
-  return sup.alertas.filter(([words]) => words.some(w => t.includes(norm(w)))).map(([, msg]) => msg);
+  const hit = w => { const n = norm(w); return n.length <= 5 ? new RegExp(`(^|[^a-z])${n}`).test(t) : t.includes(n); };
+  return sup.alertas.filter(([words]) => words.some(hit)).map(([, msg]) => msg);
 }

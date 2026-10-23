@@ -51,7 +51,8 @@ export async function fetchAnamneseHints(clientId) {
   const medicamentos = respostas['Medicamentos em uso'] || '';
   const hormoneUse = HORMONE_KEYWORDS.some(kw => medicamentos.toLowerCase().includes(kw));
   const doencas = respostas['Doenças diagnosticadas'] || '';
-  return { goal, hormoneUse, medicamentos, doencas };
+  const cirurgias = respostas['Cirurgias ou acidentes relevantes'] || '';
+  return { goal, hormoneUse, medicamentos, doencas, cirurgias };
 }
 
 const ACTIVITY_FACTORS = {

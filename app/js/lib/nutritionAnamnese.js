@@ -96,6 +96,17 @@ export const ETAPA2 = [
     ],
   },
   {
+    title: 'Triagem SCOFF (transtorno alimentar)',
+    hint: 'Pergunte com naturalidade. Duas ou mais respostas "Sim" indicam encaminhamento para avaliação com psicólogo ou médico. É triagem, não diagnóstico (Morgan et al., BMJ, 1999).',
+    fields: [
+      { label: 'SCOFF · Provoca vômito por se sentir cheio(a) demais?', short: 'Provoca vômito por se sentir cheio(a) demais?', type: 'select', options: ['Não', 'Sim'] },
+      { label: 'SCOFF · Sente que perdeu o controle sobre o quanto come?', short: 'Sente que perdeu o controle sobre o quanto come?', type: 'select', options: ['Não', 'Sim'] },
+      { label: 'SCOFF · Perdeu mais de 6 kg em 3 meses recentemente?', short: 'Perdeu mais de 6 kg em 3 meses recentemente?', type: 'select', options: ['Não', 'Sim'] },
+      { label: 'SCOFF · Se acha gordo(a) mesmo quando dizem que está magro(a)?', short: 'Se acha gordo(a) mesmo quando dizem que está magro(a)?', type: 'select', options: ['Não', 'Sim'] },
+      { label: 'SCOFF · Diria que a comida domina a sua vida?', short: 'Diria que a comida domina a sua vida?', type: 'select', options: ['Não', 'Sim'] },
+    ],
+  },
+  {
     title: 'Suplementos',
     fields: [
       { label: 'Suplementos em uso (qual, dose, quem indicou)', type: 'textarea' },

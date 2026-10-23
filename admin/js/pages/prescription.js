@@ -9,6 +9,8 @@ import {
 } from '../../../app/js/lib/prescription.js';
 import { measureText, planToWhatsApp, planPrintHtml } from '../../../app/js/lib/planDoc.js';
 import { SUPPLEMENTS, EVIDENCE_LABEL, defaultDose, supplementAlerts } from '../../../app/js/lib/supplements.js';
+import { screen, screeningHtml } from '../../../app/js/lib/screening.js';
+import { fetchCheckins } from '../../../app/js/lib/checkin.js';
 
 const ACTIVITY = [['sedentario', 'Sedentário'], ['leve', 'Leve (1-3x/sem)'], ['moderado', 'Moderado (3-5x/sem)'], ['intenso', 'Intenso (5-7x/sem)']];
 const GOALS = [['emagrecimento', 'Emagrecimento'], ['manutencao', 'Manutenção'], ['ganho_de_massa', 'Ganho de massa']];
@@ -19,7 +21,7 @@ export async function renderPrescription(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando a prescrição...</div>`;
   main.closest('.admin-shell')?.classList.add('wide');
 
-  const [{ data: profile }, bodyComp, hints, anam, taco, { data: customRows }, { data: modelRows }] = await Promise.all([
+  const [{ data: profile }, bodyComp, hints, anam, taco, { data: customRows }, { data: modelRows }, recentCheckins] = await Promise.all([
     supabase.from('profiles').select('full_name, birth_date, sexo, phone').eq('id', clientId).single(),
     fetchBodyComposition(clientId),
     fetchAnamneseHints(clientId),
@@ -27,8 +29,14 @@ export async function renderPrescription(main, clientId) {
     loadTaco(),
     supabase.from('custom_foods').select('*'),
     supabase.from('meal_models').select('*'),
+    fetchCheckins(clientId, 6).catch(() => []),
   ]).then(r => r);
   registerCustomFoods(taco, customRows);
+  const triagem = screen({
+    idade: profile?.birth_date ? age(profile.birth_date) : null, sexo: profile?.sexo,
+    saude: { medicamentos: hints.medicamentos, doencas: hints.doencas, cirurgias: hints.cirurgias },
+    r1: anam.etapa1?.respostas, r2: anam.etapa2?.respostas, checkins: recentCheckins,
+  });
   const models = mergeModels(modelRows);
   const excluded = excludedFoods(anam.etapa1, taco, models);
   const draftKey = `prescricao-rascunho-${clientId}`;
@@ -80,6 +88,7 @@ export async function renderPrescription(main, clientId) {
         <div class="admin-title">${esc(profile?.full_name || '')} · Prescrição</div>
         <a href="#/cliente/${clientId}/nutricao" class="admin-btn">← Nutrição</a>
       </div>
+      ${screeningHtml(triagem, esc)}
       <div class="rx-grid">
         ${renderClientCard()}
         ${renderTargetCard(c)}

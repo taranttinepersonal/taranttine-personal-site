@@ -8,12 +8,13 @@ import {
   ETAPA1, ETAPA2, renderBlocks, collectBlocks, fetchNutritionAnamneses, saveNutritionAnamnese, fetchNutritionConsult,
 } from '../../../app/js/lib/nutritionAnamnese.js';
 import { QUESTIONS as CK_QUESTIONS, fetchCheckins, flagsOf, answerText } from '../../../app/js/lib/checkin.js';
+import { screen, screeningHtml } from '../../../app/js/lib/screening.js';
 
 export async function renderNutritionHistory(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
   const [{ data: profile }, initialTarget, bodyComp, anamneseHints, nutritionConsult, nutriAnamneses, checkins] = await Promise.all([
-    supabase.from('profiles').select('full_name').eq('id', clientId).single(),
+    supabase.from('profiles').select('full_name, birth_date, sexo').eq('id', clientId).single(),
     fetchTarget(clientId),
     fetchBodyComposition(clientId),
     fetchAnamneseHints(clientId),
@@ -31,6 +32,11 @@ export async function renderNutritionHistory(main, clientId) {
     <div class="admin-card">
       <div id="current-target">${renderCurrentTarget(target)}</div>
     </div>
+    ${screeningHtml(screen({
+      idade: profile?.birth_date ? Math.floor((Date.now() - new Date(profile.birth_date + 'T00:00:00')) / 31557600000) : null, sexo: profile?.sexo,
+      saude: { medicamentos: anamneseHints.medicamentos, doencas: anamneseHints.doencas, cirurgias: anamneseHints.cirurgias },
+      r1: nutriAnamneses.etapa1?.respostas, r2: nutriAnamneses.etapa2?.respostas, checkins,
+    }), escapeHtml)}
     ${renderNutriAnamnese(nutritionConsult, nutriAnamneses)}
     ${renderCheckinHistory(checkins)}
     ${renderCalculator(bodyComp, anamneseHints, target)}
