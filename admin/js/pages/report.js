@@ -4,6 +4,10 @@ import { classificar, FORCA_EXERCICIOS, scoreForcaRelativa } from '../../../app/
 import { MEASUREMENT_FIELDS } from '../../../app/js/lib/progress.js';
 import { buildTrendChart, buildRadarChart } from '../../../app/js/lib/chart.js';
 import { renderAnnotatedDataUrl, describeMetrics } from '../../../app/js/lib/posture.js';
+import { fetchTarget } from '../../../app/js/lib/nutrition.js';
+import { fetchDailyHistory, summarizeHistory } from '../../../app/js/lib/nutritionHistory.js';
+import { QUESTIONS as CK_QUESTIONS, fetchCheckins } from '../../../app/js/lib/checkin.js';
+import { comparability } from '../../../app/js/lib/assessmentPrep.js';
 
 const BIOIMPEDANCE_FIELDS = [
   { key: 'peso', label: 'Peso', unit: 'kg' },
@@ -61,6 +65,15 @@ export async function renderReport(main, clientId) {
       .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(1),
     supabase.from('assessment_reports').select('id, recorded_at, storage_path, created_at')
       .eq('client_id', clientId).order('created_at', { ascending: false }),
+  ]);
+
+  // Nutrição: busca à parte e tolerante a erro, para o relatório de treino
+  // continuar saindo para quem não tem consultoria nutricional.
+  const [nutriTarget, nutriDaily, nutriCheckins, { data: nutriPlanRow }] = await Promise.all([
+    fetchTarget(clientId).catch(() => null),
+    fetchDailyHistory(clientId, 30).catch(() => []),
+    fetchCheckins(clientId, 8).catch(() => []),
+    supabase.from('nutrition_plans').select('plan, created_at').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   const photosWithUrls = await Promise.all((photos || []).map(async (p) => {
@@ -218,11 +231,18 @@ export async function renderReport(main, clientId) {
           ${BIOIMPEDANCE_FIELDS.map(f => renderDeltaBar(f.label, bioCurrent[f.key], bioPrevious?.[f.key], f.unit)).join('')}
         </div>
         ${bioCurrent.general_note ? `<p class="report-postural-general">${escapeHtml(bioCurrent.general_note)}</p>` : ''}
+        ${bioPrevious ? (() => {
+          const c = comparability(bioCurrent.condicoes, bioPrevious.condicoes);
+          if (c.ok === null) return '';
+          return `<p class="report-postural-general">${c.ok ? '✅ As duas últimas medidas foram feitas com o mesmo preparo: a comparação é confiável.' : `⚠️ Compare com cuidado: ${escapeHtml(c.reasons.join(', '))}.`} A bioimpedância varia 1 a 2 pontos de % de gordura entre medidas; o que vale é a tendência.</p>`;
+        })() : ''}
         ${bioSeries.map((s, i) => renderMultiTrendChart(
           [{ label: s.field.label, color: CHART_COLORS[i % CHART_COLORS.length], points: s.points }],
           s.field.unit, `Evolução — ${s.field.label}`,
         )).join('')}
       ` : ''}
+
+      ${renderNutritionSection(nutriPlanRow?.plan, nutriTarget, nutriDaily, nutriCheckins)}
 
       ${photosWithUrls.length ? `
         <div class="report-section-title">Fotos</div>
@@ -400,6 +420,52 @@ export async function renderReport(main, clientId) {
       btn.disabled = false;
     }
   });
+}
+
+// Seção Nutrição e hábitos: plano atual, aderência dos últimos 30 dias e
+// resumo dos check-ins. Some sozinha se o aluno não tem nada disso.
+function renderNutritionSection(plan, target, daily, checkins) {
+  const summary = daily?.length ? summarizeHistory(daily, target) : null;
+  const hasLogs = summary && summary.completeDays > 0;
+  if (!plan && !hasLogs && !checkins?.length) return '';
+  const Q = Object.fromEntries(CK_QUESTIONS.map(q => [q.key, q]));
+  const avg = key => {
+    const vals = (checkins || []).map(c => Number(c.respostas?.[key])).filter(v => v > 0);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  };
+  const scaleText = (key) => {
+    const v = avg(key);
+    return v == null ? '—' : `${Q[key].options[Math.round(v) - 1]} <small>(${v.toFixed(1).replace('.', ',')}/5)</small>`;
+  };
+  const row = (label, value) => `<div class="report-bar-item"><div class="report-bar-label"><span>${label}</span><span class="report-bar-value">${value}</span></div></div>`;
+  const pct = (a, b) => (b ? `${Math.round(a / b * 100)}%` : '—');
+  const sonoH = avg('sono_h');
+  return `
+    <div class="report-section-title">Nutrição e Hábitos</div>
+    ${plan ? `
+      <div class="report-bars">
+        ${row('Plano alimentar atual', `entregue em ${formatDate(plan.entregue_em)}`)}
+        ${row('Meta do plano', `${Math.round(plan.meta?.kcal || 0).toLocaleString('pt-BR')} kcal · P ${Math.round(plan.meta?.prot || 0)} g · C ${Math.round(plan.meta?.carb || 0)} g · G ${Math.round(plan.meta?.gord || 0)} g`)}
+        ${plan.suplementos?.length ? row('Suplementação', escapeHtml(plan.suplementos.map(x => x.nome).join(', '))) : ''}
+      </div>` : ''}
+    ${hasLogs ? `
+      <div class="report-section-title" style="font-size:12px;margin:14px 0 8px;">Aderência · últimos 30 dias</div>
+      <div class="report-bars">
+        ${row('Dias registrados por completo', `${summary.completeDays} de ${summary.totalDays}`)}
+        ${summary.avgCalories != null ? row('Média de calorias', `${summary.avgCalories.toLocaleString('pt-BR')} kcal${target?.calories ? ` <small>(meta ${target.calories.toLocaleString('pt-BR')})</small>` : ''}`) : ''}
+        ${summary.daysInRange != null ? row('Dias dentro da meta (±10%)', pct(summary.daysInRange, summary.completeDays)) : ''}
+        ${summary.daysProteinHit != null ? row('Dias com a proteína batida', pct(summary.daysProteinHit, summary.completeDays)) : ''}
+      </div>
+      <p class="report-postural-general">Só entram na média os dias com pelo menos 3 refeições registradas.</p>` : ''}
+    ${checkins?.length ? `
+      <div class="report-section-title" style="font-size:12px;margin:14px 0 8px;">Check-ins semanais · ${checkins.length} semana(s)</div>
+      <div class="report-bars">
+        ${row('Seguiu o plano', scaleText('adesao'))}
+        ${row('Fome', scaleText('fome'))}
+        ${row('Sono', `${sonoH != null ? `${sonoH.toFixed(1).replace('.', ',')} h/noite · ` : ''}${scaleText('sono_q')}`)}
+        ${row('Energia nos treinos', scaleText('energia'))}
+      </div>` : ''}
+  `;
 }
 
 function renderDeltaBar(label, current, previous, unit) {
