@@ -1,11 +1,17 @@
 import { signOut } from '../auth.js';
+import { supabase } from '../supabaseClient.js';
 import { QUESTIONS, REQUIRED, weekStart, fetchCheckins, saveCheckin } from '../lib/checkin.js';
 
 export async function renderCheckin(session) {
   const root = document.getElementById('app-root');
   root.innerHTML = `<div class="loading-state">Carregando...</div>`;
   const clientId = session.user.id;
-  const history = await fetchCheckins(clientId, 1);
+  const [history, { data: prof }] = await Promise.all([
+    fetchCheckins(clientId, 1),
+    supabase.from('profiles').select('sexo').eq('id', clientId).maybeSingle(),
+  ]);
+  const isWoman = String(prof?.sexo || '').toLowerCase().startsWith('f');
+  const questions = QUESTIONS.filter(q => !q.soMulher || isWoman);
   const current = history[0]?.week_start === weekStart() ? history[0] : null;
   const ans = { ...(current?.respostas || {}) };
 
@@ -25,7 +31,7 @@ export async function renderCheckin(session) {
           Leva 1 minuto. Responda com sinceridade: é isso que me mostra o que ajustar no seu plano.
           ${current ? '<br><br>Você já respondeu nesta semana. Pode corrigir e enviar de novo.' : ''}
         </div></div>
-        ${QUESTIONS.map(q => `
+        ${questions.map(q => `
           <div class="ex-card ck-q">
             <div class="ex-name ck-label">${esc(q.label)}</div>
             ${q.type === 'scale' || q.type === 'choice' ? `<div class="ck-opts">${q.options.map((o, i) => {

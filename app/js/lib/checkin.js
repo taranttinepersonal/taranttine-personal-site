@@ -12,6 +12,7 @@ export const QUESTIONS = [
   { key: 'energia', label: 'Energia nos treinos', type: 'scale', options: ['Muito baixa', 'Baixa', 'Normal', 'Boa', 'Muito boa'] },
   { key: 'intestino', label: 'Intestino', type: 'choice', options: ['Normal', 'Preso', 'Solto'] },
   { key: 'peso', label: 'Peso desta semana (opcional — mesma balança, de manhã)', type: 'number', placeholder: 'Ex: 70,5', optional: true },
+  { key: 'ciclo', label: 'Fase do ciclo nesta semana (opcional — ajuda a entender o peso e a fome)', type: 'choice', options: ['Após a menstruação', 'Perto da ovulação', 'Semana antes da menstruação', 'Menstruada', 'Não menstruo / não se aplica', 'Prefiro não informar'], optional: true, soMulher: true },
   { key: 'dificuldade', label: 'Qual foi a maior dificuldade da semana?', type: 'text', optional: true },
   { key: 'duvida', label: 'Quer ajustar algo ou tirar alguma dúvida?', type: 'text', optional: true },
 ];

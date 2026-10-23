@@ -55,7 +55,7 @@ export async function renderCheckins(main) {
           <td>${x.last ? esc(answerText(Q.fome, r.fome)) : '—'}</td>
           <td>${x.last ? `${esc(answerText(Q.sono_h, r.sono_h))} · ${esc(answerText(Q.sono_q, r.sono_q))}` : '—'}</td>
           <td>${x.last ? esc(answerText(Q.energia, r.energia)) : '—'}</td>
-          <td>${r.peso ? `${esc(answerText(Q.peso, r.peso))}${x.pesoDelta != null ? ` <span class="admin-row-sub">(${x.pesoDelta > 0 ? '+' : ''}${x.pesoDelta.toFixed(1).replace('.', ',')})</span>` : ''}` : '—'}</td>
+          <td>${r.peso ? `${esc(answerText(Q.peso, r.peso))}${x.pesoDelta != null ? ` <span class="admin-row-sub">(${x.pesoDelta > 0 ? '+' : ''}${x.pesoDelta.toFixed(1).replace('.', ',')})</span>` : ''}` : '—'}${r.ciclo && /antes|menstruada/i.test(r.ciclo) ? '<div class="admin-row-sub">fase do ciclo: retenção provável</div>' : ''}</td>
           <td>${x.flags.map(f => `<span class="rx-supp-alert" style="display:inline-block;margin-right:6px;">⚠️ ${esc(f)}</span>`).join('') || (x.last ? '<span class="admin-row-sub">nenhum</span>' : '')}</td>
         </tr>`;
       }).join('')}</tbody>

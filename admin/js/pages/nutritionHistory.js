@@ -184,7 +184,7 @@ function renderCheckinHistory(checkins) {
         <tbody>${checkins.map(c => { const r = c.respostas || {}; return `<tr>
           <td><b>${fmt(c.week_start)}</b></td><td>${escapeHtml(answerText(Q.adesao, r.adesao))}</td><td>${escapeHtml(answerText(Q.fome, r.fome))}</td>
           <td>${escapeHtml(answerText(Q.sono_h, r.sono_h))} · ${escapeHtml(answerText(Q.sono_q, r.sono_q))}</td><td>${escapeHtml(answerText(Q.energia, r.energia))}</td>
-          <td>${escapeHtml(answerText(Q.agua, r.agua))}</td><td>${escapeHtml(answerText(Q.intestino, r.intestino))}</td><td>${escapeHtml(answerText(Q.peso, r.peso))}</td>
+          <td>${escapeHtml(answerText(Q.agua, r.agua))}</td><td>${escapeHtml(answerText(Q.intestino, r.intestino))}</td><td>${escapeHtml(answerText(Q.peso, r.peso))}${r.ciclo && !/não|prefiro/i.test(r.ciclo) ? `<div class="admin-row-sub">${escapeHtml(r.ciclo)}${/antes|menstruada/i.test(r.ciclo) ? ' · retenção provável' : ''}</div>` : ''}</td>
           <td>${flagsOf(r).map(f => `<span class="rx-supp-alert" style="display:inline-block;margin-right:6px;">⚠️ ${escapeHtml(f)}</span>`).join('') || '<span class="admin-row-sub">—</span>'}</td></tr>
           ${r.dificuldade || r.duvida ? `<tr><td></td><td colspan="8" class="admin-row-sub">${r.dificuldade ? `<b>Dificuldade:</b> ${escapeHtml(r.dificuldade)} ` : ''}${r.duvida ? `<b>Ajuste/dúvida:</b> ${escapeHtml(r.duvida)}` : ''}</td></tr>` : ''}`; }).join('')}
         </tbody>
