@@ -14,6 +14,7 @@ import { renderLibrary } from './pages/library.js';
 import { renderCheckins } from './pages/checkins.js';
 import { renderWaitlist } from './pages/waitlist.js';
 import { renderReferrals } from './pages/referrals.js';
+import { renderPlano50Admin } from './pages/plano50.js';
 import { renderClientData } from './pages/clientData.js';
 import { renderAssessment } from './pages/assessment.js';
 import { renderReport } from './pages/report.js';
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { path: '/checkins', label: 'Check-ins' },
   { path: '/biblioteca', label: 'Biblioteca' },
   { path: '/lista-espera', label: 'Lista de espera' },
+  { path: '/plano50', label: 'Plano 50' },
 ];
 
 function renderShell(activePath, contentHtmlOrRenderer) {
@@ -123,6 +125,12 @@ route('/biblioteca', async () => {
   if (!(await requireTrainer())) return;
   const main = renderShell('/biblioteca');
   renderLibrary(main);
+});
+
+route('/plano50', async () => {
+  if (!(await requireTrainer())) return;
+  const main = renderShell('/plano50');
+  renderPlano50Admin(main);
 });
 
 route('/indicacoes', async () => {

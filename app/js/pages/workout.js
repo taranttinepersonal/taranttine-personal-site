@@ -25,7 +25,7 @@ export async function renderWorkout(session) {
   // instead of waiting on each other, since every round trip here delays
   // the first paint of the workout screen.
   const [{ data: profile }, { data: program, error: programError }, diet, nextAssessment] = await Promise.all([
-    supabase.from('profiles').select('full_name, birth_date, show_gifs, show_cycle_mode').eq('id', clientId).single(),
+    supabase.from('profiles').select('full_name, birth_date, show_gifs, show_cycle_mode, plan, access_expires_at').eq('id', clientId).single(),
     supabase.from('workout_programs').select('id, title, subtitle, health_note, current_week, total_weeks').eq('client_id', clientId).eq('is_active', true).single(),
     fetchVisibleDiet(clientId),
     fetchNextAssessment(supabase, clientId),
@@ -98,6 +98,7 @@ export async function renderWorkout(session) {
         </div>
       ` : ''}
       ${program.health_note ? `<div class="health-note">⚠️ ${escapeHtml(program.health_note)}</div>` : ''}
+      ${plano50Banner(profile)}
       ${isPushConfigured() && getNotificationPermission() === 'default' ? `
         <button class="logout-link" id="enable-push-btn" style="margin-top:8px;">🔔 Ativar notificações</button>
       ` : ''}
@@ -178,6 +179,17 @@ export async function renderWorkout(session) {
   });
 
   wireExerciseCards(root, clientId, program.title, profile?.full_name || '');
+}
+
+// Plano 50 Dias: avisa quantos dias faltam e, na reta final, convida a continuar.
+function plano50Banner(profile) {
+  if (!profile || profile.plan !== 'plano50' || !profile.access_expires_at) return '';
+  const left = Math.max(0, Math.ceil((new Date(profile.access_expires_at) - new Date()) / 86400000));
+  if (left > 10) {
+    return `<div class="health-note" style="background:rgba(0,184,148,0.06);border-color:rgba(0,184,148,0.2);color:var(--muted);">⏳ Plano 50 Dias · faltam <b>${left} dias</b> de acesso</div>`;
+  }
+  const text = encodeURIComponent('Oi! Estou no final do Plano 50 Dias e quero saber como continuar como aluno.');
+  return `<div class="health-note" style="background:rgba(240,165,0,0.08);border-color:rgba(240,165,0,0.3);color:#F0A500;">⏳ Faltam <b>${left} dia${left === 1 ? '' : 's'}</b> do seu Plano 50 Dias. Quer continuar evoluindo com acompanhamento? <a href="https://wa.me/${TRAINER_WHATSAPP}?text=${text}" style="color:#F0A500;font-weight:700;">Fale comigo no WhatsApp</a></div>`;
 }
 
 function renderDay(day, sections, exercises, historyByExercise, completedToday, isActive, dayIndex, showGifs) {
