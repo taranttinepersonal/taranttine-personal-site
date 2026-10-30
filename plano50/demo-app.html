@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Telas do app — demonstração</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/css/tokens.css">
+<link rel="stylesheet" href="/app/css/app.css">
+<style>
+/* Telas ILUSTRATIVAS do app, só para os celulares da página /plano50/.
+   Mesmo CSS do app real; o conteúdo é de exemplo (sem GIFs, sem dados de aluno). */
+html, body { overflow: hidden; height: 100%; }
+body { padding: 0; }
+.scr { display: none; }
+html[data-s="1"] .s1, html[data-s="2"] .s2, html[data-s="3"] .s3 { display: block; }
+.fake-input { width: 100%; background: var(--black3); border: 1.5px solid var(--border2); border-radius: 8px; padding: 11px 12px; color: var(--white); font-size: 13.5px; margin-bottom: 12px; display: flex; justify-content: space-between; }
+.fake-input small { color: var(--faint); font-size: 12px; }
+.fake-input.on { border-color: var(--green); }
+.fake-lbl { display: block; font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); margin-bottom: 6px; }
+.fake-btn { width: 100%; padding: 14px; border-radius: 10px; background: var(--green); color: #04201a; font-weight: 700; font-size: 14px; text-align: center; margin-top: 4px; }
+.q-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.row { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--muted); padding: 6px 0; }
+.row i { width: 16px; height: 16px; border: 1.5px solid var(--border2); border-radius: 4px; flex: none; margin-top: 1px; }
+.row i.ok { background: var(--green); border-color: var(--green); }
+</style>
+</head>
+<body>
+<div id="app-root">
+
+<!-- ================= TELA 1 · QUESTIONÁRIO ================= -->
+<div class="scr s1">
+  <div class="hero">
+    <div class="brand-name font-display">Taranttine</div>
+    <div class="brand-sub">Personal</div>
+    <h1 class="font-display" style="font-size:22px;text-transform:uppercase;color:var(--white);margin-top:10px;">Plano 50 Dias</h1>
+  </div>
+  <div class="main">
+    <div class="ex-card">
+      <div class="ex-name" style="margin-bottom:6px;">Vamos montar o seu treino</div>
+      <div class="q-note">Responda com calma, são 2 minutos. Com isso o app entrega a ficha certa pra você.</div>
+    </div>
+    <div class="ex-card">
+      <span class="fake-lbl">Onde você vai treinar?</span>
+      <div class="fake-input on"><span>Academia</span><small>▾</small></div>
+      <span class="fake-lbl">Qual o seu nível hoje?</span>
+      <div class="fake-input on"><span>Intermediário</span><small>▾</small></div>
+      <div class="q-note" style="margin:-4px 0 12px;">Treina com regularidade há 6 meses a 2 anos</div>
+      <span class="fake-lbl">Seu principal objetivo</span>
+      <div class="fake-input"><span>Ganhar massa e ter constância</span></div>
+    </div>
+    <div class="ex-card">
+      <div class="ex-name" style="margin-bottom:8px;">Sua saúde</div>
+      <div class="q-note" style="margin-bottom:6px;">Marque <b>sim</b> só se a pergunta se aplica a você.</div>
+      <div class="row"><i></i><span>Sente dor no peito quando faz atividade física?</span></div>
+      <div class="row"><i></i><span>Tem algum problema ósseo ou articular que piora com exercício?</span></div>
+      <div class="fake-btn" style="margin-top:12px;">Receber meu treino</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TELA 2 · A FICHA ================= -->
+<div class="scr s2">
+  <div class="hero">
+    <div class="brand-name font-display">Taranttine</div>
+    <div class="brand-sub">Personal</div>
+    <div class="client-badge">👤 Você</div>
+    <h1 class="font-display" style="font-size:22px;text-transform:uppercase;color:var(--white);margin-top:10px;">Plano 50 Dias — Academia (Intermediário)</h1>
+    <p style="font-size:12px;color:var(--muted);margin-top:6px;">Push / Pernas / Pull · 3x por semana · 50-60 min</p>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active">Treino A</button>
+    <button class="tab-btn">Treino B</button>
+    <button class="tab-btn">Treino C</button>
+  </div>
+  <div class="main">
+    <div class="day-label">Treino A · Push — Peito, Ombro e Tríceps</div>
+    <div class="progress-summary">
+      <svg class="progress-ring" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="18" fill="none" stroke="#2A2A2A" stroke-width="4"/>
+        <circle cx="22" cy="22" r="18" fill="none" stroke="#00B894" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="75" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+      </svg>
+      <div class="progress-text"><div class="pt-num">2/6</div><div class="pt-lbl">exercícios concluídos</div></div>
+    </div>
+    <div class="section-header section-main"><span class="section-icon">🏋</span>Treino Principal</div>
+
+    <div class="ex-card done">
+      <div class="ex-head">
+        <div><div class="ex-name">Supino reto barra</div><span class="ex-group">Peitoral</span></div>
+        <div class="check-circle checked">✓</div>
+      </div>
+      <div class="ex-stats">
+        <div class="stat-box"><div class="stat-val">4</div><div class="stat-lbl">Séries</div></div>
+        <div class="stat-box"><div class="stat-val">8-10</div><div class="stat-lbl">Reps</div></div>
+        <div class="stat-box"><div class="stat-val">105s</div><div class="stat-lbl">Descanso</div></div>
+        <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
+      </div>
+    </div>
+
+    <div class="ex-card">
+      <div class="ex-head">
+        <div><div class="ex-name">Supino inclinado com halteres</div><span class="ex-group">Peitoral</span></div>
+        <div class="check-circle">✓</div>
+      </div>
+      <div class="ex-stats">
+        <div class="stat-box"><div class="stat-val">3</div><div class="stat-lbl">Séries</div></div>
+        <div class="stat-box"><div class="stat-val">10-12</div><div class="stat-lbl">Reps</div></div>
+        <div class="stat-box"><div class="stat-val">90s</div><div class="stat-lbl">Descanso</div></div>
+        <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
+      </div>
+      <input class="load-input" type="text" placeholder="Carga utilizada (kg)" tabindex="-1">
+      <div class="history-box has-data">📊 Histórico: 24kg (há 3 dias)</div>
+      <button class="gif-toggle" tabindex="-1">▶ Ver execução</button>
+    </div>
+
+    <div class="ex-card">
+      <div class="ex-head">
+        <div><div class="ex-name">Desenvolvimento com halteres</div><span class="ex-group">Ombros</span></div>
+        <div class="check-circle">✓</div>
+      </div>
+      <div class="ex-stats">
+        <div class="stat-box"><div class="stat-val">3</div><div class="stat-lbl">Séries</div></div>
+        <div class="stat-box"><div class="stat-val">10-12</div><div class="stat-lbl">Reps</div></div>
+        <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Descanso</div></div>
+        <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TELA 3 · CARGA + SÉRIE CONJUGADA ================= -->
+<div class="scr s3">
+  <div class="hero" style="padding-bottom:18px;">
+    <div class="brand-name font-display">Taranttine</div>
+    <div class="brand-sub">Personal</div>
+    <h1 class="font-display" style="font-size:20px;text-transform:uppercase;color:var(--white);margin-top:8px;">Treino C · Pull — Costas e Bíceps</h1>
+  </div>
+  <div class="main">
+    <div class="ex-card">
+      <div class="ex-head">
+        <div><div class="ex-name">Puxada alta tradicional</div><span class="ex-group">Costas</span></div>
+        <div class="check-circle checked">✓</div>
+      </div>
+      <div class="ex-stats">
+        <div class="stat-box"><div class="stat-val">4</div><div class="stat-lbl">Séries</div></div>
+        <div class="stat-box"><div class="stat-val">8-10</div><div class="stat-lbl">Reps</div></div>
+        <div class="stat-box"><div class="stat-val">90s</div><div class="stat-lbl">Descanso</div></div>
+        <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
+      </div>
+      <input class="load-input" type="text" value="52,5" tabindex="-1" readonly>
+      <div class="history-box has-data">📊 Histórico: 52,5kg (hoje) · antes: 50kg</div>
+      <div class="ex-tip">💡 Peito aberto; sem balançar o tronco</div>
+    </div>
+
+    <div class="superset-block">
+      <div class="superset-label">🔗 Série Conjugada — sem descanso entre os exercícios</div>
+      <div class="ex-card">
+        <div class="ex-head">
+          <div><div class="ex-name">Remada serrote</div><span class="ex-group">Costas</span></div>
+          <div class="check-circle">✓</div>
+        </div>
+        <div class="ex-stats">
+          <div class="stat-box"><div class="stat-val">3</div><div class="stat-lbl">Séries</div></div>
+          <div class="stat-box"><div class="stat-val">10</div><div class="stat-lbl">Reps</div></div>
+          <div class="stat-box"><div class="stat-val">→</div><div class="stat-lbl">Direto</div></div>
+          <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-head">
+          <div><div class="ex-name">Remada cabo</div><span class="ex-group">Costas</span></div>
+          <div class="check-circle">✓</div>
+        </div>
+        <div class="ex-stats">
+          <div class="stat-box"><div class="stat-val">3</div><div class="stat-lbl">Séries</div></div>
+          <div class="stat-box"><div class="stat-val">10-12</div><div class="stat-lbl">Reps</div></div>
+          <div class="stat-box"><div class="stat-val">75s</div><div class="stat-lbl">Descanso</div></div>
+          <div class="stat-box rir-box"><div class="stat-val">RIR 2</div><div class="stat-lbl">Método</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+  var s = new URLSearchParams(location.search).get('s') || '2';
+  document.documentElement.setAttribute('data-s', s);
+</script>
+</body>
+</html>

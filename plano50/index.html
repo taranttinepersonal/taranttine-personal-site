@@ -19,7 +19,8 @@
 html { scroll-behavior: smooth; }
 body { font-family: var(--font-body); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; line-height: 1.6; overflow-x: hidden; }
 a { color: inherit; }
-.wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+.narrow { max-width: 760px; margin: 0 auto; }
 .brand { text-align: center; padding: 28px 0 8px; }
 .brand b { font-family: var(--font-display); font-size: 30px; letter-spacing: 6px; background: linear-gradient(135deg,#b0b0b0,#f4f4f4 40%,#909090 60%,#e0e0e0); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .brand span { display: block; font-size: 11px; letter-spacing: 5px; color: var(--muted); text-transform: uppercase; }
@@ -59,13 +60,47 @@ details p { margin-top: 8px; font-size: 14px; color: var(--muted); }
 footer { text-align: center; padding: 44px 0 40px; color: var(--faint); font-size: 12px; }
 footer a { color: var(--muted); }
 .note { font-size: 12.5px; color: var(--faint); margin-top: 10px; }
+
+/* ── HERO EM 2 COLUNAS (celular ao lado no desktop) ── */
+.hero-grid { display: grid; gap: 28px; align-items: center; }
+.hero-phone { display: none; position: relative; justify-content: center; }
+.hero-phone::before { content: ''; position: absolute; inset: 8% 6% 4%; background: radial-gradient(closest-side, rgba(184,145,63,.28), transparent 72%); filter: blur(10px); }
+@media (min-width: 900px) {
+  .hero-grid { grid-template-columns: 1.15fr .85fr; gap: 48px; }
+  .hero-grid .hero-copy { text-align: left; }
+  .hero-grid .lead, .hero-grid .status, .hero-grid .cta { margin-left: 0; margin-right: 0; }
+  .hero-grid .cta-alt { text-align: left; }
+  .hero-phone { display: flex; }
+}
+/* ── VITRINE DO APP ── */
+.phones-wrap { display: flex; justify-content: center; align-items: flex-start; flex-wrap: wrap; gap: 36px; margin-top: 8px; }
+.phone-mockup { text-align: center; animation: phone-float 5s ease-in-out infinite; position: relative; }
+@keyframes phone-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.phone-frame { width: 240px; height: 500px; border-radius: 34px; background: linear-gradient(160deg, #1c1c1c, #0a0a0a); border: 1px solid var(--border2); padding: 12px; position: relative; box-shadow: 0 30px 70px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04); }
+.phone-frame::before { content: ''; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 74px; height: 16px; background: #050505; border-radius: 0 0 14px 14px; z-index: 2; }
+.phone-screen { width: 100%; height: 100%; border-radius: 24px; overflow: hidden; background: var(--bg); }
+.phone-screen iframe { width: 480px; height: 1058px; border: none; pointer-events: none; transform: scale(0.45); transform-origin: top left; }
+.phone-caption { margin-top: 18px; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); max-width: 240px; }
+.phone-caption b { display: block; color: var(--gold-light); font-family: var(--font-display); font-size: 26px; font-weight: 400; letter-spacing: 2px; line-height: 1; margin-bottom: 4px; }
+.showcase-note { text-align: center; font-size: 12.5px; color: var(--faint); margin-top: 26px; }
+@media (prefers-reduced-motion: reduce) { .phone-mockup { animation: none; } }
+@media (max-width: 560px) {
+  .phone-frame { width: 208px; height: 434px; }
+  .phone-screen iframe { width: 416px; height: 918px; transform: scale(0.39); }
+  .phone-caption { max-width: 208px; }
+}
+@media (max-width: 899px) {
+  .phones-wrap { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; gap: 20px; padding: 6px 4px 18px; margin: 0 -20px; padding-left: 20px; padding-right: 20px; -webkit-overflow-scrolling: touch; }
+  .phones-wrap .phone-mockup { flex: none; scroll-snap-align: center; animation: none; }
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="brand"><b>TARANTTINE</b><span>Personal</span></div>
 
-  <header class="hero">
+  <header class="hero hero-grid">
+   <div class="hero-copy">
     <span class="kicker">Oferta Black Friday · 3 a 16 de novembro</span>
     <h1>Plano <em>50 Dias</em></h1>
     <p class="lead">50 dias de treino online no app, com a ficha certa pro seu nível, demonstração animada de cada exercício e suporte pelo WhatsApp.</p>
@@ -75,7 +110,35 @@ footer a { color: var(--muted); }
     <div class="status" id="status" aria-live="polite">Carregando as vagas...</div>
     <a class="cta" id="cta" href="#" aria-disabled="true">Verificando...</a>
     <a class="cta-alt" id="cta-alt" href="#" hidden></a>
+   </div>
+   <div class="hero-phone" aria-hidden="true">
+     <div class="phone-mockup"><div class="phone-frame"><div class="phone-screen">
+       <iframe src="/plano50/demo-app.html?s=2" loading="lazy" title="Ficha de treino no app" tabindex="-1"></iframe>
+     </div></div></div>
+   </div>
   </header>
+
+  <section>
+    <h2 style="text-align:center;">Veja por dentro</h2>
+    <p style="text-align:center;color:var(--muted);font-size:15px;max-width:520px;margin:0 auto 28px;">É o mesmo app dos meus alunos. Você responde duas perguntas, recebe a ficha e registra a carga de cada treino.</p>
+    <div class="phones-wrap">
+      <div class="phone-mockup" style="animation-delay:0s">
+        <div class="phone-frame"><div class="phone-screen"><iframe src="/plano50/demo-app.html?s=1" loading="lazy" title="Questionário do primeiro acesso" tabindex="-1"></iframe></div></div>
+        <div class="phone-caption"><b>1</b>Você responde o questionário</div>
+      </div>
+      <div class="phone-mockup" style="animation-delay:.6s">
+        <div class="phone-frame"><div class="phone-screen"><iframe src="/plano50/demo-app.html?s=2" loading="lazy" title="Ficha de treino" tabindex="-1"></iframe></div></div>
+        <div class="phone-caption"><b>2</b>Recebe a ficha do seu nível</div>
+      </div>
+      <div class="phone-mockup" style="animation-delay:1.2s">
+        <div class="phone-frame"><div class="phone-screen"><iframe src="/plano50/demo-app.html?s=3" loading="lazy" title="Registro de carga" tabindex="-1"></iframe></div></div>
+        <div class="phone-caption"><b>3</b>Registra a carga e acompanha</div>
+      </div>
+    </div>
+    <p class="showcase-note">Telas ilustrativas (exemplo de ficha de academia, nível intermediário). Cada exercício tem uma demonstração animada.</p>
+  </section>
+
+  <div class="narrow">
 
   <section>
     <h2>O que você recebe</h2>
@@ -132,6 +195,7 @@ footer a { color: var(--muted); }
     <p style="margin-top:6px;">Os seus dados de saúde são usados só pra montar o seu treino, com o seu consentimento (LGPD). Pagamento processado pela Greenn.</p>
     <p style="margin-top:6px;"><a href="https://wa.me/5567992567211?text=Oi!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20Plano%2050%20Dias.">Dúvidas? Fale no WhatsApp</a></p>
   </footer>
+  </div>
 </div>
 
 <script>
