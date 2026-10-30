@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano 50 Dias — Taranttine Personal</title>
+<meta name="description" content="50 dias de treino online no app da Taranttine Personal, com ficha por nível (academia ou em casa), vídeos de cada exercício e suporte pelo WhatsApp. R$ 39,90 — 50 vagas.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080808; --surface: #101010; --surface2: #181818; --border: #2a2a2a; --border2: #3a3a3a;
+  --silver: #c8c8c8; --silver-light: #ececec; --text: #f0f0f0; --muted: #9a9a9a; --faint: #666;
+  --gold: #b8913f; --gold-light: #d6b25e; --green: #00B894; --red: #cc4a3a;
+  --radius: 12px; --radius-lg: 18px;
+  --font-display: 'Bebas Neue', sans-serif; --font-body: 'Inter', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-body); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; line-height: 1.6; overflow-x: hidden; }
+a { color: inherit; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+.brand { text-align: center; padding: 28px 0 8px; }
+.brand b { font-family: var(--font-display); font-size: 30px; letter-spacing: 6px; background: linear-gradient(135deg,#b0b0b0,#f4f4f4 40%,#909090 60%,#e0e0e0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand span { display: block; font-size: 11px; letter-spacing: 5px; color: var(--muted); text-transform: uppercase; }
+.hero { text-align: center; padding: 28px 0 8px; }
+.kicker { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-light); border: 1px solid var(--gold); border-radius: 99px; padding: 5px 14px; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(44px, 11vw, 72px); line-height: 1; letter-spacing: 2px; margin: 18px 0 12px; }
+h1 em { font-style: normal; color: var(--gold-light); }
+.lead { color: var(--silver); font-size: 17px; max-width: 540px; margin: 0 auto; }
+.price { margin: 26px 0 6px; font-family: var(--font-display); font-size: 64px; letter-spacing: 2px; line-height: 1; }
+.price small { font-family: var(--font-body); font-size: 15px; color: var(--muted); letter-spacing: 0; margin-left: 6px; }
+.price-sub { color: var(--muted); font-size: 13px; }
+.status { margin: 22px auto 0; max-width: 460px; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 14px 16px; font-size: 14px; }
+.status strong { color: var(--gold-light); }
+.bar { height: 6px; border-radius: 99px; background: var(--border); margin-top: 10px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--gold), var(--gold-light)); transition: width .6s; }
+.cta { display: block; width: 100%; max-width: 460px; margin: 18px auto 0; padding: 18px 20px; border-radius: var(--radius); text-align: center; text-decoration: none; font-weight: 700; font-size: 16px; letter-spacing: .5px; color: #111; background: linear-gradient(135deg, var(--gold-light), var(--gold)); border: 0; cursor: pointer; }
+.cta[aria-disabled="true"] { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); pointer-events: none; }
+.cta-alt { display: block; margin: 12px auto 0; text-align: center; font-size: 13px; color: var(--muted); }
+.cta:focus-visible, .cta-alt:focus-visible, summary:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+section { padding: 44px 0 4px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 34px; letter-spacing: 2px; margin-bottom: 14px; }
+.grid { display: grid; gap: 12px; }
+@media (min-width: 640px) { .grid.two { grid-template-columns: 1fr 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 18px; }
+.card h3 { font-size: 15px; margin-bottom: 4px; color: var(--silver-light); }
+.card p, .card li { font-size: 14px; color: var(--muted); }
+ul.plain { list-style: none; display: grid; gap: 8px; }
+ul.plain li { padding-left: 24px; position: relative; font-size: 14.5px; color: var(--silver); }
+ul.plain li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+ul.plain.no li::before { content: '✕'; color: var(--red); }
+.steps { counter-reset: s; display: grid; gap: 10px; }
+.steps li { list-style: none; counter-increment: s; padding: 14px 16px 14px 54px; position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14.5px; color: var(--silver); }
+.steps li::before { content: counter(s); position: absolute; left: 16px; top: 12px; width: 26px; height: 26px; border-radius: 50%; background: var(--gold); color: #111; font-weight: 700; font-size: 14px; display: grid; place-items: center; }
+details { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+details p { margin-top: 8px; font-size: 14px; color: var(--muted); }
+footer { text-align: center; padding: 44px 0 40px; color: var(--faint); font-size: 12px; }
+footer a { color: var(--muted); }
+.note { font-size: 12.5px; color: var(--faint); margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><b>TARANTTINE</b><span>Personal</span></div>
+
+  <header class="hero">
+    <span class="kicker">Oferta Black Friday · 3 a 16 de novembro</span>
+    <h1>Plano <em>50 Dias</em></h1>
+    <p class="lead">50 dias de treino online no app, com a ficha certa pro seu nível, demonstração animada de cada exercício e suporte pelo WhatsApp.</p>
+    <div class="price">R$ 39,90 <small>pagamento único</small></div>
+    <div class="price-sub">Pix ou cartão de crédito · garantia de 7 dias</div>
+
+    <div class="status" id="status" aria-live="polite">Carregando as vagas...</div>
+    <a class="cta" id="cta" href="#" aria-disabled="true">Verificando...</a>
+    <a class="cta-alt" id="cta-alt" href="#" hidden></a>
+  </header>
+
+  <section>
+    <h2>O que você recebe</h2>
+    <ul class="plain">
+      <li><b>50 dias corridos de acesso</b> ao app da Taranttine Personal, no celular.</li>
+      <li><b>Uma ficha pro seu nível:</b> iniciante, intermediário ou avançado.</li>
+      <li><b>Academia ou em casa:</b> em casa o treino usa só o peso do corpo e elástico.</li>
+      <li><b>Demonstração animada de cada exercício</b> mostrando como fazer, com as séries e repetições já prontas.</li>
+      <li><b>Registro das suas cargas</b> pra você ver a evolução treino a treino.</li>
+      <li><b>Suporte pelo WhatsApp</b> com resposta em até 24 horas úteis.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>O que não está incluso</h2>
+    <ul class="plain no">
+      <li>Ficha individualizada ou ajustes personalizados ao longo dos 50 dias: o treino é por nível, e não montado só pra você.</li>
+      <li>Plano alimentar ou acompanhamento nutricional.</li>
+      <li>Avaliação física ou devolutivas periódicas (isso faz parte do acompanhamento de aluno, depois do plano).</li>
+    </ul>
+    <p class="note">Quer um treino pensado só pra você? Depois dos 50 dias, você é convidado a virar aluno com acompanhamento individual.</p>
+  </section>
+
+  <section>
+    <h2>Como funciona</h2>
+    <ol class="steps">
+      <li>Você paga (Pix ou cartão) e o acesso é criado em menos de 1 minuto.</li>
+      <li>Abre o app pelo celular e entra com o <b>e-mail da compra</b>. Chega um código de 8 dígitos, sem senha pra lembrar.</li>
+      <li>Responde um questionário rápido: onde treina, seu nível e a sua saúde.</li>
+      <li>O app entrega a sua ficha na hora, e você começa.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Qual ficha eu recebo?</h2>
+    <div class="grid two">
+      <div class="card"><h3>Academia</h3><p>Iniciante (corpo inteiro em máquinas), intermediário e avançado (Push / Pernas / Pull). 3 treinos por semana.</p></div>
+      <div class="card"><h3>Em casa</h3><p>Iniciante e intermediário, com peso do corpo e elástico. 3 treinos por semana, de 30 a 45 minutos.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Perguntas frequentes</h2>
+    <details><summary>E se eu não gostar?</summary><p>Você tem 7 dias de garantia, contados da compra. É só pedir o reembolso pela Greenn, a plataforma de pagamento, que devolve o valor.</p></details>
+    <details><summary>Preciso saber treinar?</summary><p>Não. A ficha de iniciante foi pensada pra quem está começando ou voltando, e cada exercício tem demonstração animada. Se você marcar alguma condição de saúde no questionário, eu falo com você antes de liberar o treino, pra montar tudo com segurança.</p></details>
+    <details><summary>O que acontece depois dos 50 dias?</summary><p>O acesso ao plano termina. Perto do fim você recebe o convite pra continuar como aluno, com treino individual, ajustes e devolutiva a cada 4 semanas.</p></details>
+    <details><summary>Serve pra iPhone e Android?</summary><p>Sim. O app abre no navegador e você instala na tela inicial do celular. A página de agradecimento, depois da compra, mostra o passo a passo.</p></details>
+    <details><summary>Como funciona o suporte?</summary><p>Pelo WhatsApp, com resposta em até 24 horas úteis. É um suporte pra dúvidas sobre o treino e o app.</p></details>
+    <details><summary>As vagas são limitadas mesmo?</summary><p>Sim: são 50 vagas, e o número de vagas restantes acima é real, vem direto das vendas.</p></details>
+  </section>
+
+  <footer>
+    <p>Taranttine Junior · Taranttine Personal · Dourados/MS</p>
+    <p style="margin-top:6px;">Os seus dados de saúde são usados só pra montar o seu treino, com o seu consentimento (LGPD). Pagamento processado pela Greenn.</p>
+    <p style="margin-top:6px;"><a href="https://wa.me/5567992567211?text=Oi!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20Plano%2050%20Dias.">Dúvidas? Fale no WhatsApp</a></p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var CHECKOUT = 'https://payfast.greenn.com.br/201308/offer/4ktwQO';
+  var WA = 'https://wa.me/5567992567211?text=';
+  var status = document.getElementById('status');
+  var cta = document.getElementById('cta');
+  var alt = document.getElementById('cta-alt');
+
+  function fmt(iso) {
+    return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', timeZone: 'America/Campo_Grande' });
+  }
+  function setCta(text, href, enabled) {
+    cta.textContent = text;
+    cta.href = href || '#';
+    cta.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+  }
+
+  fetch('/.netlify/functions/plano50-status').then(function (r) { return r.json(); }).then(function (s) {
+    var pct = Math.min(100, Math.round((s.sold / s.total) * 100));
+    var bar = '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + s.total + '" aria-valuenow="' + s.sold + '"><i style="width:' + pct + '%"></i></div>';
+    if (s.state === 'open') {
+      status.innerHTML = '<strong>' + s.remaining + ' de ' + s.total + ' vagas restantes</strong> · a oferta vai até ' + fmt(s.closes_at) + bar;
+      setCta('Quero o Plano 50 Dias — R$ 39,90', CHECKOUT, true);
+    } else if (s.state === 'soon') {
+      status.innerHTML = '<strong>A oferta abre em ' + fmt(s.opens_at) + '</strong> · ' + s.total + ' vagas';
+      setCta('Abre em ' + fmt(s.opens_at), '#', false);
+      alt.hidden = false; alt.textContent = 'Quero ser avisado quando abrir';
+      alt.href = WA + encodeURIComponent('Oi! Quero ser avisado quando abrir o Plano 50 Dias.');
+    } else if (s.state === 'soldout') {
+      status.innerHTML = '<strong>Vagas esgotadas</strong> · as ' + s.total + ' vagas foram preenchidas.' + bar;
+      setCta('Vagas esgotadas', '#', false);
+      alt.hidden = false; alt.textContent = 'Quero entrar na lista de espera';
+      alt.href = WA + encodeURIComponent('Oi! Quero entrar na lista de espera do Plano 50 Dias.');
+    } else {
+      status.innerHTML = '<strong>A oferta terminou em ' + fmt(s.closes_at) + '.</strong>';
+      setCta('Oferta encerrada', '#', false);
+      alt.hidden = false; alt.textContent = 'Quero saber das próximas ofertas';
+      alt.href = WA + encodeURIComponent('Oi! Quero saber das próximas ofertas da consultoria.');
+    }
+  }).catch(function () {
+    status.textContent = 'Não consegui carregar as vagas agora. Tente de novo em instantes.';
+    setCta('Tente de novo', '#', false);
+  });
+})();
+</script>
+</body>
+</html>

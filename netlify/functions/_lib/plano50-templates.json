@@ -1,0 +1,1643 @@
+{
+ "academia_iniciante": {
+  "title": "Plano 50 Dias — Academia (Iniciante)",
+  "subtitle": "Corpo inteiro · 3x por semana · máquinas · 45-50 min",
+  "days": [
+   {
+    "label": "A",
+    "title": "Corpo inteiro A",
+    "sections": {
+     "Ativação": [
+      [
+       "EX485",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX349",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ativação Glúteo",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX322",
+       "3",
+       "12-15",
+       75,
+       "RIR 3",
+       "Quadríceps / Glúteo",
+       "Pés na largura do quadril; desça só até onde ficar confortável e mantenha o quadril no banco"
+      ],
+      [
+       "EX415",
+       "3",
+       "12-15",
+       75,
+       "RIR 3",
+       "Peitoral",
+       "Costas apoiadas no encosto e ombros para trás"
+      ],
+      [
+       "EX2040",
+       "3",
+       "12-15",
+       75,
+       "RIR 3",
+       "Costas",
+       "Peito aberto; puxe a barra até a altura do queixo, sem balançar o tronco"
+      ],
+      [
+       "EX2024",
+       "3",
+       "12-15",
+       60,
+       "RIR 3",
+       "Glúteo",
+       "Contraia o glúteo no topo, sem arquear a lombar"
+      ],
+      [
+       "EX226",
+       "2",
+       "12-15",
+       60,
+       "RIR 3",
+       "Ombros",
+       "Costas apoiadas no encosto"
+      ],
+      [
+       "EX054",
+       "3",
+       "20-30s",
+       40,
+       "Isométrico",
+       "Core",
+       "Corpo em linha reta, abdômen firme"
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1016",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1245",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "B",
+    "title": "Corpo inteiro B",
+    "sections": {
+     "Ativação": [
+      [
+       "EX1060",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX252",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ombro estável",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX294",
+       "3",
+       "12-15",
+       60,
+       "RIR 3",
+       "Quadríceps",
+       null
+      ],
+      [
+       "EX326",
+       "3",
+       "12-15",
+       60,
+       "RIR 3",
+       "Posterior de coxa",
+       "Controle a volta; movimento lento"
+      ],
+      [
+       "EX2039",
+       "3",
+       "12-15",
+       75,
+       "RIR 3",
+       "Peitoral",
+       null
+      ],
+      [
+       "EX180",
+       "3",
+       "12-15",
+       75,
+       "RIR 3",
+       "Costas",
+       "Ombros para trás e para baixo"
+      ],
+      [
+       "EX449",
+       "2",
+       "12-15",
+       45,
+       "RIR 3",
+       "Tríceps",
+       "Cotovelo colado ao corpo"
+      ],
+      [
+       "EX040",
+       "3",
+       "10 cada lado",
+       40,
+       "RIR 3",
+       "Core",
+       "Lombar colada no chão; movimento lento"
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1431",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1347",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "C",
+    "title": "Corpo inteiro C",
+    "sections": {
+     "Ativação": [
+      [
+       "EX485",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX349",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ativação Glúteo",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX322",
+       "3",
+       "12-15",
+       75,
+       "RIR 3",
+       "Quadríceps / Glúteo",
+       null
+      ],
+      [
+       "EX291",
+       "3",
+       "15",
+       50,
+       "RIR 3",
+       "Glúteo médio",
+       null
+      ],
+      [
+       "EX2040",
+       "3",
+       "12-15",
+       75,
+       "RIR 3",
+       "Costas",
+       null
+      ],
+      [
+       "EX226",
+       "3",
+       "12-15",
+       60,
+       "RIR 3",
+       "Ombros",
+       null
+      ],
+      [
+       "EX098",
+       "2",
+       "12-15",
+       45,
+       "RIR 3",
+       "Bíceps",
+       null
+      ],
+      [
+       "EX358",
+       "3",
+       "15-20",
+       45,
+       "RIR 3",
+       "Panturrilha",
+       null
+      ],
+      [
+       "EX2061",
+       "2",
+       "20s cada lado",
+       40,
+       "Isométrico",
+       "Core",
+       "Corpo em linha reta, quadril alto"
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1016",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1121",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   }
+  ]
+ },
+ "academia_intermediario": {
+  "title": "Plano 50 Dias — Academia (Intermediário)",
+  "subtitle": "Push / Pernas / Pull · 3x por semana · 50-60 min",
+  "days": [
+   {
+    "label": "A",
+    "title": "Push — Peito, Ombro e Tríceps",
+    "sections": {
+     "Ativação": [
+      [
+       "EX252",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ombro estável",
+       null
+      ],
+      [
+       "EX1060",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX2044",
+       "4",
+       "8-10",
+       105,
+       "RIR 2",
+       "Peitoral",
+       "Rack com pinos de segurança se treinar sozinho; pegada média, escápulas firmes"
+      ],
+      [
+       "EX412",
+       "3",
+       "10-12",
+       90,
+       "RIR 2",
+       "Peitoral",
+       null
+      ],
+      [
+       "EX225",
+       "3",
+       "10-12",
+       75,
+       "RIR 2",
+       "Ombros",
+       "Sentado, costas apoiadas"
+      ],
+      [
+       "EX241",
+       "3",
+       "12-15",
+       45,
+       "RIR 1",
+       "Ombros",
+       null
+      ],
+      [
+       "EX449",
+       "3",
+       "12-15",
+       45,
+       "RIR 1",
+       "Tríceps",
+       null
+      ],
+      [
+       "EX2047",
+       "3",
+       "10-12",
+       60,
+       "RIR 1",
+       "Tríceps",
+       "Cotovelos fixos; desça controlando"
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1245",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1137",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "B",
+    "title": "Pernas e Glúteo",
+    "sections": {
+     "Ativação": [
+      [
+       "EX485",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX349",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ativação Glúteo",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX1110",
+       "4",
+       "8-10",
+       105,
+       "RIR 2",
+       "Quadríceps / Glúteo",
+       "Smith com trava de segurança; desça até 90° e mantenha os joelhos alinhados"
+      ],
+      [
+       "EX333",
+       "3",
+       "10-12",
+       90,
+       "RIR 2",
+       "Posterior / Glúteo",
+       "Coluna neutra, quadril para trás"
+      ],
+      [
+       "EX294",
+       "3",
+       "12-15",
+       60,
+       "RIR 1",
+       "Quadríceps",
+       null
+      ],
+      [
+       "EX326",
+       "3",
+       "12-15",
+       60,
+       "RIR 1",
+       "Posterior de coxa",
+       null
+      ],
+      [
+       "EX301",
+       "3",
+       "12-15",
+       60,
+       "RIR 1",
+       "Glúteo",
+       "Contraia o glúteo por 1 segundo no topo"
+      ],
+      [
+       "EX358",
+       "4",
+       "15-20",
+       45,
+       "RIR 1",
+       "Panturrilha",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1431",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1016",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1347",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "C",
+    "title": "Pull — Costas e Bíceps",
+    "sections": {
+     "Ativação": [
+      [
+       "EX252",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ombro estável",
+       null
+      ],
+      [
+       "EX198",
+       "2",
+       "20",
+       30,
+       "Ativação",
+       "Escápula",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX165",
+       "4",
+       "8-10",
+       90,
+       "RIR 2",
+       "Costas",
+       "Peito aberto; sem balançar o tronco"
+      ],
+      [
+       "EX180",
+       "3",
+       "10-12",
+       75,
+       "RIR 2",
+       "Costas",
+       null
+      ],
+      [
+       "EX193",
+       "3",
+       "10 cada lado",
+       60,
+       "RIR 2",
+       "Costas",
+       null
+      ],
+      [
+       "EX2021",
+       "3",
+       "15",
+       45,
+       "RIR 1",
+       "Ombro posterior",
+       null
+      ],
+      [
+       "EX088",
+       "3",
+       "10-12",
+       45,
+       "RIR 1",
+       "Bíceps",
+       null
+      ],
+      [
+       "EX098",
+       "3",
+       "12",
+       45,
+       "RIR 1",
+       "Bíceps / Antebraço",
+       null
+      ],
+      [
+       "EX054",
+       "3",
+       "30-40s",
+       40,
+       "Isométrico",
+       "Core",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1121",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1049",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   }
+  ]
+ },
+ "academia_avancado": {
+  "title": "Plano 50 Dias — Academia (Avançado)",
+  "subtitle": "Push / Pernas / Pull · 3x por semana · 60-70 min",
+  "days": [
+   {
+    "label": "A",
+    "title": "Push — Peito, Ombro e Tríceps",
+    "sections": {
+     "Ativação": [
+      [
+       "EX252",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ombro estável",
+       null
+      ],
+      [
+       "EX1060",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX2044",
+       "5",
+       "5-7",
+       150,
+       "RIR 1-2",
+       "Peitoral (força)",
+       "Rack com pinos de segurança se treinar sozinho"
+      ],
+      [
+       "EX412",
+       "4",
+       "8-10",
+       90,
+       "RIR 1",
+       "Peitoral",
+       null
+      ],
+      [
+       "EX225",
+       "4",
+       "8-10",
+       90,
+       "RIR 1",
+       "Ombros",
+       null
+      ],
+      [
+       "EX399",
+       "3",
+       "12-15",
+       null,
+       "RIR 1",
+       "Peitoral",
+       null
+      ],
+      [
+       "EX241",
+       "4",
+       "15",
+       null,
+       "RIR 0-1",
+       "Ombros",
+       null
+      ],
+      [
+       "EX449",
+       "3",
+       "12-15",
+       75,
+       "RIR 0-1",
+       "Tríceps",
+       null
+      ],
+      [
+       "EX2047",
+       "3",
+       "10-12",
+       60,
+       "RIR 1",
+       "Tríceps",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1245",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1137",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "B",
+    "title": "Pernas e Glúteo",
+    "sections": {
+     "Ativação": [
+      [
+       "EX485",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX349",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ativação Glúteo",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX1110",
+       "5",
+       "5-7",
+       150,
+       "RIR 1-2",
+       "Quadríceps / Glúteo (força)",
+       "Smith com trava de segurança; desça até 90° e mantenha os joelhos alinhados"
+      ],
+      [
+       "EX2038",
+       "4",
+       "8-10",
+       120,
+       "RIR 1-2",
+       "Posterior / Glúteo",
+       "Coluna neutra, barra rente às pernas"
+      ],
+      [
+       "EX2019",
+       "3",
+       "10 cada lado",
+       90,
+       "RIR 1",
+       "Quadríceps / Glúteo",
+       null
+      ],
+      [
+       "EX294",
+       "3",
+       "12-15",
+       null,
+       "RIR 0-1",
+       "Quadríceps",
+       null
+      ],
+      [
+       "EX326",
+       "3",
+       "12-15",
+       75,
+       "RIR 0-1",
+       "Posterior de coxa",
+       null
+      ],
+      [
+       "EX319",
+       "3",
+       "10-12",
+       90,
+       "RIR 1",
+       "Glúteo",
+       null
+      ],
+      [
+       "EX358",
+       "4",
+       "15-20",
+       45,
+       "RIR 0-1",
+       "Panturrilha",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1431",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1016",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1347",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "C",
+    "title": "Pull — Costas e Bíceps",
+    "sections": {
+     "Ativação": [
+      [
+       "EX252",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ombro estável",
+       null
+      ],
+      [
+       "EX198",
+       "2",
+       "20",
+       30,
+       "Ativação",
+       "Escápula",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX165",
+       "5",
+       "6-8",
+       120,
+       "RIR 1-2",
+       "Costas (força)",
+       null
+      ],
+      [
+       "EX2064",
+       "4",
+       "6-8",
+       120,
+       "RIR 1-2",
+       "Costas (força)",
+       "Coluna neutra, barra perto do corpo; reduza a carga se sentir a lombar"
+      ],
+      [
+       "EX193",
+       "3",
+       "10 cada lado",
+       null,
+       "RIR 1",
+       "Costas",
+       null
+      ],
+      [
+       "EX180",
+       "3",
+       "10-12",
+       75,
+       "RIR 1",
+       "Costas",
+       null
+      ],
+      [
+       "EX2021",
+       "3",
+       "15",
+       60,
+       "RIR 0-1",
+       "Ombro posterior",
+       null
+      ],
+      [
+       "EX088",
+       "3",
+       "10-12",
+       null,
+       "RIR 0-1",
+       "Bíceps",
+       null
+      ],
+      [
+       "EX098",
+       "3",
+       "12",
+       60,
+       "RIR 0-1",
+       "Bíceps / Antebraço",
+       null
+      ],
+      [
+       "EX054",
+       "3",
+       "40-50s",
+       40,
+       "Isométrico",
+       "Core",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1121",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1049",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   }
+  ]
+ },
+ "casa_iniciante": {
+  "title": "Plano 50 Dias — Em Casa (Iniciante)",
+  "subtitle": "Corpo inteiro · 3x por semana · peso do corpo e elástico · 30-40 min",
+  "days": [
+   {
+    "label": "A",
+    "title": "Corpo inteiro A",
+    "sections": {
+     "Ativação": [
+      [
+       "EX485",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX349",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ativação Glúteo",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX1775",
+       "3",
+       "12-15",
+       50,
+       "RIR 3",
+       "Quadríceps / Glúteo",
+       "Pés na largura dos ombros; desça até onde ficar confortável"
+      ],
+      [
+       "EX1041",
+       "3",
+       "10-12",
+       50,
+       "RIR 3",
+       "Peitoral",
+       "Flexão na parede; corpo em linha reta"
+      ],
+      [
+       "EX1699",
+       "3",
+       "12-15",
+       50,
+       "RIR 3",
+       "Costas",
+       "Sentado(a) no chão, elástico nos pés; cotovelos para trás"
+      ],
+      [
+       "EX1786",
+       "3",
+       "12 cada lado",
+       45,
+       "RIR 3",
+       "Glúteo",
+       null
+      ],
+      [
+       "EX054",
+       "3",
+       "20-30s",
+       40,
+       "Isométrico",
+       "Core",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1016",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1245",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "B",
+    "title": "Corpo inteiro B",
+    "sections": {
+     "Ativação": [
+      [
+       "EX1060",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX1020",
+       "2",
+       "10 passos cada lado",
+       30,
+       "Ativação",
+       "Glúteo médio",
+       "Mini band ou elástico acima dos joelhos"
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX1208",
+       "3",
+       "12-15",
+       50,
+       "RIR 3",
+       "Quadríceps / Glúteo",
+       "Elástico sob os pés e nos ombros/mãos"
+      ],
+      [
+       "EX1201",
+       "3",
+       "12-15",
+       50,
+       "RIR 3",
+       "Ombros",
+       "Pise no elástico; empurre acima da cabeça"
+      ],
+      [
+       "EX161",
+       "3",
+       "12-15",
+       50,
+       "RIR 3",
+       "Costas",
+       "Prenda o elástico no alto (porta) e puxe até o peito"
+      ],
+      [
+       "EX301",
+       "3",
+       "12-15",
+       45,
+       "RIR 3",
+       "Glúteo",
+       "Contraia o glúteo no topo"
+      ],
+      [
+       "EX040",
+       "3",
+       "10 cada lado",
+       40,
+       "RIR 3",
+       "Core",
+       "Lombar colada no chão"
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1431",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1121",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "C",
+    "title": "Corpo inteiro C",
+    "sections": {
+     "Ativação": [
+      [
+       "EX485",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX349",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ativação Glúteo",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX1413",
+       "3",
+       "8 cada perna",
+       50,
+       "RIR 3",
+       "Quadríceps / Glúteo",
+       "Passos curtos e controlados"
+      ],
+      [
+       "EX1228",
+       "3",
+       "12-15",
+       50,
+       "RIR 3",
+       "Peitoral",
+       "Elástico passando pelas costas"
+      ],
+      [
+       "EX1222",
+       "3",
+       "15",
+       45,
+       "RIR 3",
+       "Ombro posterior",
+       null
+      ],
+      [
+       "EX1681",
+       "3",
+       "15-20",
+       40,
+       "RIR 3",
+       "Glúteo médio",
+       null
+      ],
+      [
+       "EX2061",
+       "2",
+       "20s cada lado",
+       40,
+       "Isométrico",
+       "Core",
+       null
+      ],
+      [
+       "EX1343",
+       "3",
+       "15-20",
+       40,
+       "RIR 3",
+       "Panturrilha",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1347",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1049",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   }
+  ]
+ },
+ "casa_intermediario": {
+  "title": "Plano 50 Dias — Em Casa (Intermediário)",
+  "subtitle": "Inferior / Superior / Corpo inteiro · 3x por semana · peso do corpo e elástico · 35-45 min",
+  "days": [
+   {
+    "label": "A",
+    "title": "Inferior",
+    "sections": {
+     "Ativação": [
+      [
+       "EX485",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX1020",
+       "2",
+       "10 passos cada lado",
+       30,
+       "Ativação",
+       "Glúteo médio",
+       "Mini band ou elástico acima dos joelhos"
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX2014",
+       "4",
+       "10 cada lado",
+       60,
+       "RIR 2",
+       "Quadríceps / Glúteo",
+       "Pé de trás apoiado num sofá ou cadeira firme"
+      ],
+      [
+       "EX1208",
+       "4",
+       "12-15",
+       50,
+       "RIR 2",
+       "Quadríceps / Glúteo",
+       null
+      ],
+      [
+       "EX1212",
+       "3",
+       "12-15",
+       60,
+       "RIR 2",
+       "Posterior / Glúteo",
+       "Elástico sob os pés; coluna neutra, quadril para trás"
+      ],
+      [
+       "EX299",
+       "3",
+       "12-15",
+       50,
+       "RIR 1",
+       "Glúteo",
+       "Pés elevados num sofá ou cadeira"
+      ],
+      [
+       "EX1681",
+       "3",
+       "15-20",
+       40,
+       "RIR 1",
+       "Glúteo médio",
+       null
+      ],
+      [
+       "EX1343",
+       "3",
+       "15-20",
+       40,
+       "RIR 1",
+       "Panturrilha",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1016",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1431",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1347",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "B",
+    "title": "Superior",
+    "sections": {
+     "Ativação": [
+      [
+       "EX252",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ombro estável",
+       null
+      ],
+      [
+       "EX1060",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX1044",
+       "4",
+       "8-12",
+       60,
+       "RIR 2",
+       "Peitoral",
+       "Se precisar, apoie os joelhos"
+      ],
+      [
+       "EX1699",
+       "4",
+       "12-15",
+       50,
+       "RIR 2",
+       "Costas",
+       null
+      ],
+      [
+       "EX1201",
+       "3",
+       "12-15",
+       50,
+       "RIR 2",
+       "Ombros",
+       null
+      ],
+      [
+       "EX161",
+       "3",
+       "12-15",
+       50,
+       "RIR 2",
+       "Costas",
+       "Prenda o elástico no alto (porta)"
+      ],
+      [
+       "EX1175",
+       "3",
+       "12-15",
+       40,
+       "RIR 1",
+       "Bíceps",
+       null
+      ],
+      [
+       "EX1202",
+       "3",
+       "15",
+       40,
+       "RIR 1",
+       "Tríceps",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1245",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1049",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1121",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   },
+   {
+    "label": "C",
+    "title": "Corpo inteiro + Core",
+    "sections": {
+     "Ativação": [
+      [
+       "EX1060",
+       "2",
+       "10 cada lado",
+       30,
+       "Mobilidade",
+       "Mobilidade",
+       null
+      ],
+      [
+       "EX349",
+       "2",
+       "15",
+       30,
+       "Ativação",
+       "Ativação Glúteo",
+       null
+      ]
+     ],
+     "Treino Principal": [
+      [
+       "EX1775",
+       "4",
+       "15-20",
+       45,
+       "RIR 1",
+       "Quadríceps / Glúteo",
+       "Desça em 3 segundos e suba forte"
+      ],
+      [
+       "EX1044",
+       "3",
+       "8-12",
+       50,
+       "RIR 2",
+       "Peitoral",
+       null
+      ],
+      [
+       "EX1699",
+       "3",
+       "12-15",
+       50,
+       "RIR 2",
+       "Costas",
+       null
+      ],
+      [
+       "EX1786",
+       "3",
+       "12 cada lado",
+       45,
+       "RIR 1",
+       "Glúteo",
+       null
+      ],
+      [
+       "EX044",
+       "3",
+       "20 cada lado",
+       40,
+       "RIR 1",
+       "Core + Cardio",
+       null
+      ],
+      [
+       "EX2061",
+       "3",
+       "25s cada lado",
+       40,
+       "Isométrico",
+       "Core",
+       null
+      ],
+      [
+       "EX040",
+       "3",
+       "10 cada lado",
+       40,
+       "RIR 1",
+       "Core",
+       null
+      ]
+     ],
+     "Alongamento": [
+      [
+       "EX1016",
+       "2",
+       "20-30s cada lado",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ],
+      [
+       "EX1245",
+       "2",
+       "20-30s",
+       15,
+       "Alongamento",
+       "Alongamento",
+       null
+      ]
+     ]
+    }
+   }
+  ]
+ }
+}

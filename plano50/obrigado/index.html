@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Compra recebida — Plano 50 Dias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#080808; --surface:#101010; --border:#2a2a2a; --silver:#c8c8c8; --text:#f0f0f0; --muted:#9a9a9a; --gold:#b8913f; --gold-light:#d6b25e; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 640px; margin: 0 auto; padding: 32px 20px 48px; }
+.brand { text-align: center; font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 6px; }
+h1 { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 42px; letter-spacing: 2px; margin: 22px 0 8px; text-align: center; }
+h1 em { font-style: normal; color: var(--gold-light); }
+.lead { text-align: center; color: var(--silver); font-size: 15.5px; }
+ol { list-style: none; counter-reset: s; margin: 26px 0 0; display: grid; gap: 10px; }
+li { counter-increment: s; position: relative; padding: 14px 16px 14px 54px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; font-size: 14.5px; color: var(--silver); }
+li::before { content: counter(s); position: absolute; left: 16px; top: 12px; width: 26px; height: 26px; border-radius: 50%; background: var(--gold); color: #111; font-weight: 700; font-size: 14px; display: grid; place-items: center; }
+li b { color: var(--text); }
+.cta { display: block; margin: 24px 0 0; padding: 17px 20px; border-radius: 12px; text-align: center; text-decoration: none; font-weight: 700; color: #111; background: linear-gradient(135deg, var(--gold-light), var(--gold)); }
+.cta:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+.box { margin-top: 18px; padding: 14px 16px; border: 1px dashed var(--border); border-radius: 12px; font-size: 13.5px; color: var(--muted); }
+.box a { color: var(--gold-light); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">TARANTTINE</div>
+  <h1>Compra <em>recebida!</em></h1>
+  <p class="lead">Se o pagamento foi aprovado, o seu acesso é criado em menos de 1 minuto. Siga os passos abaixo pra entrar.</p>
+
+  <ol>
+    <li>Abra o app no <b>celular</b>: <b>taranttinepersonal.netlify.app/app/</b></li>
+    <li>Adicione o app à <b>tela inicial</b>.<br><b>iPhone (Safari):</b> Compartilhar → "Adicionar à Tela de Início".<br><b>Android (Chrome):</b> menu de 3 pontinhos → "Instalar app".</li>
+    <li>Abra o app <b>pelo ícone</b> e digite o <b>mesmo e-mail que você usou na compra</b>.</li>
+    <li>Vai chegar um <b>código de 8 dígitos</b> nesse e-mail (olhe também em Spam e Promoções). Digite o código, sem senha pra lembrar.</li>
+    <li>Responda o <b>questionário</b> sobre onde treina, o seu nível e a sua saúde. O app entrega a sua ficha na hora.</li>
+  </ol>
+
+  <a class="cta" href="/app/">Abrir o app</a>
+
+  <div class="box">
+    Seu acesso vale por <b>50 dias corridos</b>, a partir da compra. Pagou e o e-mail do código não chegou? Chame no WhatsApp:
+    <a href="https://wa.me/5567992567211?text=Oi!%20Comprei%20o%20Plano%2050%20Dias%20e%20preciso%20de%20ajuda%20para%20entrar.">falar com o Taranttine</a>.
+    Respondo em até 24 horas úteis.
+  </div>
+</div>
+</body>
+</html>

@@ -11,6 +11,8 @@ import { renderAnamneseNutri } from './pages/anamneseNutri.js';
 import { renderCheckin } from './pages/checkin.js';
 import { renderTermo } from './pages/termo.js';
 import { renderExames } from './pages/exames.js';
+import { plano50Gate } from './lib/plano50.js';
+import { renderPlano50Inicio, renderPlano50Hold, renderPlano50Expirado } from './pages/plano50.js';
 
 // The trainer logs in through this same /app/ form (Supabase's redirect
 // allow-list only reliably resolves to /app/, not /admin/, regardless of
@@ -41,7 +43,23 @@ route('/login', async () => {
 route('/treino', async () => {
   const session = await getSession();
   if (!session) return navigate('/login');
+  // Plano 50 Dias: questionário no primeiro acesso, triagem e fim do acesso.
+  // Quem não é do plano (todos os alunos atuais) passa direto.
+  const gate = await plano50Gate(session);
+  if (gate.state === 'onboard') return navigate('/plano50-inicio');
+  if (gate.state === 'hold') return renderPlano50Hold();
+  if (gate.state === 'expired') return renderPlano50Expirado();
   renderWorkout(session);
+});
+
+route('/plano50-inicio', async () => {
+  const session = await getSession();
+  if (!session) return navigate('/login');
+  const gate = await plano50Gate(session);
+  if (gate.state === 'ok') return navigate('/treino');
+  if (gate.state === 'expired') return renderPlano50Expirado();
+  if (gate.state === 'hold') return renderPlano50Hold();
+  renderPlano50Inicio(session);
 });
 
 route('/progresso', async () => {
