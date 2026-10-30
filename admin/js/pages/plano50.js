@@ -146,6 +146,19 @@ export async function renderPlano50Admin(main) {
     renderPlano50Admin(main);
   }));
 
+  main.querySelectorAll('[data-extend]').forEach(btn => btn.addEventListener('click', async () => {
+    const row = rows.find(r => r.p.id === btn.dataset.extend);
+    if (!row) return;
+    if (!confirm('Somar 7 dias ao acesso desta pessoa?')) return;
+    btn.disabled = true;
+    // se já venceu, os 7 dias contam a partir de hoje; se não, a partir do vencimento atual
+    const base = row.p.access_expires_at && new Date(row.p.access_expires_at) > new Date() ? new Date(row.p.access_expires_at) : new Date();
+    const next = new Date(base.getTime() + 7 * 86400000).toISOString();
+    const { error } = await supabase.from('profiles').update({ access_expires_at: next, active: true }).eq('id', row.p.id);
+    if (error) { console.error(error); btn.disabled = false; alert('Não consegui salvar.'); return; }
+    renderPlano50Admin(main);
+  }));
+
   main.querySelectorAll('[data-converted]').forEach(btn => btn.addEventListener('click', async () => {
     if (!confirm('Marcar como aluno efetivo? O acesso deixa de vencer e a pessoa sai desta lista (a ficha atual continua; ajuste na aba Treino).')) return;
     btn.disabled = true;
@@ -176,6 +189,7 @@ export function rowHtml({ p, order, status, left }) {
       <div class="admin-row-actions">
         ${wa ? `<a class="admin-btn primary" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
         ${canInvite && !p.plan_invited_at ? `<button class="admin-btn" data-invited="${p.id}">Marcar convidado</button>` : ''}
+        ${status !== 'reembolsado' ? `<button class="admin-btn" data-extend="${p.id}" title="Soma 7 dias ao acesso (ex.: espera da triagem)">+7 dias</button>` : ''}
         ${status !== 'reembolsado' ? `<button class="admin-btn" data-converted="${p.id}">Virou aluno</button>` : ''}
         <a class="admin-btn" href="#/cliente/${p.id}/treino">Treino</a>
       </div>
