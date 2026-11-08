@@ -83,6 +83,7 @@ function summarize(client, data) {
     client, data, status, lastDate, days,
     subir: all.filter(e => e.suggestion.action === 'subir').length,
     plato: all.filter(e => e.suggestion.action === 'plato').length,
+    dor: all.filter(e => e.last?.feeling === 'dor').length,
     change: !!data.info?.isChange,
     deloadApplied: !!data.deloadApplied,
     deloadSuggested: !!data.deloadSuggested && !data.deloadApplied,
@@ -113,7 +114,7 @@ function cardHtml(i) {
       <div class="pc-card-body">
         ${data?.program ? `
           <div>${i.lastDate ? `Último treino lançado: <b>${fmtDate(i.lastDate)}</b> (${i.days === 0 ? 'hoje' : `há ${i.days} dia${i.days === 1 ? '' : 's'}`})` : 'Nenhum treino lançado no painel ainda.'}</div>
-          <div>${i.subir ? `<span class="pc-ok">↑ ${i.subir} carga${i.subir === 1 ? '' : 's'} p/ subir</span>` : ''}${i.plato ? ` <span class="pc-warn">⚠ ${i.plato} sem progresso</span>` : ''}${!i.subir && !i.plato ? '<span class="pc-dim">Sem alertas de progressão.</span>' : ''}</div>`
+          <div>${i.subir ? `<span class="pc-ok">↑ ${i.subir} carga${i.subir === 1 ? '' : 's'} p/ subir</span>` : ''}${i.plato ? ` <span class="pc-warn">⚠ ${i.plato} sem progresso</span>` : ''}${i.dor ? ` <span class="pc-warn">⚠ ${i.dor} com dor/incômodo</span>` : ''}${!i.subir && !i.plato && !i.dor ? '<span class="pc-dim">Sem alertas de progressão.</span>' : ''}</div>`
         : `<div>Sem ficha ativa. Monte em <a href="#/cliente/${client.id}/treino">Treino</a>.</div>`}
       </div>
       <div class="pc-card-actions">

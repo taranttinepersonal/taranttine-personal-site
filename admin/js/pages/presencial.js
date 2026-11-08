@@ -1,6 +1,6 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
 import {
-  LEVEL_BANDS, validatePhases, parseNum, fmt, weeklyVolume, bandFor, volumeStatus,
+  LEVEL_BANDS, FEELINGS, feelingLabel, validatePhases, parseNum, fmt, weeklyVolume, bandFor, volumeStatus,
 } from '../../../app/js/lib/progression.js';
 import { loadPresencialClient, loadEvolutionExtras, isMissingColumn } from '../lib/presencialData.js';
 import { buildEvolution, evolutionHtml, evolutionToWhatsApp, PERIODS } from '../../../app/js/lib/evolutionDoc.js';
@@ -217,6 +217,7 @@ function buildRows(d, ui, clientId) {
       logged_on: ui.date,
       reps_done: reps != null ? Math.round(reps) : null,
       rir_done: rir != null ? Math.round(rir) : null,
+      feeling: FEELINGS.some(f => f.key === v.feeling) ? v.feeling : null,
       week_no: d.program.current_week || null,
     });
   }
@@ -323,14 +324,29 @@ function exerciseRow(ex, ui, d) {
         ${s.nextLoad != null ? `<div class="pc-target ${a.cls}"><span>${a.icon} Meta</span><b>${fmtKg(s.nextLoad)} kg</b>
           ${['sem-dado', 'registrar'].includes(s.action) ? '' : `<button class="pc-use" data-use="${ex.id}">usar</button>`}</div>` : ''}
       </div>
-      <div class="pc-ex-last">${previous ? `Última: <b>${esc(fmtLoad(previous.load_value))} kg</b>${previous.reps_done != null ? ` × ${previous.reps_done}` : ''}${previous.rir_done != null ? ` @RIR ${previous.rir_done}` : ''} <span${previous.estimated ? ' title="Data aproximada: carga importada da planilha"' : ''}>(${previous.estimated ? '~' : ''}${fmtDate(previous.logged_on)})</span>` : 'Sem lançamentos anteriores.'}</div>
+      <div class="pc-ex-last">${previous ? `Última: <b>${esc(fmtLoad(previous.load_value))} kg</b>${previous.reps_done != null ? ` × ${previous.reps_done}` : ''}${previous.rir_done != null ? ` @RIR ${previous.rir_done}` : ''}${previous.feeling ? ` · ${esc(feelingLabel(previous.feeling))}` : ''} <span${previous.estimated ? ' title="Data aproximada: carga importada da planilha"' : ''}>(${previous.estimated ? '~' : ''}${fmtDate(previous.logged_on)})</span>` : 'Sem lançamentos anteriores.'}</div>
       <div class="pc-ex-why ${a.cls}">${a.label}: ${esc(s.reason)}</div>
       <div class="pc-inputs">
         <label>Carga (kg)<input class="pc-in" data-we="${ex.id}" data-f="load" inputmode="decimal" placeholder="${s.nextLoad != null ? fmtKg(s.nextLoad) : '—'}" value="${val('load', todays?.load_value)}"></label>
-        <label>Reps<input class="pc-in" data-we="${ex.id}" data-f="reps" inputmode="numeric" value="${val('reps', todays?.reps_done)}"></label>
-        <label>RIR<input class="pc-in" data-we="${ex.id}" data-f="rir" inputmode="numeric" value="${val('rir', todays?.rir_done)}"></label>
+        <label>Reps${wheel(ex.id, 'reps', dr.reps ?? todays?.reps_done, 1, 40)}</label>
+        <label>RIR${wheel(ex.id, 'rir', dr.rir ?? todays?.rir_done, 0, 6)}</label>
+        <label class="pc-feel">Sensação do exercício${feelSelect(ex.id, dr.feeling ?? todays?.feeling)}</label>
       </div>
     </div>`;
+}
+
+// Roleta (select nativo: no iPad/iPhone abre a roleta do sistema) pra reps e RIR.
+// Valor fora da lista (ex.: 60 reps lançadas antes) entra como opção extra, sem perder o dado.
+function wheel(weId, field, current, min, max) {
+  const cur = current == null ? '' : String(current);
+  const opts = [];
+  for (let i = min; i <= max; i++) opts.push(String(i));
+  if (cur !== '' && !opts.includes(cur)) opts.push(cur);
+  return `<select class="pc-in" data-we="${weId}" data-f="${field}"><option value="">—</option>${opts.map(o => `<option value="${esc(o)}"${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+}
+
+function feelSelect(weId, current) {
+  return `<select class="pc-in pc-feel-sel ${current || ''}" data-we="${weId}" data-f="feeling"><option value="">—</option>${FEELINGS.map(f => `<option value="${f.key}"${f.key === current ? ' selected' : ''}>${esc(f.label)}</option>`).join('')}</select>`;
 }
 
 // ---------- Progressão: resumo da semana, sinais, fases, sugestões e matriz ----------
@@ -357,7 +373,7 @@ function progressaoHtml(d) {
         ${day.exercises.map(ex => {
           const a = ACTIONS[ex.suggestion.action];
           return `<div class="pc-trow">
-            <div class="pc-tname">${esc(ex.name)}<small>${ex.last ? `${esc(fmtLoad(ex.last.load_value))} kg${ex.last.reps_done != null ? ` × ${ex.last.reps_done}` : ''}${ex.last.rir_done != null ? ` @RIR ${ex.last.rir_done}` : ''} · ${ex.last.estimated ? '~' : ''}${fmtDate(ex.last.logged_on)}` : 'sem lançamentos'}</small></div>
+            <div class="pc-tname">${esc(ex.name)}<small>${ex.last ? `${esc(fmtLoad(ex.last.load_value))} kg${ex.last.reps_done != null ? ` × ${ex.last.reps_done}` : ''}${ex.last.rir_done != null ? ` @RIR ${ex.last.rir_done}` : ''} · ${ex.last.estimated ? '~' : ''}${fmtDate(ex.last.logged_on)}${ex.last.feeling ? ` · ${esc(feelingLabel(ex.last.feeling))}` : ''}` : 'sem lançamentos'}${ex.last?.feeling === 'dor' ? `<br><span class="pc-feel-warn">⚠ dor ou incômodo na última sessão</span>` : ''}${ex.notWorking >= 2 ? `<br><span class="pc-feel-warn">⚠ não pegou em ${ex.notWorking} sessões seguidas: considere trocar o exercício</span>` : ''}</small></div>
             <div class="pc-tsug ${a.cls}" title="${esc(ex.suggestion.reason)}">${a.icon} ${a.label}${ex.suggestion.nextLoad != null && !['sem-dado', 'registrar'].includes(ex.suggestion.action) ? ` · ${fmtKg(ex.suggestion.nextLoad)} kg` : ''}</div>
           </div>`;
         }).join('')}

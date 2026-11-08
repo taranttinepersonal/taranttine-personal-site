@@ -36,6 +36,25 @@ export const PROGRESSION = {
   fallbackDeloadFactor: 0.65,
 };
 
+// Sensação do exercício na sessão (marcada pelo treinador junto da carga)
+export const FEELINGS = [
+  { key: 'pegou_bem', label: 'Pegou bem' },
+  { key: 'regular', label: 'Regular' },
+  { key: 'nao_pegou', label: 'Não pegou' },
+  { key: 'dor', label: 'Dor / incômodo' },
+];
+export function feelingLabel(key) { return FEELINGS.find(f => f.key === key)?.label || ''; }
+
+// quantas sessões seguidas (só as que têm sensação marcada) o exercício "não pegou"
+export function notWorkingStreak(history = []) {
+  let n = 0;
+  for (const h of history) {
+    if (!h.feeling) continue;
+    if (h.feeling === 'nao_pegou') n++; else break;
+  }
+  return n;
+}
+
 export const LEVEL_BANDS = {
   iniciante: { min: 1, max: 5, label: 'Iniciante' },
   intermediario: { min: 6, max: 10, label: 'Intermediário' },
@@ -180,6 +199,14 @@ export function suggestNext({ history = [], repsRange, rirFloor = null, phase = 
     };
   }
 
+  if (latest.feeling === 'dor') {   // dor ou incômodo na última sessão: não sobe carga até o treinador avaliar
+    return {
+      action: 'manter',
+      nextLoad: load,
+      reason: 'Dor ou incômodo relatado na última sessão: não suba a carga até avaliar o exercício.',
+    };
+  }
+
   const reps = latest.reps_done;
   if (reps == null || !repsRange) {
     return { action: 'registrar', nextLoad: load, reason: 'Sem reps registradas (ou sem faixa de reps na ficha): não dá pra sugerir.' };
@@ -223,7 +250,7 @@ export function suggestNext({ history = [], repsRange, rirFloor = null, phase = 
       return {
         action: 'plato',
         nextLoad: load,
-        reason: 'Sem progresso: revise técnica → progressão de carga → só depois volume (Pirâmide).',
+        reason: 'Revise técnica → progressão de carga → só depois volume (Pirâmide).',
       };
     }
   }

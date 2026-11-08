@@ -1,6 +1,6 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
 import {
-  getPhases, weekInfo, phaseRange, phaseRepsLabel, parseRirFloor, suggestNext, deloadRecommended, PROGRESSION,
+  getPhases, weekInfo, phaseRange, phaseRepsLabel, parseRirFloor, suggestNext, deloadRecommended, notWorkingStreak, PROGRESSION,
 } from '../../../app/js/lib/progression.js';
 
 const PAGE = 1000; // limite padrão de linhas por consulta do PostgREST
@@ -8,7 +8,7 @@ const PAGE = 1000; // limite padrão de linhas por consulta do PostgREST
 // As migrações 0037/0038 ainda não rodaram: coluna ou tabela inexistente.
 export function isMissingColumn(error) {
   return !!error && (['42703', '42P01', 'PGRST204', 'PGRST205'].includes(error.code)
-    || /reps_done|rir_done|week_no|estimated|modalidade|periodization|weekly_signals/.test(error.message || ''));
+    || /reps_done|rir_done|week_no|estimated|feeling|modalidade|periodization|weekly_signals/.test(error.message || ''));
 }
 
 async function fetchAllLogs(clientId, workoutExerciseIds) {
@@ -16,7 +16,7 @@ async function fetchAllLogs(clientId, workoutExerciseIds) {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from('load_history')
-      .select('workout_exercise_id, load_value, logged_on, reps_done, rir_done, week_no, estimated')
+      .select('workout_exercise_id, load_value, logged_on, reps_done, rir_done, week_no, estimated, feeling')
       .eq('client_id', clientId)
       .in('workout_exercise_id', workoutExerciseIds)
       .order('logged_on', { ascending: false })
@@ -91,6 +91,7 @@ export async function loadPresencialClient(clientId) {
         range, repsLabel: phaseRepsLabel(w.reps, repsDelta), baseReps: w.reps,
         history,
         last: history[0] || null,
+        notWorking: notWorkingStreak(history),
         suggestion: suggestNext({ history: base, repsRange: range, rirFloor, phase: info?.phase || null, deloadApplied, deloadFactor }),
       };
     }),
