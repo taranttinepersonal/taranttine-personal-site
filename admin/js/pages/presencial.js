@@ -2,7 +2,8 @@ import { supabase } from '../../../app/js/supabaseClient.js';
 import {
   LEVEL_BANDS, validatePhases, parseNum, fmt, weeklyVolume, bandFor, volumeStatus,
 } from '../../../app/js/lib/progression.js';
-import { loadPresencialClient, isMissingColumn } from '../lib/presencialData.js';
+import { loadPresencialClient, loadEvolutionExtras, isMissingColumn } from '../lib/presencialData.js';
+import { buildEvolution, evolutionHtml, evolutionToWhatsApp, PERIODS } from '../../../app/js/lib/evolutionDoc.js';
 
 const ACTIONS = {
   subir:     { cls: 'up',    icon: '↑', label: 'Subir' },
@@ -19,7 +20,7 @@ export async function renderPresencial(main, clientId) {
   main.closest('.admin-shell')?.classList.add('wide');
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
-  const ui = { tab: 'lancar', dayIdx: 0, date: todayLocal(), draft: {}, level: null };
+  const ui = { tab: 'lancar', dayIdx: 0, date: todayLocal(), draft: {}, level: null, period: 'inicio', comment: '', extras: null };
   let d;
 
   async function reload() {
@@ -38,12 +39,27 @@ export async function renderPresencial(main, clientId) {
     const y = window.scrollY;
     main.innerHTML = pageHtml(d, ui);
     window.scrollTo(0, y);
+    if (ui.tab === 'apresentacao' && ui.extras) refreshPreview();
+  }
+
+  // ----- modo apresentação: o mesmo documento serve pra prévia na tela e pro PDF -----
+  function currentDoc() {
+    const m = buildEvolution(d, ui.extras, { period: ui.period, comment: ui.comment });
+    return { m, html: evolutionHtml(m, `${location.origin}/app/icons/icon-512.png`) };
+  }
+  function refreshPreview() {
+    const f = main.querySelector('#pc-preview');
+    if (!f) return;
+    const fit = () => { try { f.style.height = f.contentDocument.documentElement.scrollHeight + 'px'; } catch { /* sem acesso: mantém a altura */ } };
+    f.onload = () => { fit(); setTimeout(fit, 700); }; // 2ª medida: depois das fontes
+    f.srcdoc = currentDoc().html;
   }
 
   if (!(await reload())) return;
   paint();
 
   main.addEventListener('input', (ev) => {
+    if (ev.target.id === 'pc-comment') { ui.comment = ev.target.value; return; }
     const el = ev.target.closest('.pc-in');
     if (!el) return;
     const id = el.dataset.we;
@@ -56,13 +72,42 @@ export async function renderPresencial(main, clientId) {
   main.addEventListener('change', (ev) => {
     if (ev.target.id === 'pc-date') { ui.date = ev.target.value || todayLocal(); ui.draft = {}; paint(); }
     if (ev.target.id === 'pc-level') { ui.level = ev.target.value; paint(); }
+    if (ev.target.id === 'pc-period') { ui.period = ev.target.value; refreshPreview(); }
+    if (ev.target.id === 'pc-comment') { ui.comment = ev.target.value; refreshPreview(); }
   });
 
   main.addEventListener('click', async (ev) => {
-    const t = ev.target.closest('[data-tab],[data-day],[data-use],[data-fillall],[data-save],[data-week],[data-sig-save],[data-phases-save],[data-phases-reset]');
+    const t = ev.target.closest('[data-tab],[data-day],[data-use],[data-fillall],[data-save],[data-week],[data-sig-save],[data-phases-save],[data-phases-reset],[data-pdf],[data-wa],[data-copy]');
     if (!t) return;
 
-    if (t.dataset.tab) { ui.tab = t.dataset.tab; paint(); return; }
+    if (t.dataset.tab) {
+      ui.tab = t.dataset.tab; paint();
+      if (ui.tab === 'apresentacao' && !ui.extras) { ui.extras = await loadEvolutionExtras(clientId); paint(); }
+      return;
+    }
+
+    if (t.hasAttribute('data-pdf')) {
+      const { html } = currentDoc();
+      const w = window.open('', '_blank');
+      if (!w) { alert('O navegador bloqueou a nova janela. Libere pop-ups para este site e tente de novo.'); return; }
+      w.document.write(html); w.document.close();
+      const go = () => setTimeout(() => w.print(), 300);
+      w.onload = () => { const ready = w.document.fonts?.ready; ready ? ready.then(go) : go(); };
+      toast(main, 'PDF aberto em outra janela. Escolha "Salvar como PDF".');
+      return;
+    }
+    if (t.hasAttribute('data-wa')) {
+      const text = evolutionToWhatsApp(currentDoc().m);
+      let n = String(ui.extras?.phone || '').replace(/\D/g, '');
+      if (n && n.length <= 11) n = '55' + n; // celular sem DDI
+      window.open(`https://wa.me/${n}?text=${encodeURIComponent(text)}`, '_blank');
+      return;
+    }
+    if (t.hasAttribute('data-copy')) {
+      try { await navigator.clipboard.writeText(evolutionToWhatsApp(currentDoc().m)); toast(main, 'Texto copiado.'); }
+      catch { alert('Não consegui copiar. Use o botão do WhatsApp.'); }
+      return;
+    }
     if (t.dataset.day != null) { ui.dayIdx = Number(t.dataset.day); paint(); return; }
 
     if (t.dataset.use) {
@@ -216,10 +261,10 @@ function pageHtml(d, ui) {
       <a class="admin-btn" href="#/cliente/${id}/relatorio">Relatório</a>
     </div>
     <div class="pc-tabs">
-      ${[['lancar', 'Lançar treino'], ['progressao', 'Progressão'], ['volume', 'Volume']].map(([k, l]) =>
+      ${[['lancar', 'Lançar treino'], ['progressao', 'Progressão'], ['volume', 'Volume'], ['apresentacao', 'Apresentação']].map(([k, l]) =>
         `<button class="pc-tab ${ui.tab === k ? 'active' : ''}" data-tab="${k}">${l}</button>`).join('')}
     </div>
-    ${ui.tab === 'lancar' ? lancarHtml(d, ui) : ui.tab === 'progressao' ? progressaoHtml(d) : volumeHtml(d, ui)}
+    ${ui.tab === 'lancar' ? lancarHtml(d, ui) : ui.tab === 'progressao' ? progressaoHtml(d) : ui.tab === 'apresentacao' ? presentationHtml(d, ui) : volumeHtml(d, ui)}
     <div class="pc-toast" id="pc-toast"></div>
   `;
 }
@@ -466,6 +511,26 @@ function volumeHtml(d, ui) {
       <div class="pc-legend"><span class="dentro">dentro da faixa</span><span class="abaixo">abaixo</span><span class="acima">acima</span></div>
     </div>
     <div class="admin-row-sub pc-foot">Séries por semana por grupo muscular, contando cada dia da ficha uma vez. Faixas do De Salles: iniciante 1–5 · intermediário 6–10 · avançado 10–30 (quadríceps até 45). Conta só o grupo principal de cada exercício: o método conta o músculo auxiliar como ≈½ série, e isso ainda não está mapeado na biblioteca.</div>`;
+}
+
+// ---------- Apresentação: prévia do relatório + PDF + WhatsApp ----------
+
+function presentationHtml(d, ui) {
+  if (!ui.extras) return `<div class="admin-empty">Carregando dados do relatório...</div>`;
+  return `
+    <div class="admin-card admin-form pc-pres-tools">
+      <label for="pc-period">Período da evolução</label>
+      <select id="pc-period">${Object.entries(PERIODS).map(([k, v]) => `<option value="${k}" ${String(ui.period) === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
+      <label for="pc-comment">Observações do treinador (aparecem no relatório)</label>
+      <textarea id="pc-comment" placeholder="Opcional: um recado pro cliente">${esc(ui.comment)}</textarea>
+      <div class="pc-pres-actions">
+        <button class="admin-btn primary" data-pdf>Gerar PDF</button>
+        <button class="admin-btn" data-wa>Mensagem no WhatsApp</button>
+        <button class="admin-btn" data-copy>Copiar texto</button>
+      </div>
+      <div class="admin-row-sub">Pra enviar: 1) <b>Gerar PDF</b> e, na impressão, escolher "Salvar como PDF". 2) <b>Mensagem no WhatsApp</b> abre a conversa com o texto pronto: é só anexar o PDF.</div>
+    </div>
+    <iframe id="pc-preview" class="pc-preview" title="Prévia do relatório de evolução"></iframe>`;
 }
 
 // ---------- utilidades ----------

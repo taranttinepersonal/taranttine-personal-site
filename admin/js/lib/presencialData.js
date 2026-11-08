@@ -121,3 +121,19 @@ export async function loadPresencialOverview() {
   if (missing) throw missing.failed;
   return { cards, others };
 }
+
+// Dados extras do relatório de evolução (contato, composição corporal). Falha de uma
+// tabela não derruba o relatório: a seção correspondente só não aparece.
+export async function loadEvolutionExtras(clientId) {
+  const [prof, progress, skin] = await Promise.all([
+    supabase.from('profiles').select('phone, birth_date').eq('id', clientId).single(),
+    supabase.from('progress_entries').select('recorded_at, weight_kg, body_fat_pct, measurements').eq('client_id', clientId).order('recorded_at'),
+    supabase.from('skinfold_assessments').select('*').eq('client_id', clientId).order('recorded_at'),
+  ]);
+  return {
+    phone: prof.data?.phone || '',
+    birthDate: prof.data?.birth_date || null,
+    progress: progress.data || [],
+    skinfolds: skin.data || [],
+  };
+}

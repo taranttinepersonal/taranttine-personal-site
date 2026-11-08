@@ -431,3 +431,9 @@
 .pc-total { margin-top: 12px; max-width: 220px; }
 .pc-phase-actions { display: flex; gap: 8px; margin: 12px 0 6px; flex-wrap: wrap; }
 @media (max-width: 560px) { .pc-sig-grid { grid-template-columns: 1fr; } }
+
+/* ===== Presenciais: modo apresentação ===== */
+.pc-pres-tools textarea { min-height: 70px; }
+.pc-pres-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+.pc-pres-actions .admin-btn { padding: 11px 16px; font-size: 13px; }
+.pc-preview { display: block; width: 100%; max-width: 860px; min-height: 600px; margin: 4px auto 24px; border: 0; border-radius: 10px; background: #fff; box-shadow: 0 6px 30px rgba(0,0,0,.45); }
