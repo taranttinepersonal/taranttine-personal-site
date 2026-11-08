@@ -323,7 +323,7 @@ function exerciseRow(ex, ui, d) {
         ${s.nextLoad != null ? `<div class="pc-target ${a.cls}"><span>${a.icon} Meta</span><b>${fmtKg(s.nextLoad)} kg</b>
           ${['sem-dado', 'registrar'].includes(s.action) ? '' : `<button class="pc-use" data-use="${ex.id}">usar</button>`}</div>` : ''}
       </div>
-      <div class="pc-ex-last">${previous ? `Última: <b>${esc(fmtLoad(previous.load_value))} kg</b>${previous.reps_done != null ? ` × ${previous.reps_done}` : ''}${previous.rir_done != null ? ` @RIR ${previous.rir_done}` : ''} <span>(${fmtDate(previous.logged_on)})</span>` : 'Sem lançamentos anteriores.'}</div>
+      <div class="pc-ex-last">${previous ? `Última: <b>${esc(fmtLoad(previous.load_value))} kg</b>${previous.reps_done != null ? ` × ${previous.reps_done}` : ''}${previous.rir_done != null ? ` @RIR ${previous.rir_done}` : ''} <span${previous.estimated ? ' title="Data aproximada: carga importada da planilha"' : ''}>(${previous.estimated ? '~' : ''}${fmtDate(previous.logged_on)})</span>` : 'Sem lançamentos anteriores.'}</div>
       <div class="pc-ex-why ${a.cls}">${a.label}: ${esc(s.reason)}</div>
       <div class="pc-inputs">
         <label>Carga (kg)<input class="pc-in" data-we="${ex.id}" data-f="load" inputmode="decimal" placeholder="${s.nextLoad != null ? fmtKg(s.nextLoad) : '—'}" value="${val('load', todays?.load_value)}"></label>
@@ -357,7 +357,7 @@ function progressaoHtml(d) {
         ${day.exercises.map(ex => {
           const a = ACTIONS[ex.suggestion.action];
           return `<div class="pc-trow">
-            <div class="pc-tname">${esc(ex.name)}<small>${ex.last ? `${esc(fmtLoad(ex.last.load_value))} kg${ex.last.reps_done != null ? ` × ${ex.last.reps_done}` : ''}${ex.last.rir_done != null ? ` @RIR ${ex.last.rir_done}` : ''} · ${fmtDate(ex.last.logged_on)}` : 'sem lançamentos'}</small></div>
+            <div class="pc-tname">${esc(ex.name)}<small>${ex.last ? `${esc(fmtLoad(ex.last.load_value))} kg${ex.last.reps_done != null ? ` × ${ex.last.reps_done}` : ''}${ex.last.rir_done != null ? ` @RIR ${ex.last.rir_done}` : ''} · ${ex.last.estimated ? '~' : ''}${fmtDate(ex.last.logged_on)}` : 'sem lançamentos'}</small></div>
             <div class="pc-tsug ${a.cls}" title="${esc(ex.suggestion.reason)}">${a.icon} ${a.label}${ex.suggestion.nextLoad != null && !['sem-dado', 'registrar'].includes(ex.suggestion.action) ? ` · ${fmtKg(ex.suggestion.nextLoad)} kg` : ''}</div>
           </div>`;
         }).join('')}

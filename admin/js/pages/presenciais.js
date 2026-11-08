@@ -5,8 +5,9 @@ import { loadPresencialOverview, isMissingColumn } from '../lib/presencialData.j
 const STATUS = {
   parado:  { label: 'Parado',   cls: 'down', order: 0 },
   atencao: { label: 'Atenção',  cls: 'warn', order: 1 },
-  semficha: { label: 'Sem ficha', cls: 'muted', order: 2 },
-  emdia:   { label: 'Em dia',   cls: 'up',   order: 3 },
+  semlog:  { label: 'Sem lançamentos', cls: 'muted', order: 2 },
+  semficha: { label: 'Sem ficha', cls: 'muted', order: 3 },
+  emdia:   { label: 'Em dia',   cls: 'up',   order: 4 },
 };
 
 export async function renderPresenciais(main) {
@@ -73,9 +74,10 @@ export async function renderPresenciais(main) {
 function summarize(client, data) {
   if (!data || !data.program) return { client, data, status: 'semficha' };
   const all = data.days.flatMap(day => day.exercises);
-  const lastDate = data.logs[0]?.logged_on || null;
+  // cargas importadas da planilha têm data estimada: não contam como treino lançado
+  const lastDate = data.logs.find(l => !l.estimated)?.logged_on || null;
   const days = lastDate ? Math.floor((Date.now() - new Date(lastDate + 'T00:00:00').getTime()) / 86400000) : null;
-  const status = days == null || days > 14 ? 'parado' : days > 7 ? 'atencao' : 'emdia';
+  const status = days == null ? 'semlog' : days > 14 ? 'parado' : days > 7 ? 'atencao' : 'emdia';
   const ref = data.program.last_adjusted_at || data.program.created_at;
   return {
     client, data, status, lastDate, days,
@@ -110,7 +112,7 @@ function cardHtml(i) {
       </div>
       <div class="pc-card-body">
         ${data?.program ? `
-          <div>${i.lastDate ? `Último treino lançado: <b>${fmtDate(i.lastDate)}</b> (${i.days === 0 ? 'hoje' : `há ${i.days} dia${i.days === 1 ? '' : 's'}`})` : 'Nenhum treino lançado ainda.'}</div>
+          <div>${i.lastDate ? `Último treino lançado: <b>${fmtDate(i.lastDate)}</b> (${i.days === 0 ? 'hoje' : `há ${i.days} dia${i.days === 1 ? '' : 's'}`})` : 'Nenhum treino lançado no painel ainda.'}</div>
           <div>${i.subir ? `<span class="pc-ok">↑ ${i.subir} carga${i.subir === 1 ? '' : 's'} p/ subir</span>` : ''}${i.plato ? ` <span class="pc-warn">⚠ ${i.plato} sem progresso</span>` : ''}${!i.subir && !i.plato ? '<span class="pc-dim">Sem alertas de progressão.</span>' : ''}</div>`
         : `<div>Sem ficha ativa. Monte em <a href="#/cliente/${client.id}/treino">Treino</a>.</div>`}
       </div>

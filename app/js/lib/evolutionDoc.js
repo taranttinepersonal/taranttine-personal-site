@@ -62,6 +62,7 @@ export function buildEvolution(d, extras = {}, { period = 'inicio', comment = ''
   // sessões: dias distintos com lançamento
   const dates = [...new Set(d.logs.filter(l => inWindow(l.logged_on)).map(l => l.logged_on))].sort();
   const sessoes = dates.length;
+  const estimadas = d.logs.filter(l => inWindow(l.logged_on) && l.estimated).length;
   const span = dates.length ? Math.max(1, Math.ceil((dayDiff(dates[0], dates[dates.length - 1]) + 1) / 7)) : 0;
 
   // evolução de carga por exercício (semanas de deload aplicado não entram: queda planejada)
@@ -92,7 +93,7 @@ export function buildEvolution(d, extras = {}, { period = 'inicio', comment = ''
     emitido_em: today,
     periodo: { chave: String(period), rotulo: PERIODS[period] || PERIODS.inicio, inicio: dates[0] || null, fim: dates[dates.length - 1] || null },
     fase: phaseModel(d),
-    numeros: { sessoes, porSemana: span ? sessoes / span : 0, avaliados: exercicios.length, evoluiram },
+    numeros: { sessoes, porSemana: span ? sessoes / span : 0, avaliados: exercicios.length, evoluiram, estimadas },
     destaques, graficos, exercicios, volume,
     composicao: composition(extras, cutoff),
     comentario: String(comment || '').trim(),
@@ -279,7 +280,8 @@ tr{break-inside:avoid}tr:last-child td{border-bottom:0}
 <div class="summary">${faseCard}${stats}</div>
 ${como}
 ${empty ? `<div class="empty">Ainda não há treinos registrados neste período. Assim que os treinos forem lançados, a evolução de carga aparece aqui.</div>` : `
-<div class="sec">Evolução de carga <small>${esc(m.periodo.rotulo.toLowerCase())}${m.exercicios.length ? '' : ''}</small></div>
+<div class="sec">Evolução de carga <small>${esc(m.periodo.rotulo.toLowerCase())}</small></div>
+${n.estimadas ? `<p class="note" style="margin:-4px 0 10px">Inclui ${n.estimadas} registro${n.estimadas === 1 ? '' : 's'} de carga importado${n.estimadas === 1 ? '' : 's'} da planilha anterior, com datas aproximadas.</p>` : ''}
 ${m.exercicios.length ? `${destaques}${charts}${table}<p class="note" style="margin:-4px 0 10px">Semanas de deload não entram na comparação: a carga menor é planejada.</p>` : `<div class="empty">São necessários pelo menos 2 registros de carga por exercício pra mostrar a evolução.</div>`}`}
 ${vol}
 ${comp}
