@@ -19,7 +19,7 @@ export async function renderPresenciais(main) {
   } catch (e) {
     console.error(e);
     main.innerHTML = isMissingColumn(e)
-      ? `<div class="admin-empty">Falta rodar a migração <b>0037</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`
+      ? `<div class="admin-empty">Falta rodar as migrações <b>0037</b> e <b>0038</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`
       : `<div class="admin-empty">Erro ao carregar os presenciais.</div>`;
     return;
   }
@@ -29,6 +29,7 @@ export async function renderPresenciais(main) {
 
   const total = items.length;
   const sum = (k) => items.reduce((n, i) => n + (i[k] || 0), 0);
+  const flag = (k) => items.filter(i => i[k]).length;
 
   main.innerHTML = `
     <div class="admin-header"><div class="admin-title">Presenciais</div></div>
@@ -36,8 +37,9 @@ export async function renderPresenciais(main) {
     <div class="pc-summary pc-summary-top">
       <div><b>${total}</b><span>clientes</span></div>
       <div class="up"><b>${sum('subir')}</b><span>cargas p/ subir</span></div>
-      <div class="warn"><b>${sum('plato')}</b><span>platôs</span></div>
-      <div class="deload"><b>${items.filter(i => i.deload).length}</b><span>em deload</span></div>
+      <div class="warn"><b>${sum('plato')}</b><span>sem progresso</span></div>
+      <div class="deload"><b>${flag('change')}</b><span>troca de fase</span></div>
+      <div class="warn"><b>${flag('deloadSuggested')}</b><span>sinais p/ deload</span></div>
       <div class="down"><b>${items.filter(i => i.status === 'parado').length}</b><span>parados</span></div>
     </div>
 
@@ -79,7 +81,9 @@ function summarize(client, data) {
     client, data, status, lastDate, days,
     subir: all.filter(e => e.suggestion.action === 'subir').length,
     plato: all.filter(e => e.suggestion.action === 'plato').length,
-    deload: !!data.pos?.isDeload,
+    change: !!data.info?.isChange,
+    deloadApplied: !!data.deloadApplied,
+    deloadSuggested: !!data.deloadSuggested && !data.deloadApplied,
     reajuste: ref ? (Date.now() - new Date(ref).getTime()) / 86400000 >= 28 : false,
   };
 }
@@ -87,7 +91,7 @@ function summarize(client, data) {
 function cardHtml(i) {
   const { client, data, status } = i;
   const st = STATUS[status];
-  const pos = data?.pos;
+  const info = data?.info;
   const level = data?.level?.nivel_final && LEVEL_BANDS[data.level.nivel_final] ? LEVEL_BANDS[data.level.nivel_final].label : null;
   return `
     <div class="pc-card">
@@ -96,15 +100,18 @@ function cardHtml(i) {
         <span class="pc-status ${st.cls}">${st.label}</span>
       </div>
       <div class="pc-badges">
-        ${pos ? `<span class="pc-badge">Semana ${pos.week}/${data.program.total_weeks}</span><span class="pc-badge">Bloco ${pos.cycle} · ${pos.pos}/${pos.length}</span>` : (data?.program ? `<span class="pc-badge warn">Semana não definida</span>` : '')}
-        ${i.deload ? `<span class="pc-badge deload">Deload</span>` : ''}
+        ${info ? `<span class="pc-badge">Semana ${info.week}/${data.program.total_weeks}</span><span class="pc-badge ${info.phase.isDeload ? 'deload' : 'phase'}">${esc(info.phase.label)}</span>`
+               : (data?.program ? `<span class="pc-badge warn">Semana não definida</span>` : '')}
+        ${i.change ? `<span class="pc-badge warn">Troca de fase</span>` : ''}
+        ${i.deloadApplied ? `<span class="pc-badge deload">Deload aplicado</span>` : ''}
+        ${i.deloadSuggested ? `<span class="pc-badge warn">Sinais pedem deload</span>` : ''}
         ${level ? `<span class="pc-badge">${esc(level)}</span>` : ''}
         ${i.reajuste ? `<span class="pc-badge warn">Reajustar ficha</span>` : ''}
       </div>
       <div class="pc-card-body">
         ${data?.program ? `
           <div>${i.lastDate ? `Último treino lançado: <b>${fmtDate(i.lastDate)}</b> (${i.days === 0 ? 'hoje' : `há ${i.days} dia${i.days === 1 ? '' : 's'}`})` : 'Nenhum treino lançado ainda.'}</div>
-          <div>${i.subir ? `<span class="pc-ok">↑ ${i.subir} carga${i.subir === 1 ? '' : 's'} p/ subir</span>` : ''}${i.plato ? ` <span class="pc-warn">⚠ ${i.plato} platô${i.plato === 1 ? '' : 's'}</span>` : ''}${!i.subir && !i.plato ? '<span class="pc-dim">Sem alertas de progressão.</span>' : ''}</div>`
+          <div>${i.subir ? `<span class="pc-ok">↑ ${i.subir} carga${i.subir === 1 ? '' : 's'} p/ subir</span>` : ''}${i.plato ? ` <span class="pc-warn">⚠ ${i.plato} sem progresso</span>` : ''}${!i.subir && !i.plato ? '<span class="pc-dim">Sem alertas de progressão.</span>' : ''}</div>`
         : `<div>Sem ficha ativa. Monte em <a href="#/cliente/${client.id}/treino">Treino</a>.</div>`}
       </div>
       <div class="pc-card-actions">

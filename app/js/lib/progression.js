@@ -1,25 +1,40 @@
-// Regras de progressão de carga, posição no mesociclo e volume semanal dos
-// clientes presenciais. Funções puras (sem Supabase) pra poder testar sozinhas.
+// Periodização, progressão de carga e volume dos clientes presenciais.
+// Funções puras (sem Supabase) pra poder testar sozinhas.
 //
-// Fonte das regras: manuais do Belmiro de Salles (pasta de referências):
-//  - dupla progressão: sobe as reps até o teto da faixa, aí sobe 5-10% da carga
-//    e volta pro piso da faixa; ficar ABAIXO da faixa pesa mais contra do que parar
-//    uns reps antes da falha dentro dela;
-//  - séries semanais por grupamento: iniciante 1-5 · intermediário 6-10 ·
-//    avançado 10-30 (até ~45 no quadríceps);
-//  - mesociclo curto com semana de deload no fim.
-// O QUE NÃO VEM DO LIVRO (padrões meus, ajustáveis aqui): o deload (-10% de carga
-// e metade das séries) e o passo mínimo de 1 kg no arredondamento.
+// MACROCICLO: reproduz a "Periodização 16 Semanas" do FitPro (4 mesociclos).
+// Cada fase define o RIR alvo, o volume relativo, quantas reps somar/subtrair da
+// faixa base da ficha (que é a faixa do Desenvolvimento) e o multiplicador da carga.
+// Tudo editável por cliente (workout_programs.periodization); estes são os padrões.
+//
+// PRÓXIMA CARGA (regra "híbrida", escolhida em 2026-11-08): usa o multiplicador
+// da fase da planilha, mas só sugere subir quando o cliente bateu o teto da faixa
+// de reps da fase (e o RIR não ficou abaixo do alvo). Abaixo do piso da faixa:
+// reduz (o livro do De Salles pesa isso mais do que parar uns reps antes da falha).
+//
+// DELOAD é por sinal, não por calendário (guia do FitPro): o app só recomenda; o
+// treinador decide marcando "Aplicar deload" nos Sinais do cliente da semana.
+//
+// Volume semanal por grupo (De Salles): iniciante 1-5 · intermediário 6-10 ·
+// avançado 10-30 (até ~45 no quadríceps).
 
-export const PROGRESSION = {
-  increasePct: 0.05,     // piso do "5-10%" do método; o teto (10%) aparece na explicação
-  increaseMaxPct: 0.10,
-  minStepKg: 1,
-  reducePct: 0.05,       // quando ficou abaixo do piso da faixa
-  plateauSessions: 3,    // sessões seguidas sem evoluir = alerta de platô
+export const DEFAULT_PHASES = [
+  { key: 'adaptacao', label: 'Adaptação', mesociclo: 1, from: 1, to: 4, rir: 'RIR 3-4', volume: 'MEV (base)', repsDelta: 5, loadFactor: 1.02 },
+  { key: 'desenvolvimento', label: 'Desenvolvimento', mesociclo: 2, from: 5, to: 10, rir: 'RIR 2', volume: 'MAV (zona boa)', repsDelta: 0, loadFactor: 1.05 },
+  { key: 'intensificacao', label: 'Intensificação', mesociclo: 3, from: 11, to: 15, rir: 'RIR 0-1', volume: 'MAV alto / MRV pontual', repsDelta: -3, loadFactor: 1.07 },
+  { key: 'deload', label: 'Consolidação / Deload', mesociclo: 4, from: 16, to: 16, rir: 'RIR 4+ (leve)', volume: 'Deload: reduzir 30-40%', repsDelta: 4, loadFactor: 0.65, isDeload: true },
+];
+
+export const ACTION_TEXT = {
+  normal: 'Sem evolução? Revise técnica → progressão de carga → só então volume (Pirâmide De Salles-Muzy).',
+  deload: 'Deload é por sinal real, não calendário: só aplique se houver queda de performance ou fadiga.',
 };
 
-export const DELOAD = { loadFactor: 0.9, setsFactor: 0.5 };
+export const PROGRESSION = {
+  reducePct: 0.05,       // quando ficou abaixo do piso da faixa de reps
+  plateauSessions: 3,    // sessões seguidas sem evoluir = alerta de platô
+  fallbackFactor: 1.05,  // semana não definida: usa o passo do Desenvolvimento
+  fallbackDeloadFactor: 0.65,
+};
 
 export const LEVEL_BANDS = {
   iniciante: { min: 1, max: 5, label: 'Iniciante' },
@@ -51,10 +66,10 @@ export function parseRepsRange(reps) {
   return { min: a, max: b };
 }
 
-// "RIR 2" → 2 · "RIR 1-2" → 1 (o mais exigente) · sem RIR → null
-export function parseTargetRir(method) {
-  if (method == null) return null;
-  const m = String(method).match(/RIR\s*[:=]?\s*(\d+)/i);
+// "RIR 3-4" → 3 · "RIR 2" → 2 · "RIR 0-1" → 0 · "RIR 4+ (leve)" → 4 · sem RIR → null
+export function parseRirFloor(text) {
+  if (text == null) return null;
+  const m = String(text).match(/RIR\s*[:=]?\s*(\d+)/i);
   return m ? Number(m[1]) : null;
 }
 
@@ -73,41 +88,95 @@ export function roundHalf(x) {
   return Math.round(x * 2) / 2;
 }
 
-// ---------- mesociclo ----------
+// ---------- macrociclo ----------
 
-// Semana corrente (1..total) → posição dentro do bloco curto. Com deload ligado,
-// a última semana do bloco é o deload. Sem semana definida → null.
-export function mesoPosition(currentWeek, length = 4, deload = true) {
-  const week = Number(currentWeek);
-  if (!week || week < 1) return null;
-  const len = Math.max(2, Number(length) || 4);
-  const pos = ((week - 1) % len) + 1;
+// Fases do programa: as personalizadas (jsonb) se válidas, senão as padrão.
+export function getPhases(program) {
+  const p = program?.periodization;
+  if (!Array.isArray(p) || !p.length) return DEFAULT_PHASES;
+  const ok = p.every(x => x && Number.isFinite(Number(x.from)) && Number.isFinite(Number(x.to)) && Number(x.from) <= Number(x.to) && x.label);
+  return ok ? p.map(x => ({ ...x, from: Number(x.from), to: Number(x.to), repsDelta: Number(x.repsDelta) || 0, loadFactor: Number(x.loadFactor) || 1 })) : DEFAULT_PHASES;
+}
+
+// Valida uma tabela de fases editada à mão. Devolve texto de erro ou null.
+export function validatePhases(phases) {
+  if (!phases.length) return 'Defina pelo menos uma fase.';
+  let prevTo = 0;
+  for (const p of phases) {
+    if (!Number.isInteger(p.from) || !Number.isInteger(p.to) || p.from < 1 || p.to < p.from) return `Semanas inválidas em "${p.label}".`;
+    if (p.from <= prevTo) return `As semanas de "${p.label}" se sobrepõem à fase anterior.`;
+    if (!(p.loadFactor > 0 && p.loadFactor < 2)) return `Multiplicador de carga inválido em "${p.label}".`;
+    prevTo = p.to;
+  }
+  return null;
+}
+
+// Semana corrente → fase, mesociclo e alertas. Fora de qualquer fase / sem semana → null.
+// "Troca de fase" acende na 1ª semana de cada fase depois da primeira (5, 11 e 16 no padrão).
+export function weekInfo(week, phases = DEFAULT_PHASES) {
+  const w = Number(week);
+  if (!w || w < 1) return null;
+  const index = phases.findIndex(p => w >= p.from && w <= p.to);
+  if (index < 0) return null;
+  const phase = phases[index];
   return {
-    week,
-    pos,
-    length: len,
-    cycle: Math.floor((week - 1) / len) + 1,
-    isDeload: !!deload && pos === len,
-    weeksToDeload: deload ? len - pos : null,
+    week: w,
+    phase,
+    index,
+    mesociclo: phase.mesociclo ?? index + 1,
+    isChange: index > 0 && w === phase.from,
+    weeksLeft: phase.to - w,
+    action: phase.isDeload ? ACTION_TEXT.deload : ACTION_TEXT.normal,
   };
+}
+
+// Faixa de reps da fase: a faixa da ficha (base = Desenvolvimento) deslocada pelo delta.
+export function phaseRange(reps, repsDelta = 0) {
+  const base = parseRepsRange(reps);
+  if (!base) return null;
+  return { min: Math.max(1, base.min + repsDelta), max: Math.max(1, base.max + repsDelta) };
+}
+
+export function phaseRepsLabel(reps, repsDelta = 0) {
+  const r = phaseRange(reps, repsDelta);
+  if (!r) return '—';
+  const suffix = /\/\s*lado/i.test(String(reps)) ? '/lado' : '';
+  return (r.min === r.max ? String(r.min) : `${r.min}-${r.max}`) + suffix;
+}
+
+// ---------- sinais do cliente (decisão de deload é do treinador) ----------
+
+// signals: do mais novo pro mais antigo. Recomenda deload se a recuperação foi ruim
+// numa das 2 últimas semanas registradas, ou se não evoluiu nas 2 últimas.
+export function deloadRecommended(signals = []) {
+  const recent = signals.slice(0, 2);
+  if (!recent.length) return false;
+  return recent.some(s => s.recuperacao === 'ruim') || (recent.length >= 2 && recent.every(s => s.evoluiu === false));
 }
 
 // ---------- progressão de carga ----------
 
-// history: registros do MESMO exercício, do mais novo pro mais antigo
-// ({load_value, reps_done, rir_done, logged_on}); latest = history[0].
+// history: registros do MESMO exercício (sem os de semana de deload aplicado), do mais
+// novo pro mais antigo ({load_value, reps_done, rir_done}). repsRange já é o da fase.
 // Devolve { action, nextLoad, reason } com action em:
 //   subir · manter · reduzir · plato · deload · registrar · sem-dado
-export function suggestNext({ history = [], repsRange, targetRir, isDeload = false }) {
+export function suggestNext({ history = [], repsRange, rirFloor = null, phase = null, deloadApplied = false, deloadFactor = PROGRESSION.fallbackDeloadFactor }) {
   const latest = history[0];
   const load = latest ? parseNum(latest.load_value) : null;
   if (load == null) return { action: 'sem-dado', nextLoad: null, reason: 'Ainda sem carga registrada.' };
 
-  if (isDeload) {
+  if (deloadApplied) {
     return {
       action: 'deload',
-      nextLoad: roundHalf(load * DELOAD.loadFactor),
-      reason: `Carga −${Math.round((1 - DELOAD.loadFactor) * 100)}% e metade das séries nesta semana.`,
+      nextLoad: roundHalf(load * deloadFactor),
+      reason: `Carga ×${fmt(deloadFactor)} e menos volume nesta semana (aplicado por você).`,
+    };
+  }
+  if (phase?.isDeload) {
+    return {
+      action: 'manter',
+      nextLoad: load,
+      reason: 'Semana de consolidação: mantenha as cargas. Deload só se os sinais do cliente indicarem.',
     };
   }
 
@@ -120,39 +189,41 @@ export function suggestNext({ history = [], repsRange, targetRir, isDeload = fal
     return {
       action: 'reduzir',
       nextLoad: roundHalf(load * (1 - PROGRESSION.reducePct)),
-      reason: `Fez ${reps} reps, abaixo da faixa (${repsRange.min}-${repsRange.max}): carga pesada demais.`,
+      reason: `Fez ${reps} reps, abaixo da faixa da fase (${repsRange.min}-${repsRange.max}): carga pesada demais.`,
     };
   }
 
   const rir = latest.rir_done;
+  const factor = phase?.loadFactor ?? PROGRESSION.fallbackFactor;
   if (reps >= repsRange.max) {
-    if (targetRir != null && rir != null && rir < targetRir) {
+    if (rirFloor != null && rir != null && rir < rirFloor) {
       return {
         action: 'manter',
         nextLoad: load,
-        reason: `Bateu o teto (${reps} reps), mas com RIR ${rir} (alvo ${targetRir}): sustente a carga.`,
+        reason: `Bateu o teto (${reps} reps), mas com RIR ${rir} (alvo da fase ${rirFloor}+): sustente a carga.`,
       };
     }
-    const up = Math.max(load * PROGRESSION.increasePct, PROGRESSION.minStepKg);
-    const next = roundHalf(load + up);
-    const top = roundHalf(load * (1 + PROGRESSION.increaseMaxPct));
+    const next = Math.max(roundHalf(load * factor), load + 0.5);
     return {
       action: 'subir',
       nextLoad: next,
-      reason: `Bateu o teto da faixa (${reps}/${repsRange.max})${rir == null ? '' : ` com RIR ${rir}`}: sobe 5% (até 10% = ${fmt(top)} kg) e volta pro piso (${repsRange.min}).`,
+      reason: `Bateu o teto da faixa (${reps}/${repsRange.max})${rir == null ? '' : ` com RIR ${rir}`}: passo da fase ×${fmt(factor)}.`,
     };
   }
 
-  // dentro da faixa: platô se as últimas sessões ficaram iguais
-  const recent = history.slice(0, PROGRESSION.plateauSessions);
-  if (recent.length >= PROGRESSION.plateauSessions) {
-    const sameLoad = recent.every(h => parseNum(h.load_value) === load);
-    const repsFlat = recent.every(h => h.reps_done != null) && recent[0].reps_done <= recent[recent.length - 1].reps_done;
-    if (sameLoad && repsFlat) {
+  // dentro da faixa: platô = nem a carga nem as reps subiram nas últimas sessões
+  // (subir reps com a mesma carga é progressão, não platô)
+  const win = history.slice(0, PROGRESSION.plateauSessions);
+  if (win.length >= PROGRESSION.plateauSessions) {
+    const oldest = win[win.length - 1];
+    const loadUp = load > (parseNum(oldest.load_value) ?? Infinity);
+    const repsKnown = win.every(h => h.reps_done != null);
+    const repsUp = repsKnown && reps > oldest.reps_done;
+    if (!loadUp && !repsUp) {
       return {
         action: 'plato',
         nextLoad: load,
-        reason: `${PROGRESSION.plateauSessions} sessões sem evoluir (carga e reps iguais): revise sono, volume ou o exercício.`,
+        reason: 'Sem progresso: revise técnica → progressão de carga → só depois volume (Pirâmide).',
       };
     }
   }

@@ -1,16 +1,14 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
-import { parseRepsRange, parseTargetRir, mesoPosition, suggestNext } from '../../../app/js/lib/progression.js';
+import {
+  getPhases, weekInfo, phaseRange, phaseRepsLabel, parseRirFloor, suggestNext, deloadRecommended, PROGRESSION,
+} from '../../../app/js/lib/progression.js';
 
 const PAGE = 1000; // limite padrão de linhas por consulta do PostgREST
 
-// A migração 0037 ainda não rodou: as colunas novas não existem.
+// As migrações 0037/0038 ainda não rodaram: coluna ou tabela inexistente.
 export function isMissingColumn(error) {
-  return !!error && (error.code === '42703' || /reps_done|rir_done|week_no|modalidade|meso_length|meso_deload/.test(error.message || ''));
-}
-
-export function isDeloadWeek(weekNo, program) {
-  if (weekNo == null) return false;
-  return !!mesoPosition(weekNo, program.meso_length, program.meso_deload)?.isDeload;
+  return !!error && (['42703', '42P01', 'PGRST204', 'PGRST205'].includes(error.code)
+    || /reps_done|rir_done|week_no|modalidade|periodization|weekly_signals/.test(error.message || ''));
 }
 
 async function fetchAllLogs(clientId, workoutExerciseIds) {
@@ -29,7 +27,7 @@ async function fetchAllLogs(clientId, workoutExerciseIds) {
   }
 }
 
-// Ficha ativa do cliente + histórico de cargas + sugestão por exercício.
+// Ficha ativa do cliente + fase da semana + sinais + histórico + sugestão por exercício.
 export async function loadPresencialClient(clientId) {
   const { data: profile, error: pErr } = await supabase
     .from('profiles').select('id, full_name, sexo, modalidade').eq('id', clientId).single();
@@ -37,7 +35,7 @@ export async function loadPresencialClient(clientId) {
 
   const { data: program, error: gErr } = await supabase
     .from('workout_programs')
-    .select('id, title, current_week, total_weeks, meso_length, meso_deload, last_adjusted_at, created_at')
+    .select('id, title, current_week, total_weeks, periodization, last_adjusted_at, created_at')
     .eq('client_id', clientId).eq('is_active', true).maybeSingle();
   if (gErr) throw gErr;
 
@@ -46,7 +44,13 @@ export async function loadPresencialClient(clientId) {
     .eq('client_id', clientId).order('recorded_at', { ascending: false }).limit(1);
   const level = levels?.[0] || null;
 
-  if (!program) return { profile, program: null, days: [], level, logs: [] };
+  if (!program) return { profile, program: null, days: [], level, logs: [], phases: getPhases(null), info: null, signals: [] };
+
+  const { data: signals, error: sErr } = await supabase
+    .from('weekly_signals')
+    .select('week_no, evoluiu, seguiu_plano, recuperacao, deload_aplicado, note')
+    .eq('program_id', program.id).order('week_no', { ascending: false });
+  if (sErr) throw sErr;
 
   const { data: days, error: dErr } = await supabase
     .from('workout_days').select('id, label, title, sort_order').eq('program_id', program.id).order('sort_order');
@@ -63,29 +67,40 @@ export async function loadPresencialClient(clientId) {
   const logsByEx = {};
   for (const l of logs) (logsByEx[l.workout_exercise_id] ||= []).push(l); // já vem do mais novo pro mais antigo
 
-  const pos = mesoPosition(program.current_week, program.meso_length, program.meso_deload);
+  const phases = getPhases(program);
+  const info = weekInfo(program.current_week, phases);
+  const currentSignal = signals.find(s => s.week_no === program.current_week) || null;
+  const deloadApplied = !!currentSignal?.deload_aplicado;
+  const deloadWeeks = new Set(signals.filter(s => s.deload_aplicado).map(s => s.week_no));
+  const deloadFactor = phases.find(p => p.isDeload)?.loadFactor ?? PROGRESSION.fallbackDeloadFactor;
+  const repsDelta = info?.phase.repsDelta ?? 0;
+  const rirFloor = parseRirFloor(info?.phase.rir);
 
   const daysOut = days.map(d => ({
     ...d,
     exercises: wes.filter(w => w.workout_day_id === d.id).map(w => {
       const history = logsByEx[w.id] || [];
-      const range = parseRepsRange(w.reps);
-      const targetRir = parseTargetRir(w.method);
-      // logs de semana de deload não servem de base pra progredir
-      const base = history.filter(l => !isDeloadWeek(l.week_no, program));
+      const range = phaseRange(w.reps, repsDelta);
+      // logs de semana com deload aplicado não servem de base pra progredir
+      const base = history.filter(l => l.week_no == null || !deloadWeeks.has(l.week_no));
       return {
         id: w.id,
         name: w.exercises?.name || 'Exercício',
         muscle: w.exercises?.muscle_groups?.name || '',
         sets: w.sets, reps: w.reps, rest: w.rest_seconds, method: w.method, group: w.display_group,
-        range, targetRir, history,
+        range, repsLabel: phaseRepsLabel(w.reps, repsDelta), baseReps: w.reps,
+        history,
         last: history[0] || null,
-        suggestion: suggestNext({ history: base, repsRange: range, targetRir, isDeload: !!pos?.isDeload }),
+        suggestion: suggestNext({ history: base, repsRange: range, rirFloor, phase: info?.phase || null, deloadApplied, deloadFactor }),
       };
     }),
   }));
 
-  return { profile, program, days: daysOut, level, logs, pos };
+  return {
+    profile, program, days: daysOut, level, logs,
+    phases, info, signals, currentSignal, deloadApplied, deloadWeeks,
+    deloadSuggested: deloadRecommended(signals),
+  };
 }
 
 // Visão geral: um cartão por cliente presencial.
@@ -99,7 +114,10 @@ export async function loadPresencialOverview() {
   const others = clients.filter(c => c.modalidade !== 'presencial' && c.active);
   const cards = await Promise.all(presenciais.map(async (c) => {
     try { return { client: c, data: await loadPresencialClient(c.id) }; }
-    catch (e) { console.error('presencial overview', c.id, e); return { client: c, data: null }; }
+    catch (e) { console.error('presencial overview', c.id, e); return { client: c, data: null, failed: e }; }
   }));
+  // se a migração falta, todos falham do mesmo jeito: sobe o erro pra tela avisar
+  const missing = cards.find(c => c.failed && isMissingColumn(c.failed));
+  if (missing) throw missing.failed;
   return { cards, others };
 }

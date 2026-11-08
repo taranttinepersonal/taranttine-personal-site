@@ -1,16 +1,19 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
-import { LEVEL_BANDS, DELOAD, parseNum, fmt, weeklyVolume, bandFor, volumeStatus } from '../../../app/js/lib/progression.js';
-import { loadPresencialClient, isMissingColumn, isDeloadWeek } from '../lib/presencialData.js';
+import {
+  LEVEL_BANDS, validatePhases, parseNum, fmt, weeklyVolume, bandFor, volumeStatus,
+} from '../../../app/js/lib/progression.js';
+import { loadPresencialClient, isMissingColumn } from '../lib/presencialData.js';
 
 const ACTIONS = {
   subir:     { cls: 'up',    icon: '↑', label: 'Subir' },
   manter:    { cls: 'keep',  icon: '=', label: 'Manter' },
   reduzir:   { cls: 'down',  icon: '↓', label: 'Reduzir' },
-  plato:     { cls: 'warn',  icon: '⚠', label: 'Platô' },
+  plato:     { cls: 'warn',  icon: '⚠', label: 'Sem progresso' },
   deload:    { cls: 'deload', icon: '↓', label: 'Deload' },
   registrar: { cls: 'muted', icon: '…', label: 'Registrar reps' },
   'sem-dado': { cls: 'muted', icon: '–', label: 'Sem histórico' },
 };
+const MIGRATION_MSG = `<div class="admin-empty">Falta rodar as migrações <b>0037</b> e <b>0038</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`;
 
 export async function renderPresencial(main, clientId) {
   main.closest('.admin-shell')?.classList.add('wide');
@@ -24,9 +27,7 @@ export async function renderPresencial(main, clientId) {
       d = await loadPresencialClient(clientId);
     } catch (e) {
       console.error(e);
-      main.innerHTML = isMissingColumn(e)
-        ? `<div class="admin-empty">Falta rodar a migração <b>0037</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`
-        : `<div class="admin-empty">Erro ao carregar o cliente.</div>`;
+      main.innerHTML = isMissingColumn(e) ? MIGRATION_MSG : `<div class="admin-empty">Erro ao carregar o cliente.</div>`;
       return false;
     }
     if (ui.level == null) ui.level = d.level?.nivel_final && LEVEL_BANDS[d.level.nivel_final] ? d.level.nivel_final : 'intermediario';
@@ -58,7 +59,7 @@ export async function renderPresencial(main, clientId) {
   });
 
   main.addEventListener('click', async (ev) => {
-    const t = ev.target.closest('[data-tab],[data-day],[data-use],[data-fillall],[data-save],[data-week],[data-meso-save]');
+    const t = ev.target.closest('[data-tab],[data-day],[data-use],[data-fillall],[data-save],[data-week],[data-sig-save],[data-phases-save],[data-phases-reset]');
     if (!t) return;
 
     if (t.dataset.tab) { ui.tab = t.dataset.tab; paint(); return; }
@@ -67,7 +68,7 @@ export async function renderPresencial(main, clientId) {
     if (t.dataset.use) {
       const ex = findExercise(d, t.dataset.use);
       if (ex?.suggestion.nextLoad != null) {
-        ui.draft[ex.id] = { ...(ui.draft[ex.id] || {}), load: String(ex.suggestion.nextLoad).replace('.', ',') };
+        ui.draft[ex.id] = { ...(ui.draft[ex.id] || {}), load: fmt(ex.suggestion.nextLoad) };
         paint();
       }
       return;
@@ -76,7 +77,7 @@ export async function renderPresencial(main, clientId) {
     if (t.hasAttribute('data-fillall')) {
       for (const ex of d.days[ui.dayIdx]?.exercises || []) {
         if (ex.suggestion.nextLoad != null && !ui.draft[ex.id]?.load) {
-          ui.draft[ex.id] = { ...(ui.draft[ex.id] || {}), load: String(ex.suggestion.nextLoad).replace('.', ',') };
+          ui.draft[ex.id] = { ...(ui.draft[ex.id] || {}), load: fmt(ex.suggestion.nextLoad) };
         }
       }
       paint();
@@ -90,7 +91,7 @@ export async function renderPresencial(main, clientId) {
       const { error } = await supabase.from('load_history').upsert(rows, { onConflict: 'workout_exercise_id,logged_on' });
       if (error) {
         console.error(error);
-        alert(isMissingColumn(error) ? 'Falta rodar a migração 0037 no Supabase.' : 'Erro ao salvar: ' + error.message);
+        alert(isMissingColumn(error) ? 'Falta rodar as migrações 0037 e 0038 no Supabase.' : 'Erro ao salvar: ' + error.message);
         t.disabled = false; t.textContent = `Salvar treino (${rows.length})`;
         return;
       }
@@ -103,24 +104,51 @@ export async function renderPresencial(main, clientId) {
       const p = d.program;
       const next = t.dataset.week === 'start' ? 1 : (p.current_week || 0) + Number(t.dataset.week);
       if (next < 1 || next > p.total_weeks) return;
-      await updateProgram(p.id, { current_week: next });
-      if (await reload()) paint();
+      if (await updateProgram(p.id, { current_week: next }) && await reload()) paint();
       return;
     }
 
-    if (t.hasAttribute('data-meso-save')) {
-      const len = Number(main.querySelector('#pc-meso-len').value);
-      const deload = main.querySelector('#pc-meso-deload').checked;
-      const total = Number(main.querySelector('#pc-total').value);
-      await updateProgram(d.program.id, { meso_length: len, meso_deload: deload, total_weeks: total });
-      if (await reload()) { paint(); toast(main, 'Mesociclo salvo.'); }
+    if (t.hasAttribute('data-sig-save')) {
+      if (!d.program.current_week) { alert('Defina a semana atual antes de registrar os sinais.'); return; }
+      const tri = (id) => { const v = main.querySelector(id).value; return v === 'sim' ? true : v === 'nao' ? false : null; };
+      const row = {
+        program_id: d.program.id, client_id: clientId, week_no: d.program.current_week,
+        evoluiu: tri('#pc-sig-evoluiu'), seguiu_plano: tri('#pc-sig-seguiu'),
+        recuperacao: main.querySelector('#pc-sig-recup').value || null,
+        deload_aplicado: main.querySelector('#pc-sig-deload').checked,
+        note: main.querySelector('#pc-sig-note').value.trim() || null,
+      };
+      t.disabled = true;
+      const { error } = await supabase.from('weekly_signals').upsert(row, { onConflict: 'program_id,week_no' });
+      if (error) { console.error(error); alert('Erro ao salvar: ' + error.message); t.disabled = false; return; }
+      if (await reload()) { paint(); toast(main, 'Sinais salvos.'); }
+      return;
+    }
+
+    if (t.hasAttribute('data-phases-save')) {
+      const phases = d.phases.map((p, i) => {
+        const g = (k) => main.querySelector(`[data-ph="${i}"][data-k="${k}"]`).value.trim();
+        return { ...p, from: parseInt(g('from'), 10), to: parseInt(g('to'), 10), rir: g('rir'), volume: g('volume'), repsDelta: parseNum(g('repsDelta')) ?? 0, loadFactor: parseNum(g('loadFactor')) };
+      });
+      const total = parseInt(main.querySelector('#pc-total').value, 10);
+      const err = validatePhases(phases) || (!(total >= 1 && total <= 52) ? 'Total do programa deve ficar entre 1 e 52 semanas.' : null);
+      const msg = main.querySelector('#pc-phases-msg');
+      if (err) { msg.textContent = err; msg.classList.add('error'); return; }
+      if (await updateProgram(d.program.id, { periodization: phases, total_weeks: total }) && await reload()) { paint(); toast(main, 'Fases salvas.'); }
+      return;
+    }
+
+    if (t.hasAttribute('data-phases-reset')) {
+      if (!confirm('Voltar às fases padrão do FitPro (Adaptação 1–4, Desenvolvimento 5–10, Intensificação 11–15, Deload 16)?')) return;
+      if (await updateProgram(d.program.id, { periodization: null, total_weeks: 16 }) && await reload()) { paint(); toast(main, 'Fases padrão restauradas.'); }
     }
   });
 }
 
 async function updateProgram(id, patch) {
   const { error } = await supabase.from('workout_programs').update(patch).eq('id', id);
-  if (error) { console.error(error); alert('Erro ao salvar: ' + error.message); }
+  if (error) { console.error(error); alert('Erro ao salvar: ' + error.message); return false; }
+  return true;
 }
 
 // ---------- montagem das linhas pra gravar ----------
@@ -163,7 +191,7 @@ function pageHtml(d, ui) {
     return `<div class="admin-header"><div class="admin-title">${name}</div><a href="#/presenciais" class="admin-btn">← Presenciais</a></div>
       <div class="admin-empty">Esse cliente não tem ficha ativa. Monte a ficha em <a href="#/cliente/${d.profile.id}/treino">Treino</a> pra liberar o painel.</div>`;
   }
-  const pos = d.pos;
+  const info = d.info;
   const levelLabel = d.level?.nivel_final && LEVEL_BANDS[d.level.nivel_final] ? LEVEL_BANDS[d.level.nivel_final].label : null;
   const id = d.profile.id;
   return `
@@ -171,10 +199,11 @@ function pageHtml(d, ui) {
       <div>
         <div class="admin-title">${name}</div>
         <div class="pc-badges">
-          ${pos ? `<span class="pc-badge">Semana ${pos.week}/${d.program.total_weeks}</span>
-                   <span class="pc-badge">Bloco ${pos.cycle} · sem. ${pos.pos}/${pos.length}</span>
-                   ${pos.isDeload ? `<span class="pc-badge deload">Deload</span>` : ''}`
-               : `<span class="pc-badge warn">Semana não definida</span>`}
+          ${info ? `<span class="pc-badge">Semana ${info.week}/${d.program.total_weeks}</span>
+                    <span class="pc-badge ${info.phase.isDeload ? 'deload' : 'phase'}">${esc(info.phase.label)} · Meso ${info.mesociclo}</span>
+                    ${info.isChange ? `<span class="pc-badge warn">Troca de fase</span>` : ''}
+                    ${d.deloadApplied ? `<span class="pc-badge deload">Deload aplicado</span>` : ''}`
+                 : `<span class="pc-badge warn">${d.program.current_week ? `Semana ${d.program.current_week} fora das fases` : 'Semana não definida'}</span>`}
           ${levelLabel ? `<span class="pc-badge">${esc(levelLabel)}</span>` : `<span class="pc-badge muted">Nível não avaliado</span>`}
         </div>
       </div>
@@ -195,6 +224,18 @@ function pageHtml(d, ui) {
   `;
 }
 
+function phaseBanners(d) {
+  const info = d.info;
+  if (!info) return `<div class="pc-note warn">Defina a semana atual em <b>Progressão</b> pra ver a fase, o RIR alvo e as metas de carga e reps de cada fase.</div>`;
+  const dl = d.phases.find(p => p.isDeload);
+  const out = [];
+  if (info.isChange) out.push(`<div class="pc-note change"><b>Troca de fase:</b> a partir desta semana é <b>${esc(info.phase.label)}</b> (${esc(info.phase.rir)}). Releia a ação recomendada em Progressão antes de seguir.</div>`);
+  if (d.deloadApplied) out.push(`<div class="pc-note deload"><b>Deload aplicado nesta semana:</b> cargas ×${fmt(dl?.loadFactor ?? 0.65)} e menos volume (${esc(dl?.volume || 'reduzir 30-40%')}).</div>`);
+  else if (info.phase.isDeload) out.push(`<div class="pc-note">Semana de <b>consolidação</b>: mantenha as cargas. O deload só entra se os sinais do cliente indicarem (decisão sua, em Progressão → Sinais).</div>`);
+  else if (d.deloadSuggested) out.push(`<div class="pc-note warn">Os sinais das últimas semanas sugerem <b>considerar um deload</b>. A decisão é sua: registre em Progressão → Sinais.</div>`);
+  return out.join('');
+}
+
 function lancarHtml(d, ui) {
   if (!d.days.length) return `<div class="admin-empty">A ficha ainda não tem dias de treino.</div>`;
   const day = d.days[Math.min(ui.dayIdx, d.days.length - 1)];
@@ -206,9 +247,9 @@ function lancarHtml(d, ui) {
       </div>
       <div class="pc-date"><label for="pc-date">Data</label><input type="date" id="pc-date" value="${ui.date}"></div>
     </div>
-    ${d.pos?.isDeload ? `<div class="pc-note deload">Semana de <b>deload</b>: as metas abaixo já vêm com carga −${Math.round((1 - DELOAD.loadFactor) * 100)}%. Faça cerca de metade das séries prescritas.</div>` : ''}
+    ${phaseBanners(d)}
     <div class="pc-list">
-      ${day.exercises.map(ex => exerciseRow(ex, ui)).join('') || '<div class="admin-empty">Sem exercícios nesse dia.</div>'}
+      ${day.exercises.map(ex => exerciseRow(ex, ui, d)).join('') || '<div class="admin-empty">Sem exercícios nesse dia.</div>'}
     </div>
     <div class="pc-actions">
       <button class="admin-btn" data-fillall>Preencher com as metas</button>
@@ -216,20 +257,23 @@ function lancarHtml(d, ui) {
     </div>`;
 }
 
-function exerciseRow(ex, ui) {
+function exerciseRow(ex, ui, d) {
   const todays = ex.history.find(h => h.logged_on === ui.date);
   const previous = ex.history.find(h => h.logged_on !== ui.date);
   const dr = ui.draft[ex.id] || {};
   const val = (f, fallback) => esc(dr[f] ?? fallback ?? '');
   const s = ex.suggestion;
   const a = ACTIONS[s.action];
-  const presc = [`${ex.sets || '?'}×${ex.reps || '?'}`, ex.targetRir != null ? `RIR ${ex.targetRir}` : null, ex.rest ? `${ex.rest}s` : null].filter(Boolean).join(' · ');
+  const phase = d.info?.phase;
+  const delta = phase?.repsDelta || 0;
+  const repsTxt = ex.range ? ex.repsLabel : (ex.baseReps || '?');
+  const presc = [`${ex.sets || '?'}×${repsTxt}`, phase?.rir || null, ex.rest ? `${ex.rest}s` : null].filter(Boolean).join(' · ');
   return `
     <div class="pc-ex">
       <div class="pc-ex-head">
         <div>
           <div class="pc-ex-name">${esc(ex.name)}</div>
-          <div class="pc-ex-meta">${esc(presc)}${ex.method && !/^\s*RIR\s*[\d-]+\s*$/i.test(ex.method) ? ` · ${esc(ex.method)}` : ''}</div>
+          <div class="pc-ex-meta">${esc(presc)}${delta && ex.range ? ` <span class="pc-dim">(ficha ${esc(ex.baseReps)})</span>` : ''}${ex.method && !/^\s*RIR\s*[\d-]+\s*$/i.test(ex.method) ? ` · ${esc(ex.method)}` : ''}</div>
         </div>
         ${s.nextLoad != null ? `<div class="pc-target ${a.cls}"><span>${a.icon} Meta</span><b>${fmtKg(s.nextLoad)} kg</b>
           ${['sem-dado', 'registrar'].includes(s.action) ? '' : `<button class="pc-use" data-use="${ex.id}">usar</button>`}</div>` : ''}
@@ -244,35 +288,21 @@ function exerciseRow(ex, ui) {
     </div>`;
 }
 
+// ---------- Progressão: resumo da semana, sinais, fases, sugestões e matriz ----------
+
 function progressaoHtml(d) {
-  const p = d.program;
   const all = d.days.flatMap(day => day.exercises.map(ex => ({ ...ex, day })));
   const count = (k) => all.filter(e => e.suggestion.action === k).length;
   return `
-    <div class="admin-card pc-meso">
-      <div class="pc-meso-row">
-        <div>
-          <div class="admin-row-name">${d.pos ? `Semana ${d.pos.week} de ${p.total_weeks}` : 'Semana ainda não definida'}</div>
-          <div class="admin-row-sub">${d.pos ? `Bloco ${d.pos.cycle} · semana ${d.pos.pos} de ${d.pos.length}${p.meso_deload ? (d.pos.isDeload ? ' · DELOAD' : ` · deload em ${d.pos.weeksToDeload} semana(s)`) : ' · sem deload'}` : 'Defina a semana pra o sistema calcular o mesociclo.'}</div>
-        </div>
-        <div class="pc-week-btns">
-          ${d.pos ? `<button class="admin-btn" data-week="-1">− semana</button><button class="admin-btn primary" data-week="1">Avançar semana +</button>`
-                  : `<button class="admin-btn primary" data-week="start">Iniciar na semana 1</button>`}
-        </div>
-      </div>
-      <div class="pc-meso-form admin-form">
-        <label>Semanas do bloco<select id="pc-meso-len">${[3, 4, 5, 6, 7, 8].map(n => `<option value="${n}" ${n === p.meso_length ? 'selected' : ''}>${n} semanas</option>`).join('')}</select></label>
-        <label>Total do programa<input type="number" id="pc-total" min="1" max="52" value="${p.total_weeks}"></label>
-        <label class="pc-check"><input type="checkbox" id="pc-meso-deload" ${p.meso_deload ? 'checked' : ''}> Última semana do bloco é deload</label>
-        <button class="admin-btn" data-meso-save>Salvar mesociclo</button>
-      </div>
-    </div>
+    ${summaryCard(d)}
+    ${signalsCard(d)}
+    ${phasesCard(d)}
 
     <div class="pc-summary">
       <div class="up"><b>${count('subir')}</b><span>subir</span></div>
       <div class="keep"><b>${count('manter')}</b><span>manter</span></div>
       <div class="down"><b>${count('reduzir')}</b><span>reduzir</span></div>
-      <div class="warn"><b>${count('plato')}</b><span>platô</span></div>
+      <div class="warn"><b>${count('plato')}</b><span>sem progresso</span></div>
       <div class="muted"><b>${count('registrar') + count('sem-dado')}</b><span>sem dado</span></div>
     </div>
 
@@ -293,6 +323,95 @@ function progressaoHtml(d) {
   `;
 }
 
+function summaryCard(d) {
+  const p = d.program;
+  const info = d.info;
+  const weekBtns = info
+    ? `<button class="admin-btn" data-week="-1">− semana</button><button class="admin-btn primary" data-week="1">Avançar semana +</button>`
+    : `<button class="admin-btn primary" data-week="start">Iniciar na semana 1</button>`;
+  if (!info) {
+    return `<div class="admin-card pc-meso">
+      <div class="pc-meso-row">
+        <div>
+          <div class="admin-row-name">${p.current_week ? `Semana ${p.current_week} fora das fases definidas` : 'Semana ainda não definida'}</div>
+          <div class="admin-row-sub">Defina a semana pra o app mostrar a fase, o RIR alvo e as metas de cada exercício.</div>
+        </div>
+        <div class="pc-week-btns">${weekBtns}</div>
+      </div>
+    </div>`;
+  }
+  const ph = info.phase;
+  const dl = ph.repsDelta;
+  return `<div class="admin-card pc-meso">
+    <div class="pc-meso-row">
+      <div>
+        <div class="pc-sum-title">Semana ${info.week} de ${p.total_weeks} · ${esc(ph.label)}</div>
+        <div class="admin-row-sub">Mesociclo ${info.mesociclo} · ${info.weeksLeft ? `faltam ${info.weeksLeft} semana(s) nesta fase` : 'última semana desta fase'}</div>
+      </div>
+      <div class="pc-week-btns">${weekBtns}</div>
+    </div>
+    ${info.isChange ? `<div class="pc-note change"><b>Troca de fase:</b> releia a ação recomendada antes de seguir.</div>` : ''}
+    ${d.deloadSuggested && !d.deloadApplied ? `<div class="pc-note warn">Os sinais sugerem <b>considerar um deload</b>. Decisão sua, abaixo em Sinais.</div>` : ''}
+    <div class="pc-facts">
+      <div><span>RIR alvo</span><b>${esc(ph.rir)}</b></div>
+      <div><span>Volume relativo</span><b>${esc(ph.volume)}</b></div>
+      <div><span>Reps da fase</span><b>${dl === 0 ? 'faixa da ficha' : dl > 0 ? `+${dl} reps` : `−${Math.abs(dl)} reps`}</b></div>
+      <div><span>Passo de carga</span><b>×${fmt(ph.loadFactor)}</b></div>
+    </div>
+    <div class="pc-action"><span>Ação recomendada</span>${esc(info.action)}</div>
+  </div>`;
+}
+
+function signalsCard(d) {
+  const week = d.program.current_week;
+  const cur = d.currentSignal;
+  const sel = (id, v, opts) => `<select id="${id}">${opts.map(([k, l]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  const tri = (b) => b === true ? 'sim' : b === false ? 'nao' : '';
+  const yn = [['', '—'], ['sim', 'Sim'], ['nao', 'Não']];
+  const past = d.signals.filter(s => s.week_no !== week).slice(0, 5);
+  const lbl = (b) => b === true ? 'sim' : b === false ? 'não' : '—';
+  return `<div class="admin-card admin-form pc-signals">
+    <div class="admin-row-name">Sinais do cliente${week ? ` · semana ${week}` : ''}</div>
+    <div class="admin-row-sub">Você observa e decide. O app só recomenda deload quando os sinais pedem.</div>
+    <div class="pc-sig-grid">
+      <label>Evoluiu?${sel('pc-sig-evoluiu', tri(cur?.evoluiu), yn)}</label>
+      <label>Seguiu o plano?${sel('pc-sig-seguiu', tri(cur?.seguiu_plano), yn)}</label>
+      <label>Recuperação${sel('pc-sig-recup', cur?.recuperacao || '', [['', '—'], ['boa', 'Boa'], ['regular', 'Regular'], ['ruim', 'Ruim']])}</label>
+    </div>
+    <label class="pc-check"><input type="checkbox" id="pc-sig-deload" ${cur?.deload_aplicado ? 'checked' : ''}> Aplicar deload nesta semana (decisão sua)</label>
+    <label>Observação<textarea id="pc-sig-note" placeholder="O que você percebeu esta semana">${esc(cur?.note || '')}</textarea></label>
+    <button class="admin-btn primary" data-sig-save>Salvar sinais</button>
+    ${past.length ? `<div class="pc-sig-hist"><div class="admin-row-sub">Semanas anteriores</div>${past.map(s => `
+      <div class="pc-sig-row"><b>S${s.week_no}</b><span>evoluiu ${lbl(s.evoluiu)} · seguiu ${lbl(s.seguiu_plano)} · recup. ${s.recuperacao || '—'}${s.deload_aplicado ? ' · <i>deload</i>' : ''}</span></div>`).join('')}</div>` : ''}
+  </div>`;
+}
+
+function phasesCard(d) {
+  const custom = Array.isArray(d.program.periodization);
+  return `<details class="admin-card pc-phases">
+    <summary>Fases do macrociclo ${custom ? '<span class="pc-badge phase">personalizado</span>' : '<span class="pc-badge muted">padrão FitPro</span>'}</summary>
+    <div class="pc-phase-wrap"><table class="pc-phase-table">
+      <thead><tr><th>Fase</th><th>De</th><th>Até</th><th>RIR</th><th>Volume</th><th>Δ reps</th><th>× carga</th></tr></thead>
+      <tbody>${d.phases.map((p, i) => `<tr>
+        <td class="pc-ph-name">${esc(p.label)}</td>
+        <td><input data-ph="${i}" data-k="from" inputmode="numeric" value="${p.from}"></td>
+        <td><input data-ph="${i}" data-k="to" inputmode="numeric" value="${p.to}"></td>
+        <td><input data-ph="${i}" data-k="rir" value="${esc(p.rir || '')}"></td>
+        <td><input data-ph="${i}" data-k="volume" value="${esc(p.volume || '')}"></td>
+        <td><input data-ph="${i}" data-k="repsDelta" inputmode="numeric" value="${p.repsDelta}"></td>
+        <td><input data-ph="${i}" data-k="loadFactor" inputmode="decimal" value="${fmt(p.loadFactor)}"></td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <div class="admin-form pc-total"><label>Total do programa (semanas)<input type="number" id="pc-total" min="1" max="52" value="${d.program.total_weeks}"></label></div>
+    <div class="pc-phase-actions">
+      <button class="admin-btn primary" data-phases-save>Salvar fases</button>
+      ${custom ? `<button class="admin-btn" data-phases-reset>Restaurar padrão</button>` : ''}
+    </div>
+    <div class="admin-msg" id="pc-phases-msg"></div>
+    <div class="admin-row-sub">Δ reps soma ou subtrai da faixa de reps da ficha (que é a faixa do Desenvolvimento). × carga é o passo sugerido quando o cliente bate o teto da faixa.</div>
+  </details>`;
+}
+
 function matrixHtml(d) {
   const weeks = [...new Set(d.logs.map(l => l.week_no).filter(w => w != null))].sort((a, b) => a - b);
   if (!weeks.length) {
@@ -300,7 +419,7 @@ function matrixHtml(d) {
   }
   const rows = d.days.flatMap(day => day.exercises);
   return `<div class="admin-card pc-matrix-wrap"><table class="pc-matrix">
-    <thead><tr><th>Exercício</th>${weeks.map(w => `<th>S${w}${isDeloadWeek(w, d.program) ? ' <i>D</i>' : ''}</th>`).join('')}</tr></thead>
+    <thead><tr><th>Exercício</th>${weeks.map(w => `<th>S${w}${d.deloadWeeks.has(w) ? ' <i>D</i>' : ''}</th>`).join('')}</tr></thead>
     <tbody>${rows.map(ex => {
       const byWeek = {};
       for (const l of ex.history) if (l.week_no != null && byWeek[l.week_no] == null) byWeek[l.week_no] = parseNum(l.load_value);
@@ -325,6 +444,7 @@ function volumeHtml(d, ui) {
   const pct = (n) => Math.min(100, (n / scale) * 100);
   const fromAssessment = d.level?.nivel_final === ui.level;
   return `
+    ${d.info ? `<div class="pc-note">Volume relativo desta fase (<b>${esc(d.info.phase.label)}</b>): <b>${esc(d.info.phase.volume)}</b>.</div>` : ''}
     <div class="admin-card admin-form pc-level">
       <label for="pc-level">Nível usado na faixa-alvo</label>
       <select id="pc-level">${Object.entries(LEVEL_BANDS).map(([k, v]) => `<option value="${k}" ${k === ui.level ? 'selected' : ''}>${v.label}</option>`).join('')}</select>
@@ -356,7 +476,7 @@ function todayLocal() {
 }
 // "32.5" → "32,5"; texto como "PC" fica como está
 function fmtLoad(v) { const n = parseNum(v); return n != null ? fmt(Math.round(n * 10) / 10) : String(v); }
-function fmtKg(n) { return String(Math.round(Number(n) * 10) / 10).replace('.', ','); }
+function fmtKg(n) { return fmt(Math.round(Number(n) * 10) / 10); }
 function fmtDate(iso) { return new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); }
 function toast(main, text) {
   const el = main.querySelector('#pc-toast');
