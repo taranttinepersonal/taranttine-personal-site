@@ -19,10 +19,13 @@ import { renderClientData } from './pages/clientData.js';
 import { renderAssessment } from './pages/assessment.js';
 import { renderReport } from './pages/report.js';
 import { renderAnamneseReport } from './pages/anamneseReport.js';
+import { renderPresenciais } from './pages/presenciais.js';
+import { renderPresencial } from './pages/presencial.js';
 import { enablePushNotifications, isPushConfigured, getNotificationPermission } from '../../app/js/push.js';
 
 const NAV_ITEMS = [
   { path: '/clientes', label: 'Clientes' },
+  { path: '/presenciais', label: 'Presenciais' },
   { path: '/avisos', label: 'Avisos' },
   { path: '/indicacoes', label: 'Indicações' },
   { path: '/checkins', label: 'Check-ins' },
@@ -103,6 +106,12 @@ route('/cliente/novo', async () => {
   renderNewClient(main);
 });
 
+route('/presenciais', async () => {
+  if (!(await requireTrainer())) return;
+  const main = renderShell('/presenciais');
+  renderPresenciais(main);
+});
+
 route('/avisos', async () => {
   if (!(await requireTrainer())) return;
   const main = renderShell('/avisos');
@@ -153,7 +162,12 @@ async function handleDynamicRoutes() {
   const relatorioMatch = hash.match(/^\/cliente\/([^/]+)\/relatorio$/);
   const examesMatch = hash.match(/^\/cliente\/([^/]+)\/exames$/);
   const anamneseMatch = hash.match(/^\/cliente\/([^/]+)\/anamnese\/([^/]+)$/);
-  if (treinoMatch) {
+  const presencialMatch = hash.match(/^\/presencial\/([^/]+)$/);
+  if (presencialMatch) {
+    if (!(await requireTrainer())) return;
+    const main = renderShell('/presenciais');
+    renderPresencial(main, presencialMatch[1]);
+  } else if (treinoMatch) {
     if (!(await requireTrainer())) return;
     const main = renderShell('/clientes');
     renderWorkoutEditor(main, treinoMatch[1]);
