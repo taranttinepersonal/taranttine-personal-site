@@ -17,6 +17,7 @@
 // Volume semanal por grupo (De Salles): iniciante 1-5 · intermediário 6-10 ·
 // avançado 10-30 (até ~45 no quadríceps).
 
+import { techniqueByKey } from './techniques.js';
 export const DEFAULT_PHASES = [
   { key: 'adaptacao', label: 'Adaptação', mesociclo: 1, from: 1, to: 4, rir: 'RIR 3-4', volume: 'MEV (base)', repsDelta: 5, loadFactor: 1.02 },
   { key: 'desenvolvimento', label: 'Desenvolvimento', mesociclo: 2, from: 5, to: 10, rir: 'RIR 2', volume: 'MAV (zona boa)', repsDelta: 0, loadFactor: 1.05 },
@@ -204,6 +205,15 @@ export function suggestNext({ history = [], repsRange, rirFloor = null, phase = 
       action: 'manter',
       nextLoad: load,
       reason: 'Dor ou incômodo relatado na última sessão: não suba a carga até avaliar o exercício.',
+    };
+  }
+
+  const tech = techniqueByKey(latest.technique);
+  if (tech && !tech.comparable) {   // rest-pause, drop set etc.: reps e carga não são comparáveis com a faixa da ficha
+    return {
+      action: 'manter',
+      nextLoad: load,
+      reason: `Última sessão com ${tech.label}: as reps não são comparáveis com a faixa da fase. Mantenha a carga e registre a próxima sessão sem a técnica pra decidir.`,
     };
   }
 

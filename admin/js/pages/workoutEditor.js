@@ -1,17 +1,6 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
 
-let exerciseLibrary = null;
-
-async function getExerciseLibrary() {
-  if (exerciseLibrary) return exerciseLibrary;
-  const { data, error } = await supabase
-    .from('exercises')
-    .select('id, name, muscle_groups(name)')
-    .order('name');
-  if (error) { console.error(error); return []; }
-  exerciseLibrary = data;
-  return data;
-}
+import { getExerciseLibrary } from '../lib/exerciseLibrary.js';
 
 export async function renderWorkoutEditor(main, clientId) {
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;

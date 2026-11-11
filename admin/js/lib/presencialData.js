@@ -2,13 +2,20 @@ import { supabase } from '../../../app/js/supabaseClient.js';
 import {
   getPhases, weekInfo, phaseRange, phaseRepsLabel, parseRirFloor, suggestNext, deloadRecommended, notWorkingStreak, PROGRESSION,
 } from '../../../app/js/lib/progression.js';
+import { blockInfo, defaultBlockWeeks } from '../../../app/js/lib/rotation.js';
+import { techniqueFromMethod } from '../../../app/js/lib/techniques.js';
+
+function todayIso() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+}
 
 const PAGE = 1000; // limite padrão de linhas por consulta do PostgREST
 
 // As migrações 0037/0038 ainda não rodaram: coluna ou tabela inexistente.
 export function isMissingColumn(error) {
   return !!error && (['42703', '42P01', 'PGRST204', 'PGRST205'].includes(error.code)
-    || /reps_done|rir_done|week_no|estimated|feeling|modalidade|periodization|weekly_signals/.test(error.message || ''));
+    || /reps_done|rir_done|week_no|estimated|feeling|modalidade|periodization|weekly_signals|block_weeks|cycle_no|previous_program_id|technique|substitute_exercise_id|extra_on|extra_day_id/.test(error.message || ''));
 }
 
 async function fetchAllLogs(clientId, workoutExerciseIds) {
@@ -16,7 +23,7 @@ async function fetchAllLogs(clientId, workoutExerciseIds) {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from('load_history')
-      .select('workout_exercise_id, load_value, logged_on, reps_done, rir_done, week_no, estimated, feeling')
+      .select('workout_exercise_id, load_value, logged_on, reps_done, rir_done, week_no, estimated, feeling, technique, substitute_exercise_id')
       .eq('client_id', clientId)
       .in('workout_exercise_id', workoutExerciseIds)
       .order('logged_on', { ascending: false })
@@ -35,7 +42,7 @@ export async function loadPresencialClient(clientId) {
 
   const { data: program, error: gErr } = await supabase
     .from('workout_programs')
-    .select('id, title, current_week, total_weeks, periodization, last_adjusted_at, created_at')
+    .select('id, title, current_week, total_weeks, periodization, last_adjusted_at, created_at, block_weeks, cycle_no, previous_program_id')
     .eq('client_id', clientId).eq('is_active', true).maybeSingle();
   if (gErr) throw gErr;
 
@@ -57,13 +64,24 @@ export async function loadPresencialClient(clientId) {
   if (dErr) throw dErr;
   const dayIds = days.map(d => d.id);
 
+  const WE_COLS = 'id, workout_day_id, exercise_id, sets, reps, rest_seconds, method, display_group, sort_order, extra_on, extra_day_id, exercises(name, muscle_groups(name))';
   const { data: wes, error: wErr } = dayIds.length ? await supabase
-    .from('workout_exercises')
-    .select('id, workout_day_id, sets, reps, rest_seconds, method, display_group, sort_order, exercises(name, muscle_groups(name))')
-    .in('workout_day_id', dayIds).order('sort_order') : { data: [], error: null };
+    .from('workout_exercises').select(WE_COLS).in('workout_day_id', dayIds).order('sort_order') : { data: [], error: null };
   if (wErr) throw wErr;
+  // exercícios adicionados "só hoje" (ficam no programa-arquivo, ligados a um dia da ficha)
+  const { data: extraRows, error: xErr } = dayIds.length ? await supabase
+    .from('workout_exercises').select(WE_COLS).in('extra_day_id', dayIds) : { data: [], error: null };
+  if (xErr) throw xErr;
 
-  const logs = wes.length ? await fetchAllLogs(clientId, wes.map(w => w.id)) : [];
+  const allRows = [...wes, ...extraRows];
+  const logs = allRows.length ? await fetchAllLogs(clientId, allRows.map(w => w.id)) : [];
+  // nome do exercício feito no lugar do prescrito (troca de aparelho só naquele dia)
+  const subIds = [...new Set(logs.map(l => l.substitute_exercise_id).filter(Boolean))];
+  if (subIds.length) {
+    const { data: subs } = await supabase.from('exercises').select('id, name').in('id', subIds);
+    const nameBy = Object.fromEntries((subs || []).map(x => [x.id, x.name]));
+    for (const l of logs) if (l.substitute_exercise_id) l.substitute_name = nameBy[l.substitute_exercise_id] || 'outro exercício';
+  }
   const logsByEx = {};
   for (const l of logs) (logsByEx[l.workout_exercise_id] ||= []).push(l); // já vem do mais novo pro mais antigo
 
@@ -76,31 +94,40 @@ export async function loadPresencialClient(clientId) {
   const repsDelta = info?.phase.repsDelta ?? 0;
   const rirFloor = parseRirFloor(info?.phase.rir);
 
-  const daysOut = days.map(d => ({
-    ...d,
-    exercises: wes.filter(w => w.workout_day_id === d.id).map(w => {
-      const history = logsByEx[w.id] || [];
-      const range = phaseRange(w.reps, repsDelta);
-      // logs de semana com deload aplicado não servem de base pra progredir
-      const base = history.filter(l => l.week_no == null || !deloadWeeks.has(l.week_no));
-      return {
-        id: w.id,
-        name: w.exercises?.name || 'Exercício',
-        muscle: w.exercises?.muscle_groups?.name || '',
-        sets: w.sets, reps: w.reps, rest: w.rest_seconds, method: w.method, group: w.display_group,
-        range, repsLabel: phaseRepsLabel(w.reps, repsDelta), baseReps: w.reps,
-        history,
-        last: history[0] || null,
-        notWorking: notWorkingStreak(history),
-        suggestion: suggestNext({ history: base, repsRange: range, rirFloor, phase: info?.phase || null, deloadApplied, deloadFactor }),
-      };
-    }),
-  }));
+  const buildEx = (w) => {
+    const history = logsByEx[w.id] || [];
+    const range = phaseRange(w.reps, repsDelta);
+    // não servem de base pra progredir: semana de deload aplicado e dia em que o exercício foi trocado por outro
+    const base = history.filter(l => (l.week_no == null || !deloadWeeks.has(l.week_no)) && !l.substitute_exercise_id);
+    return {
+      id: w.id,
+      exerciseId: w.exercise_id,
+      name: w.exercises?.name || 'Exercício',
+      muscle: w.exercises?.muscle_groups?.name || '',
+      sets: w.sets, reps: w.reps, rest: w.rest_seconds, method: w.method, group: w.display_group,
+      defaultTechnique: techniqueFromMethod(w.method),
+      range, repsLabel: phaseRepsLabel(w.reps, repsDelta), baseReps: w.reps,
+      history,
+      last: history[0] || null,
+      notWorking: notWorkingStreak(history),
+      suggestion: suggestNext({ history: base, repsRange: range, rirFloor, phase: info?.phase || null, deloadApplied, deloadFactor }),
+    };
+  };
+  const daysOut = days.map(d => ({ ...d, exercises: wes.filter(w => w.workout_day_id === d.id).map(buildEx) }));
+  const extras = extraRows.map(w => ({ ...buildEx(w), dayId: w.extra_day_id, extraOn: w.extra_on }));
+
+  // bloco de rotação: começa na última vez que a ficha foi ajustada (ou na criação); 4 sem. (iniciante/adaptação) ou 6
+  const levelKey = level?.nivel_final || null;
+  const blockWeeks = program.block_weeks || defaultBlockWeeks(levelKey, info?.phase?.key);
+  const blockStart = String(program.last_adjusted_at || program.created_at || '').slice(0, 10) || null;
+  const block = blockInfo({ start: blockStart, blockWeeks, today: todayIso() });
 
   return {
-    profile, program, days: daysOut, level, logs,
+    profile, program, days: daysOut, extras, level, logs,
     phases, info, signals, currentSignal, deloadApplied, deloadWeeks,
     deloadSuggested: deloadRecommended(signals),
+    block: block && { ...block, custom: !!program.block_weeks },
+    cycleNo: program.cycle_no || 1,
   };
 }
 

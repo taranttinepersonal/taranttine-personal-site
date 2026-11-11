@@ -448,3 +448,66 @@
 .pc-feel-sel.nao_pegou { border-color: rgba(240,165,0,.7); color: #F0A500; }
 .pc-feel-sel.dor { border-color: rgba(224,82,82,.8); color: #e05252; }
 .pc-feel-warn { color: #F0A500; font-size: 11px; font-weight: 600; }
+
+/* ----- Rotação de exercícios + novo ciclo ----- */
+.pc-block-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: end; margin: 12px 0 8px; }
+.pc-block-grid label { margin: 0; }
+.pc-block-grid .pc-check { display: flex; align-items: center; gap: 8px; text-transform: none; font-size: 13px; color: var(--text); letter-spacing: 0; grid-column: span 2; }
+.pc-block-grid .pc-check input { width: auto; }
+.pc-rot, .pc-cycle, .pc-block { margin-bottom: 14px; }
+.pc-rot-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--border2); }
+.pc-rot-row:first-of-type { margin-top: 10px; }
+.pc-rot-row.on { background: rgba(0,184,148,.05); }
+.pc-rot-ok { display: flex; align-items: center; gap: 6px; font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--muted); margin: 0; padding-top: 6px; }
+.pc-rot-ok input { width: auto; }
+.pc-rot-names { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
+.pc-rot-names select { max-width: 100%; min-width: 0; }
+.pc-rot-why { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.pc-rot-why.warn { color: #f4c14d; }
+.pc-cycle.soon { border-color: rgba(240,165,0,.5); }
+.pc-cycle-prev { margin: 8px 0 4px; }
+.pc-cycle-prev summary { cursor: pointer; font-size: 13px; color: var(--text); }
+.pc-cycle-table { margin-top: 8px; }
+@media (max-width: 560px) {
+  .pc-block-grid { grid-template-columns: 1fr; }
+  .pc-block-grid .pc-check { grid-column: auto; }
+}
+.pc-rot-names select { background: var(--black3); color: var(--text); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 13px; }
+/* 5 abas: no celular a barra rola por dentro em vez de alargar a página */
+.pc-tabs { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.pc-tabs::-webkit-scrollbar { display: none; }
+.pc-tab { white-space: nowrap; flex: 0 0 auto; }
+@media (max-width: 560px) { .pc-tab { padding: 12px 11px; font-size: 16px; } }
+
+/* ----- técnica (roleta) + ajustes na hora do treino ----- */
+.pc-inputs .pc-tech { grid-column: 1 / -1; }
+.pc-inputs .pc-tech select { font-size: 16px; font-weight: 600; }
+.pc-modal input[type=search] { width: 100%; background: var(--black3); border: 1.5px solid var(--border2); border-radius: 10px; padding: 12px; color: var(--white); font: inherit; font-size: 15px; }
+.pc-modal-grid input { width: 100%; text-align: center; }
+.pc-tech-sel.on { border-color: rgba(184,146,74,.7); color: #e0c27f; }
+.pc-tech-hint { font-size: 12px; color: var(--muted); margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(184,146,74,.07); border: 1px solid rgba(184,146,74,.3); }
+.pc-tech-hint b { color: #e0c27f; }
+.pc-sub { font-size: 12.5px; color: #e0c27f; margin-top: 3px; }
+.pc-ex.extra { border-color: rgba(240,165,0,.5); }
+.pc-ex-tools { margin-top: 8px; }
+.pc-link { background: none; border: none; padding: 0; color: var(--muted); font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.pc-link:hover { color: var(--text); }
+.pc-modal { position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+.pc-modal-card { background: var(--black2); width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 700px) { .pc-modal { align-items: center; } .pc-modal-card { border-radius: 16px; } }
+.pc-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.pc-chip { background: var(--black3); border: 1px solid var(--border2); color: var(--text); border-radius: 99px; padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.pc-chip:hover, .pc-pick:hover { border-color: var(--green); }
+.pc-pick-list { display: flex; flex-direction: column; gap: 6px; max-height: 42vh; overflow-y: auto; }
+.pc-pick { text-align: left; background: var(--black3); border: 1px solid var(--border2); color: var(--text); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+.pc-pick small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.pc-modal-opt { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid var(--border2); border-radius: 12px; }
+.pc-modal-opt span { font-size: 12.5px; color: var(--muted); }
+.pc-modal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pc-modal-actions { display: flex; gap: 8px; }
+.pc-modal-actions .admin-btn { flex: 1; }
+.pc-radio { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--text); margin: 0; }
+.pc-radio input { width: auto; }
+.pc-modal .pc-radio { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--text); margin: 0; }
+.pc-modal-grid label { margin: 0; }
+.pc-modal-grid input { margin-top: 4px; }

@@ -1,9 +1,14 @@
 import { supabase } from '../../../app/js/supabaseClient.js';
 import {
-  LEVEL_BANDS, FEELINGS, feelingLabel, validatePhases, parseNum, fmt, weeklyVolume, bandFor, volumeStatus,
+  LEVEL_BANDS, FEELINGS, feelingLabel, validatePhases, parseNum, parseRepsRange, fmt, weeklyVolume, bandFor, volumeStatus,
 } from '../../../app/js/lib/progression.js';
 import { loadPresencialClient, loadEvolutionExtras, isMissingColumn } from '../lib/presencialData.js';
 import { buildEvolution, evolutionHtml, evolutionToWhatsApp, PERIODS } from '../../../app/js/lib/evolutionDoc.js';
+import { suggestRotation, defaultBlockWeeks, blockInfo, peakLoad, startLoad, DEFAULT_START_PCT, patternOf, ROTATION_BANK } from '../../../app/js/lib/rotation.js';
+import { applySwaps, createNextCycle, loadArchivedExerciseIds } from '../lib/rotationActions.js';
+import { addExercise, removeExtra } from '../lib/sessionActions.js';
+import { getExerciseLibrary } from '../lib/exerciseLibrary.js';
+import { TECHNIQUES, techniqueByKey, techniqueLabel, aboveLevel, LEVEL_NAME } from '../../../app/js/lib/techniques.js';
 
 const ACTIONS = {
   subir:     { cls: 'up',    icon: '↑', label: 'Subir' },
@@ -14,13 +19,14 @@ const ACTIONS = {
   registrar: { cls: 'muted', icon: '…', label: 'Registrar reps' },
   'sem-dado': { cls: 'muted', icon: '–', label: 'Sem histórico' },
 };
-const MIGRATION_MSG = `<div class="admin-empty">Falta rodar as migrações <b>0037</b> e <b>0038</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`;
+const MIGRATION_MSG = `<div class="admin-empty">Falta rodar as migrações <b>0037</b> a <b>0042</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`;
 
 export async function renderPresencial(main, clientId) {
   main.closest('.admin-shell')?.classList.add('wide');
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
 
-  const ui = { tab: 'lancar', dayIdx: 0, date: todayLocal(), draft: {}, level: null, period: 'inicio', comment: '', extras: null };
+  const ui = { tab: 'lancar', dayIdx: 0, date: todayLocal(), draft: {}, sub: {}, level: null, period: 'inicio', comment: '', extras: null,
+    rot: { ok: new Set(), pick: {}, pct: DEFAULT_START_PCT, withSwaps: true, archived: null } };
   let d;
 
   async function reload() {
@@ -39,6 +45,8 @@ export async function renderPresencial(main, clientId) {
     const y = window.scrollY;
     main.innerHTML = pageHtml(d, ui);
     window.scrollTo(0, y);
+    const tab = main.querySelector('.pc-tab.active'); // 5 abas: no celular a ativa fica à vista
+    if (tab?.parentElement) tab.parentElement.scrollLeft = tab.offsetLeft - (tab.parentElement.clientWidth - tab.offsetWidth) / 2;
     if (ui.tab === 'apresentacao' && ui.extras) refreshPreview();
   }
 
@@ -55,6 +63,97 @@ export async function renderPresencial(main, clientId) {
     f.srcdoc = currentDoc().html;
   }
 
+  // ----- ajustes na hora: trocar aparelho / adicionar exercício -----
+  async function openExerciseModal({ mode, exId }) {
+    const day = d.days[Math.min(ui.dayIdx, d.days.length - 1)];
+    const ex = exId ? findExercise(d, exId) : null;
+    const library = await getExerciseLibrary();
+    const pat = ex ? patternOf(ex.exerciseId) : null;
+    const quick = pat ? pat.options.filter(o => o.id !== ex.exerciseId && !o.aliases.includes(ex.exerciseId)) : [];
+    const ref = [...(day?.exercises || [])].reverse().find(e => parseRepsRange(e.reps)); // último com faixa de reps (pula alongamento/mobilidade)
+    const modal = document.createElement('div');
+    modal.className = 'pc-modal';
+    document.body.appendChild(modal);
+    const close = () => modal.remove();
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+
+    const pickStage = () => {
+      modal.innerHTML = `<div class="pc-modal-card">
+        <div class="pc-sum-title">${mode === 'sub' ? `Trocar aparelho: ${esc(ex.name)}` : `Adicionar exercício em ${esc(day.label)} · ${esc(day.title)}`}</div>
+        ${quick.length ? `<div class="admin-row-sub">Mesmo padrão de movimento</div><div class="pc-quick">${quick.map(o => `<button class="pc-chip" data-pick="${o.id}" data-name="${esc(o.name)}">${esc(o.name)}</button>`).join('')}</div>` : ''}
+        <input type="search" id="pc-ex-search" class="pc-in" placeholder="Buscar na biblioteca (${library.length} exercícios)..." autocomplete="off">
+        <div class="pc-pick-list" id="pc-pick-list"></div>
+        <button class="admin-btn" data-close>Cancelar</button>
+      </div>`;
+      const list = modal.querySelector('#pc-pick-list');
+      const fill = (q) => {
+        const f = norm(q);
+        const rows = (f ? library.filter(e => norm(e.name).includes(f)) : library).slice(0, 60);
+        list.innerHTML = rows.map(e => `<button class="pc-pick" data-pick="${e.id}" data-name="${esc(e.name)}">${esc(e.name)}<small>${esc(e.muscle_groups?.name || '')}</small></button>`).join('') || '<div class="admin-row-sub">Nenhum resultado.</div>';
+      };
+      fill('');
+      modal.querySelector('#pc-ex-search').addEventListener('input', (e) => fill(e.target.value));
+      modal.querySelector('#pc-ex-search').focus();
+    };
+
+    const confirmStage = (picked) => {
+      if (mode === 'sub') {
+        modal.innerHTML = `<div class="pc-modal-card">
+          <div class="pc-sum-title">${esc(picked.name)}</div>
+          <div class="admin-row-sub">no lugar de <b>${esc(ex.name)}</b></div>
+          <div class="pc-modal-opt"><b>Só hoje</b><span>A ficha continua igual. A carga lançada hoje fica registrada com o aparelho trocado e não entra na progressão de ${esc(ex.name)}.</span><button class="admin-btn primary" data-sub-today>Só hoje</button></div>
+          <div class="pc-modal-opt"><b>Trocar na ficha</b><span>Definitivo: o novo ocupa o lugar, com as mesmas séries, reps e descanso. O antigo vai pro arquivo com o histórico.</span><button class="admin-btn" data-sub-ficha>Trocar na ficha</button></div>
+          <button class="admin-btn" data-back>Voltar</button>
+        </div>`;
+      } else {
+        modal.innerHTML = `<div class="pc-modal-card admin-form">
+          <div class="pc-sum-title">${esc(picked.name)}</div>
+          <div class="pc-modal-grid">
+            <label>Séries<input id="pc-add-sets" value="${esc(ref?.sets || '3')}" inputmode="numeric"></label>
+            <label>Reps<input id="pc-add-reps" value="${esc(ref?.reps || '10-12')}"></label>
+            <label>Descanso (s)<input id="pc-add-rest" value="${esc(ref?.rest || 60)}" inputmode="numeric"></label>
+          </div>
+          <div class="pc-modal-opt"><b>Quando vale?</b>
+            <label class="pc-radio"><input type="radio" name="pc-add-when" value="today" checked> Só hoje (não entra na ficha do cliente)</label>
+            <label class="pc-radio"><input type="radio" name="pc-add-when" value="ficha"> Fica na ficha (no fim de ${esc(day.label)})</label>
+          </div>
+          <div class="pc-modal-actions"><button class="admin-btn" data-back>Voltar</button><button class="admin-btn primary" data-add-go>Adicionar</button></div>
+        </div>`;
+      }
+      modal.dataset.pickId = picked.id;
+    };
+
+    modal.addEventListener('click', async (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.hasAttribute('data-close')) return close();
+      if (b.hasAttribute('data-back')) return pickStage();
+      if (b.dataset.pick) return confirmStage({ id: b.dataset.pick, name: b.dataset.name });
+      const id = modal.dataset.pickId;
+      const name = modal.querySelector('.pc-sum-title')?.textContent || '';
+      if (b.hasAttribute('data-sub-today')) { ui.sub[ex.id] = { id, name }; close(); paint(); toast(main, 'Troca só de hoje: ela é salva junto com a carga.'); return; }
+      b.disabled = true;
+      try {
+        if (b.hasAttribute('data-sub-ficha')) {
+          if (!confirm(`Trocar "${ex.name}" por "${name}" na ficha, definitivamente?`)) { b.disabled = false; return; }
+          await applySwaps(clientId, d.program.id, [{ rowId: ex.id, toId: id }], { restartBlock: false });
+          delete ui.draft[ex.id]; delete ui.sub[ex.id];
+          close(); if (await reload()) { paint(); toast(main, 'Trocado na ficha. O antigo foi pro arquivo.'); }
+        } else if (b.hasAttribute('data-add-go')) {
+          const when = modal.querySelector('input[name="pc-add-when"]:checked').value;
+          await addExercise(clientId, {
+            dayId: day.id, exerciseId: id, sets: modal.querySelector('#pc-add-sets').value.trim(), reps: modal.querySelector('#pc-add-reps').value.trim(),
+            rest: modal.querySelector('#pc-add-rest').value.trim(), onlyToday: when === 'today', date: ui.date,
+          });
+          close(); if (await reload()) { paint(); toast(main, when === 'today' ? 'Exercício extra de hoje adicionado.' : 'Exercício adicionado na ficha.'); }
+        }
+      } catch (err) {
+        console.error(err); alert('Erro: ' + (err.message || err)); b.disabled = false;
+      }
+    });
+    pickStage();
+  }
+
   if (!(await reload())) return;
   paint();
 
@@ -64,25 +163,36 @@ export async function renderPresencial(main, clientId) {
     if (!el) return;
     const id = el.dataset.we;
     ui.draft[id] = { ...(ui.draft[id] || {}), [el.dataset.f]: el.value };
-    const n = countDraft(ui);
+    const n = countDraft(d, ui);
     const btn = main.querySelector('[data-save]');
     if (btn) btn.textContent = n ? `Salvar treino (${n})` : 'Salvar treino';
   });
 
   main.addEventListener('change', (ev) => {
-    if (ev.target.id === 'pc-date') { ui.date = ev.target.value || todayLocal(); ui.draft = {}; paint(); }
+    if (ev.target.id === 'pc-date') { ui.date = ev.target.value || todayLocal(); ui.draft = {}; ui.sub = {}; paint(); }
     if (ev.target.id === 'pc-level') { ui.level = ev.target.value; paint(); }
     if (ev.target.id === 'pc-period') { ui.period = ev.target.value; refreshPreview(); }
     if (ev.target.id === 'pc-comment') { ui.comment = ev.target.value; refreshPreview(); }
+    if (ev.target.dataset?.f === 'technique') { paint(); return; } // atualiza a dica da técnica
+    const ok = ev.target.closest('[data-rot-ok]');
+    if (ok) { ok.checked ? ui.rot.ok.add(ok.dataset.rotOk) : ui.rot.ok.delete(ok.dataset.rotOk); paint(); return; }
+    const pickEl = ev.target.closest('[data-rot-pick]');
+    if (pickEl) { ui.rot.pick[pickEl.dataset.rotPick] = pickEl.value; paint(); return; }
+    if (ev.target.id === 'pc-pct') { ui.rot.pct = Math.min(100, Math.max(40, Number(ev.target.value) || DEFAULT_START_PCT)); paint(); return; }
+    if (ev.target.id === 'pc-cycle-swaps') { ui.rot.withSwaps = ev.target.checked; paint(); }
   });
 
   main.addEventListener('click', async (ev) => {
-    const t = ev.target.closest('[data-tab],[data-day],[data-use],[data-fillall],[data-save],[data-week],[data-sig-save],[data-phases-save],[data-phases-reset],[data-pdf],[data-wa],[data-copy]');
+    const t = ev.target.closest('[data-tab],[data-day],[data-use],[data-fillall],[data-save],[data-week],[data-sig-save],[data-phases-save],[data-phases-reset],[data-pdf],[data-wa],[data-copy],[data-block-save],[data-rot-apply],[data-cycle-new],[data-sub-open],[data-sub-clear],[data-add-open],[data-extra-del]');
     if (!t) return;
 
     if (t.dataset.tab) {
       ui.tab = t.dataset.tab; paint();
       if (ui.tab === 'apresentacao' && !ui.extras) { ui.extras = await loadEvolutionExtras(clientId); paint(); }
+      if (ui.tab === 'rotacao' && !ui.rot.archived) {
+        try { ui.rot.archived = await loadArchivedExerciseIds(clientId); } catch (e) { console.error(e); ui.rot.archived = new Set(); }
+        paint();
+      }
       return;
     }
 
@@ -140,7 +250,7 @@ export async function renderPresencial(main, clientId) {
         t.disabled = false; t.textContent = `Salvar treino (${rows.length})`;
         return;
       }
-      ui.draft = {};
+      ui.draft = {}; ui.sub = {};
       if (await reload()) { paint(); toast(main, `${rows.length} exercício(s) salvo(s).`); }
       return;
     }
@@ -183,6 +293,59 @@ export async function renderPresencial(main, clientId) {
       return;
     }
 
+    if (t.dataset.subOpen) { openExerciseModal({ mode: 'sub', exId: t.dataset.subOpen }); return; }
+    if (t.dataset.subClear) { ui.sub[t.dataset.subClear] = null; paint(); return; }
+    if (t.hasAttribute('data-add-open')) { openExerciseModal({ mode: 'add' }); return; }
+    if (t.dataset.extraDel) {
+      if (!confirm('Remover este exercício extra de hoje (e o lançamento dele)?')) return;
+      try { await removeExtra(t.dataset.extraDel); delete ui.draft[t.dataset.extraDel]; if (await reload()) paint(); }
+      catch (e) { console.error(e); alert('Erro ao remover: ' + (e.message || e)); }
+      return;
+    }
+
+    if (t.hasAttribute('data-block-save')) {
+      const start = main.querySelector('#pc-block-start').value;
+      const weeks = parseInt(main.querySelector('#pc-block-weeks').value, 10);
+      if (!start || !(weeks >= 2 && weeks <= 12)) { alert('Informe o início do bloco e a duração (2 a 12 semanas).'); return; }
+      if (await updateProgram(d.program.id, { last_adjusted_at: `${start}T12:00:00Z`, block_weeks: weeks }) && await reload()) { paint(); toast(main, 'Bloco salvo.'); }
+      return;
+    }
+
+    if (t.hasAttribute('data-rot-apply')) {
+      const swaps = rotationPlan(d, ui).swaps;
+      if (!swaps.length) return;
+      if (!confirm(`Trocar ${swaps.length} exercício(s) agora? A prescrição (séries, reps, descanso) fica igual; o exercício antigo vai pro arquivo com o histórico de cargas.`)) return;
+      t.disabled = true; t.textContent = 'Trocando...';
+      try {
+        const n = await applySwaps(clientId, d.program.id, swaps.map(x => ({ rowId: x.rowId, toId: x.toId })));
+        ui.rot.ok.clear(); ui.rot.pick = {};
+        try { ui.rot.archived = await loadArchivedExerciseIds(clientId); } catch { ui.rot.archived = new Set(); } // o que saiu não volta na próxima sugestão
+        if (await reload()) { paint(); toast(main, `${n} troca(s) feita(s). Novo bloco começa hoje.`); }
+      } catch (e) {
+        console.error(e); alert('Erro ao trocar: ' + (e.message || e));
+        if (await reload()) paint();
+      }
+      return;
+    }
+
+    if (t.hasAttribute('data-cycle-new')) {
+      const plan = rotationPlan(d, ui);
+      const swaps = ui.rot.withSwaps ? plan.swaps : [];
+      const starts = cycleStarts(d, ui.rot.pct);
+      const nStart = Object.keys(starts).length;
+      if (!confirm(`Criar o ciclo ${d.cycleNo + 1} agora?\n\n• Ficha copiada, semana 1 (Adaptação)\n• ${nStart} carga(s) de partida a ${ui.rot.pct}% do pico do ciclo atual\n• ${swaps.length} troca(s) de exercício aplicada(s)\n\nO ciclo atual fica guardado (inativo) com todo o histórico.`)) return;
+      t.disabled = true; t.textContent = 'Criando ciclo...';
+      try {
+        const r = await createNextCycle(clientId, d.program.id, { starts, swaps: swaps.map(x => ({ rowId: x.rowId, toId: x.toId })) });
+        ui.rot = { ok: new Set(), pick: {}, pct: ui.rot.pct, withSwaps: true, archived: null }; ui.draft = {}; ui.sub = {}; ui.dayIdx = 0;
+        if (await reload()) { paint(); toast(main, `Ciclo ${r.cycleNo} criado: ${r.seeded} cargas de partida, ${r.swapped} troca(s).`); }
+      } catch (e) {
+        console.error(e); alert('Erro ao criar o ciclo (nada foi alterado): ' + (e.message || e));
+        if (await reload()) paint();
+      }
+      return;
+    }
+
     if (t.hasAttribute('data-phases-reset')) {
       if (!confirm('Voltar às fases padrão do FitPro (Adaptação 1–4, Desenvolvimento 5–10, Intensificação 11–15, Deload 16)?')) return;
       if (await updateProgram(d.program.id, { periodization: null, total_weeks: 16 }) && await reload()) { paint(); toast(main, 'Fases padrão restauradas.'); }
@@ -198,18 +361,28 @@ async function updateProgram(id, patch) {
 
 // ---------- montagem das linhas pra gravar ----------
 
-function countDraft(ui) {
-  return Object.values(ui.draft).filter(v => String(v.load ?? '').trim() !== '').length;
+// carga efetiva da linha: a digitada ou, se não mexeu, a já lançada nesse dia
+function effLoad(d, ui, id, v) {
+  const today = findExercise(d, id)?.history.find(h => h.logged_on === ui.date);
+  return String(v.load ?? today?.load_value ?? '').trim();
+}
+function countDraft(d, ui) {
+  return Object.entries(ui.draft).filter(([id, v]) => effLoad(d, ui, id, v) !== '').length;
 }
 
 function buildRows(d, ui, clientId) {
   const rows = [];
   for (const [id, v] of Object.entries(ui.draft)) {
-    const raw = String(v.load ?? '').trim();
+    const raw = effLoad(d, ui, id, v);
     if (!raw) continue;
+    const ex = findExercise(d, id);
+    const today = ex?.history.find(h => h.logged_on === ui.date) || null; // reeditar o dia não apaga o que já estava lançado
     const n = parseNum(raw);
-    const reps = parseNum(v.reps);
-    const rir = parseNum(v.rir);
+    const reps = parseNum(v.reps !== undefined ? v.reps : today?.reps_done);
+    const rir = parseNum(v.rir !== undefined ? v.rir : today?.rir_done);
+    const feeling = v.feeling !== undefined ? v.feeling : today?.feeling;
+    const technique = v.technique !== undefined ? v.technique : (today ? today.technique : ex?.defaultTechnique);
+    const sub = ui.sub[id] !== undefined ? ui.sub[id]?.id : today?.substitute_exercise_id;
     rows.push({
       client_id: clientId,
       workout_exercise_id: id,
@@ -217,7 +390,10 @@ function buildRows(d, ui, clientId) {
       logged_on: ui.date,
       reps_done: reps != null ? Math.round(reps) : null,
       rir_done: rir != null ? Math.round(rir) : null,
-      feeling: FEELINGS.some(f => f.key === v.feeling) ? v.feeling : null,
+      feeling: FEELINGS.some(f => f.key === feeling) ? feeling : null,
+      technique: techniqueByKey(technique) ? technique : null,
+      substitute_exercise_id: sub || null,
+      estimated: false, // lançamento real substitui uma carga estimada do mesmo dia
       week_no: d.program.current_week || null,
     });
   }
@@ -226,7 +402,7 @@ function buildRows(d, ui, clientId) {
 
 function findExercise(d, id) {
   for (const day of d.days) for (const ex of day.exercises) if (ex.id === id) return ex;
-  return null;
+  return (d.extras || []).find(ex => ex.id === id) || null;
 }
 
 // ---------- HTML ----------
@@ -250,6 +426,7 @@ function pageHtml(d, ui) {
                     ${info.isChange ? `<span class="pc-badge warn">Troca de fase</span>` : ''}
                     ${d.deloadApplied ? `<span class="pc-badge deload">Deload aplicado</span>` : ''}`
                  : `<span class="pc-badge warn">${d.program.current_week ? `Semana ${d.program.current_week} fora das fases` : 'Semana não definida'}</span>`}
+          ${d.cycleNo > 1 ? `<span class="pc-badge">Ciclo ${d.cycleNo}</span>` : ''}
           ${levelLabel ? `<span class="pc-badge">${esc(levelLabel)}</span>` : `<span class="pc-badge muted">Nível não avaliado</span>`}
         </div>
       </div>
@@ -262,10 +439,10 @@ function pageHtml(d, ui) {
       <a class="admin-btn" href="#/cliente/${id}/relatorio">Relatório</a>
     </div>
     <div class="pc-tabs">
-      ${[['lancar', 'Lançar treino'], ['progressao', 'Progressão'], ['volume', 'Volume'], ['apresentacao', 'Apresentação']].map(([k, l]) =>
+      ${[['lancar', 'Lançar treino'], ['progressao', 'Progressão'], ['volume', 'Volume'], ['rotacao', 'Rotação'], ['apresentacao', 'Apresentação']].map(([k, l]) =>
         `<button class="pc-tab ${ui.tab === k ? 'active' : ''}" data-tab="${k}">${l}</button>`).join('')}
     </div>
-    ${ui.tab === 'lancar' ? lancarHtml(d, ui) : ui.tab === 'progressao' ? progressaoHtml(d) : ui.tab === 'apresentacao' ? presentationHtml(d, ui) : volumeHtml(d, ui)}
+    ${ui.tab === 'lancar' ? lancarHtml(d, ui) : ui.tab === 'progressao' ? progressaoHtml(d) : ui.tab === 'apresentacao' ? presentationHtml(d, ui) : ui.tab === 'rotacao' ? rotacaoHtml(d, ui) : volumeHtml(d, ui)}
     <div class="pc-toast" id="pc-toast"></div>
   `;
 }
@@ -285,7 +462,7 @@ function phaseBanners(d) {
 function lancarHtml(d, ui) {
   if (!d.days.length) return `<div class="admin-empty">A ficha ainda não tem dias de treino.</div>`;
   const day = d.days[Math.min(ui.dayIdx, d.days.length - 1)];
-  const n = countDraft(ui);
+  const n = countDraft(d, ui);
   return `
     <div class="pc-bar">
       <div class="pc-pills">
@@ -296,14 +473,16 @@ function lancarHtml(d, ui) {
     ${phaseBanners(d)}
     <div class="pc-list">
       ${day.exercises.map(ex => exerciseRow(ex, ui, d)).join('') || '<div class="admin-empty">Sem exercícios nesse dia.</div>'}
+      ${(d.extras || []).filter(x => x.dayId === day.id && x.extraOn === ui.date).map(ex => exerciseRow(ex, ui, d, true)).join('')}
     </div>
     <div class="pc-actions">
+      <button class="admin-btn" data-add-open>+ Adicionar exercício</button>
       <button class="admin-btn" data-fillall>Preencher com as metas</button>
       <button class="admin-btn primary" data-save>${n ? `Salvar treino (${n})` : 'Salvar treino'}</button>
     </div>`;
 }
 
-function exerciseRow(ex, ui, d) {
+function exerciseRow(ex, ui, d, isExtra = false) {
   const todays = ex.history.find(h => h.logged_on === ui.date);
   const previous = ex.history.find(h => h.logged_on !== ui.date);
   const dr = ui.draft[ex.id] || {};
@@ -314,23 +493,33 @@ function exerciseRow(ex, ui, d) {
   const delta = phase?.repsDelta || 0;
   const repsTxt = ex.range ? ex.repsLabel : (ex.baseReps || '?');
   const presc = [`${ex.sets || '?'}×${repsTxt}`, phase?.rir || null, ex.rest ? `${ex.rest}s` : null].filter(Boolean).join(' · ');
+  const tech = dr.technique ?? (todays ? todays.technique : ex.defaultTechnique) ?? '';
+  const sub = ui.sub[ex.id] !== undefined ? ui.sub[ex.id]
+    : (todays?.substitute_exercise_id ? { id: todays.substitute_exercise_id, name: todays.substitute_name || 'outro exercício' } : null);
   return `
-    <div class="pc-ex">
+    <div class="pc-ex${isExtra ? ' extra' : ''}">
       <div class="pc-ex-head">
         <div>
-          <div class="pc-ex-name">${esc(ex.name)}</div>
+          <div class="pc-ex-name">${esc(ex.name)}${isExtra ? ' <span class="pc-badge warn">Só hoje</span>' : ''}</div>
+          ${sub ? `<div class="pc-sub">Hoje: <b>${esc(sub.name)}</b> no lugar deste · <button class="pc-link" data-sub-clear="${ex.id}">desfazer</button></div>` : ''}
           <div class="pc-ex-meta">${esc(presc)}${delta && ex.range ? ` <span class="pc-dim">(ficha ${esc(ex.baseReps)})</span>` : ''}${ex.method && !/^\s*RIR\s*[\d-]+\s*$/i.test(ex.method) ? ` · ${esc(ex.method)}` : ''}</div>
         </div>
         ${s.nextLoad != null ? `<div class="pc-target ${a.cls}"><span>${a.icon} Meta</span><b>${fmtKg(s.nextLoad)} kg</b>
           ${['sem-dado', 'registrar'].includes(s.action) ? '' : `<button class="pc-use" data-use="${ex.id}">usar</button>`}</div>` : ''}
       </div>
-      <div class="pc-ex-last">${previous ? `Última: <b>${esc(fmtLoad(previous.load_value))} kg</b>${previous.reps_done != null ? ` × ${previous.reps_done}` : ''}${previous.rir_done != null ? ` @RIR ${previous.rir_done}` : ''}${previous.feeling ? ` · ${esc(feelingLabel(previous.feeling))}` : ''} <span${previous.estimated ? ' title="Data aproximada: carga importada da planilha"' : ''}>(${previous.estimated ? '~' : ''}${fmtDate(previous.logged_on)})</span>` : 'Sem lançamentos anteriores.'}</div>
+      <div class="pc-ex-last">${previous ? `Última: <b>${esc(fmtLoad(previous.load_value))} kg</b>${previous.reps_done != null ? ` × ${previous.reps_done}` : ''}${previous.rir_done != null ? ` @RIR ${previous.rir_done}` : ''}${previous.feeling ? ` · ${esc(feelingLabel(previous.feeling))}` : ''}${previous.technique ? ` · ${esc(techniqueLabel(previous.technique))}` : ''}${previous.substitute_name ? ` · <i>feito em ${esc(previous.substitute_name)}</i>` : ''} <span${previous.estimated ? ' title="Data aproximada: carga importada da planilha"' : ''}>(${previous.estimated ? '~' : ''}${fmtDate(previous.logged_on)})</span>` : 'Sem lançamentos anteriores.'}</div>
       <div class="pc-ex-why ${a.cls}">${a.label}: ${esc(s.reason)}</div>
       <div class="pc-inputs">
         <label>Carga (kg)<input class="pc-in" data-we="${ex.id}" data-f="load" inputmode="decimal" placeholder="${s.nextLoad != null ? fmtKg(s.nextLoad) : '—'}" value="${val('load', todays?.load_value)}"></label>
         <label>Reps${wheel(ex.id, 'reps', dr.reps ?? todays?.reps_done, 1, 40)}</label>
         <label>RIR${wheel(ex.id, 'rir', dr.rir ?? todays?.rir_done, 0, 6)}</label>
         <label class="pc-feel">Sensação do exercício${feelSelect(ex.id, dr.feeling ?? todays?.feeling)}</label>
+        <label class="pc-tech">Técnica${techSelect(ex.id, tech)}</label>
+      </div>
+      ${techHint(tech, ui)}
+      ${sub ? `<div class="pc-ex-why muted">Carga e reps de hoje não entram na progressão de ${esc(ex.name)} (aparelho diferente).</div>` : ''}
+      <div class="pc-ex-tools">
+        ${isExtra ? `<button class="pc-link" data-extra-del="${ex.id}">Remover exercício extra</button>` : `<button class="pc-link" data-sub-open="${ex.id}">Trocar aparelho</button>`}
       </div>
     </div>`;
 }
@@ -344,6 +533,21 @@ function wheel(weId, field, current, min, max) {
   if (cur !== '' && !opts.includes(cur)) opts.push(cur);
   return `<select class="pc-in" data-we="${weId}" data-f="${field}"><option value="">—</option>${opts.map(o => `<option value="${esc(o)}"${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
 }
+
+function techSelect(weId, current) {
+  const groups = [...new Set(TECHNIQUES.map(t => t.group))];
+  return `<select class="pc-in pc-tech-sel ${current ? 'on' : ''}" data-we="${weId}" data-f="technique"><option value="">Sem técnica</option>${groups.map(g =>
+    `<optgroup label="${esc(g)}">${TECHNIQUES.filter(t => t.group === g).map(t => `<option value="${t.key}"${t.key === current ? ' selected' : ''}>${esc(t.label)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+}
+
+function techHint(key, ui) {
+  const t = techniqueByKey(key);
+  if (!t) return '';
+  const warn = aboveLevel(key, ui.level) ? ` <span class="pc-feel-warn">⚠ costuma ser liberada a partir de ${LEVEL_NAME[t.level] || t.level}; o nível usado aqui é ${LEVEL_NAME[ui.level] || ui.level}.</span>` : '';
+  return `<div class="pc-tech-hint"><b>${esc(t.label)}:</b> ${esc(t.how)} <i>Melhor momento: ${esc(t.when.toLowerCase())}.</i>${t.comparable ? '' : ' A próxima carga sugerida fica em "manter" (as reps não são comparáveis com a faixa).'}${warn}</div>`;
+}
+
+function norm(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
 
 function feelSelect(weId, current) {
   return `<select class="pc-in pc-feel-sel ${current || ''}" data-we="${weId}" data-f="feeling"><option value="">—</option>${FEELINGS.map(f => `<option value="${f.key}"${f.key === current ? ' selected' : ''}>${esc(f.label)}</option>`).join('')}</select>`;
@@ -527,6 +731,108 @@ function volumeHtml(d, ui) {
       <div class="pc-legend"><span class="dentro">dentro da faixa</span><span class="abaixo">abaixo</span><span class="acima">acima</span></div>
     </div>
     <div class="admin-row-sub pc-foot">Séries por semana por grupo muscular, contando cada dia da ficha uma vez. Faixas do De Salles: iniciante 1–5 · intermediário 6–10 · avançado 10–30 (quadríceps até 45). Conta só o grupo principal de cada exercício: o método conta o músculo auxiliar como ≈½ série, e isso ainda não está mapeado na biblioteca.</div>`;
+}
+
+// ---------- Rotação de exercícios + novo ciclo ----------
+
+function rotationPlan(d, ui) {
+  const all = d.days.flatMap(day => day.exercises);
+  const items = all.map(ex => ({ rowId: ex.id, exerciseId: ex.exerciseId, name: ex.name, last: ex.last, notWorking: ex.notWorking, suggestion: ex.suggestion }));
+  const plan = suggestRotation(items, { avoid: ui.rot.archived || new Set() });
+  const swaps = plan.suggestions.filter(s => ui.rot.ok.has(s.rowId)).map(s => {
+    const toId = ui.rot.pick[s.rowId] || s.to.id;
+    const to = s.alternatives.find(a => a.id === toId) || s.to;
+    return { rowId: s.rowId, toId: to.id, toName: to.name, fromName: s.from.name };
+  });
+  return { ...plan, swaps, total: all.length, outside: all.length - plan.eligible };
+}
+
+// carga de partida do ciclo novo: % do pico de cada exercício no ciclo atual (fora do deload)
+function cycleStarts(d, pct) {
+  const out = {};
+  for (const ex of d.days.flatMap(day => day.exercises)) {
+    const v = startLoad(peakLoad(ex.history, d.deloadWeeks), pct);
+    if (v != null) out[ex.id] = v;
+  }
+  return out;
+}
+
+function daysLabel(b) {
+  if (b.daysLeft === 0) return 'hoje';
+  return b.daysLeft > 0 ? `em ${b.daysLeft} dia${b.daysLeft === 1 ? '' : 's'}` : `atrasada há ${-b.daysLeft} dia${b.daysLeft === -1 ? '' : 's'}`;
+}
+
+function rotacaoHtml(d, ui) {
+  const b = d.block;
+  const plan = rotationPlan(d, ui);
+  const p = d.program;
+  const defWeeks = defaultBlockWeeks(d.level?.nivel_final, d.info?.phase?.key);
+  const weeks = p.block_weeks || defWeeks;
+  const startIso = b?.start || '';
+  const starts = cycleStarts(d, ui.rot.pct);
+  const weeksLeft = p.current_week ? p.total_weeks - p.current_week : null;
+  const endSoon = weeksLeft != null && weeksLeft <= 3;
+
+  const blockCard = `<div class="admin-card admin-form pc-block">
+    <div class="pc-meso-row">
+      <div>
+        <div class="pc-sum-title">Bloco de rotação${b ? ` · próxima troca ${fmtDate(b.next)}` : ''}</div>
+        <div class="admin-row-sub">${b ? `Bloco de ${b.blockWeeks} semanas desde ${fmtDate(b.start)}.` : 'Informe o início do bloco.'} Padrão do método: 4 semanas (iniciante ou fase de adaptação) e 6 (intermediário/avançado).</div>
+      </div>
+      ${b ? `<span class="pc-badge ${b.status === 'atrasada' || b.status === 'hoje' ? 'warn' : b.status === 'proxima' ? 'deload' : 'muted'}">${daysLabel(b)}</span>` : ''}
+    </div>
+    <div class="pc-block-grid">
+      <label>Início do bloco<input type="date" id="pc-block-start" value="${esc(startIso)}"></label>
+      <label>Duração (semanas)<input type="number" id="pc-block-weeks" min="2" max="12" value="${weeks}"></label>
+      <button class="admin-btn" data-block-save>Salvar bloco</button>
+    </div>
+    <div class="admin-row-sub">O início do bloco é a data da última vez que a ficha foi ajustada. Ao aplicar trocas, ele passa a ser hoje.</div>
+  </div>`;
+
+  const sugCard = `<div class="admin-card pc-rot">
+    <div class="pc-sum-title">Trocas sugeridas</div>
+    <div class="admin-row-sub">Mesmo padrão de movimento, mesma prescrição. Máximo de 50% dos exercícios do banco por troca (aqui: ${plan.limit} de ${plan.eligible}). ${plan.outside ? `${plan.outside} exercício(s) da ficha ficam fora da rotação (mobilidade, cadeiras, ponte de glúteo...).` : ''}</div>
+    ${plan.suggestions.length ? plan.suggestions.map(s => {
+      const on = ui.rot.ok.has(s.rowId);
+      const picked = ui.rot.pick[s.rowId];
+      const cur = s.alternatives.some(a => a.id === picked) ? picked : s.to.id;
+      return `<div class="pc-rot-row ${on ? 'on' : ''}">
+        <label class="pc-rot-ok"><input type="checkbox" data-rot-ok="${s.rowId}" ${on ? 'checked' : ''}> <span>Aprovar</span></label>
+        <div class="pc-rot-main">
+          <div class="pc-rot-names"><b>${esc(s.from.name)}</b> <span class="pc-dim">→</span>
+            <select data-rot-pick="${s.rowId}">${s.alternatives.map(a => `<option value="${a.id}" ${a.id === cur ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></div>
+          <div class="pc-rot-why ${s.priority >= 3 ? 'warn' : ''}">${esc(s.pattern)} · ${esc(s.reason)}</div>
+        </div>
+      </div>`;
+    }).join('') : `<div class="admin-row-sub" style="padding-top:10px;">Nada a sugerir: sem exercícios do banco com alternativa disponível.</div>`}
+    <div class="pc-phase-actions">
+      <button class="admin-btn primary" data-rot-apply ${plan.swaps.length ? '' : 'disabled'}>${plan.swaps.length ? `Aplicar ${plan.swaps.length} troca(s) aprovada(s)` : 'Aprove ao menos uma troca'}</button>
+    </div>
+    <div class="admin-row-sub">O exercício novo entra na mesma posição, com as mesmas séries, reps e descanso, e sem carga lançada: use a primeira sessão pra achar a carga. O antigo vai pro arquivo com todo o histórico.</div>
+  </div>`;
+
+  const startRows = d.days.flatMap(day => day.exercises).map(ex => {
+    const sw = plan.swaps.find(x => x.rowId === ex.id);
+    const peak = peakLoad(ex.history, d.deloadWeeks);
+    return { ex, sw, peak, start: starts[ex.id] };
+  });
+  const cycleCard = `<div class="admin-card admin-form pc-cycle ${endSoon ? 'soon' : ''}">
+    <div class="pc-sum-title">Novo ciclo (ciclo ${d.cycleNo + 1})</div>
+    <div class="admin-row-sub">${weeksLeft == null ? 'Defina a semana atual na aba Progressão.' : weeksLeft > 0 ? `Faltam ${weeksLeft} semana(s) pro fim do ciclo atual.` : 'Ciclo atual na última semana.'} O ciclo novo copia a ficha, volta pra semana 1 (Adaptação) e parte de uma porcentagem do pico de cada carga.</div>
+    <div class="pc-block-grid">
+      <label>Carga de partida (% do pico)<input type="number" id="pc-pct" min="40" max="100" step="5" value="${ui.rot.pct}"></label>
+      <label class="pc-check"><input type="checkbox" id="pc-cycle-swaps" ${ui.rot.withSwaps ? 'checked' : ''}> Incluir as ${plan.swaps.length} troca(s) aprovada(s)</label>
+    </div>
+    <div class="admin-row-sub">Sugestão: ${DEFAULT_START_PCT}%. Na Adaptação a faixa de reps sobe cerca de 5 em relação à ficha, e o fim do ciclo foi trabalhado com 3 reps a menos; pela equivalência de repetições isso dá perto de 80% do pico. Ajuste se o cliente voltou de pausa ou quer começar mais leve.</div>
+    <details class="pc-cycle-prev"><summary>Ver cargas de partida (${Object.keys(starts).length} de ${startRows.length} exercícios)</summary>
+      <div class="pc-cycle-table pc-table">${startRows.map(r => `<div class="pc-trow"><div class="pc-tname">${esc(r.ex.name)}${r.sw && ui.rot.withSwaps ? `<small>troca → ${esc(r.sw.toName)} (sem carga)</small>` : ''}</div>
+        <div class="pc-tsug">${r.sw && ui.rot.withSwaps ? '—' : r.peak != null ? `${fmtKg(r.peak)} → <b>${fmtKg(r.start)}</b> kg` : 'sem pico'}</div></div>`).join('')}</div>
+    </details>
+    <div class="pc-phase-actions"><button class="admin-btn ${endSoon ? 'primary' : ''}" data-cycle-new>Criar ciclo ${d.cycleNo + 1}</button></div>
+    <div class="admin-row-sub">O ciclo atual fica guardado (inativo) com todo o histórico. Dê um deload ou semana de transição antes, se for o caso.</div>
+  </div>`;
+
+  return blockCard + sugCard + cycleCard;
 }
 
 // ---------- Apresentação: prévia do relatório + PDF + WhatsApp ----------

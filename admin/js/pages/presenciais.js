@@ -20,7 +20,7 @@ export async function renderPresenciais(main) {
   } catch (e) {
     console.error(e);
     main.innerHTML = isMissingColumn(e)
-      ? `<div class="admin-empty">Falta rodar as migrações <b>0037</b> e <b>0038</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`
+      ? `<div class="admin-empty">Falta rodar as migrações <b>0037</b> a <b>0041</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`
       : `<div class="admin-empty">Erro ao carregar os presenciais.</div>`;
     return;
   }
@@ -41,6 +41,7 @@ export async function renderPresenciais(main) {
       <div class="warn"><b>${sum('plato')}</b><span>sem progresso</span></div>
       <div class="deload"><b>${flag('change')}</b><span>troca de fase</span></div>
       <div class="warn"><b>${flag('deloadSuggested')}</b><span>sinais p/ deload</span></div>
+      <div class="deload"><b>${flag('rotate')}</b><span>trocas de exercício</span></div>
       <div class="down"><b>${items.filter(i => i.status === 'parado').length}</b><span>parados</span></div>
     </div>
 
@@ -87,6 +88,8 @@ function summarize(client, data) {
     change: !!data.info?.isChange,
     deloadApplied: !!data.deloadApplied,
     deloadSuggested: !!data.deloadSuggested && !data.deloadApplied,
+    rotate: data.block && ['hoje', 'atrasada', 'proxima'].includes(data.block.status) ? data.block : null,
+    cycleEnd: data.program.current_week && data.program.total_weeks - data.program.current_week <= 3 ? data.program.total_weeks - data.program.current_week : null,
     reajuste: ref ? (Date.now() - new Date(ref).getTime()) / 86400000 >= 28 : false,
   };
 }
@@ -109,6 +112,8 @@ function cardHtml(i) {
         ${i.deloadApplied ? `<span class="pc-badge deload">Deload aplicado</span>` : ''}
         ${i.deloadSuggested ? `<span class="pc-badge warn">Sinais pedem deload</span>` : ''}
         ${level ? `<span class="pc-badge">${esc(level)}</span>` : ''}
+        ${i.rotate ? `<span class="pc-badge ${i.rotate.daysLeft <= 0 ? 'warn' : 'deload'}">Trocar exercícios ${i.rotate.daysLeft === 0 ? 'hoje' : i.rotate.daysLeft > 0 ? `em ${i.rotate.daysLeft}d` : `(atrasada ${-i.rotate.daysLeft}d)`}</span>` : ''}
+        ${i.cycleEnd != null ? `<span class="pc-badge warn">${i.cycleEnd > 0 ? `Novo ciclo em ${i.cycleEnd} sem` : 'Última semana do ciclo'}</span>` : ''}
         ${i.reajuste ? `<span class="pc-badge warn">Reajustar ficha</span>` : ''}
       </div>
       <div class="pc-card-body">
