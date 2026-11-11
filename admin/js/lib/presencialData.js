@@ -4,6 +4,7 @@ import {
 } from '../../../app/js/lib/progression.js';
 import { blockInfo, defaultBlockWeeks } from '../../../app/js/lib/rotation.js';
 import { techniqueFromMethod } from '../../../app/js/lib/techniques.js';
+import { orderRows, isStretch } from '../../../app/js/lib/ordering.js';
 
 function todayIso() {
   const n = new Date();
@@ -64,10 +65,15 @@ export async function loadPresencialClient(clientId) {
   if (dErr) throw dErr;
   const dayIds = days.map(d => d.id);
 
-  const WE_COLS = 'id, workout_day_id, exercise_id, sets, reps, rest_seconds, method, display_group, sort_order, extra_on, extra_day_id, exercises(name, muscle_groups(name))';
+  const WE_COLS = 'id, workout_day_id, exercise_id, sets, reps, rest_seconds, method, display_group, section_id, sort_order, extra_on, extra_day_id, exercises(name, muscle_groups(name))';
   const { data: wes, error: wErr } = dayIds.length ? await supabase
     .from('workout_exercises').select(WE_COLS).in('workout_day_id', dayIds).order('sort_order') : { data: [], error: null };
   if (wErr) throw wErr;
+  // seções do dia (a ordem do treino é seção por seção, depois sort_order dentro da seção)
+  const { data: secRows, error: secErr } = dayIds.length ? await supabase
+    .from('workout_sections').select('id, workout_day_id, title, sort_order').in('workout_day_id', dayIds) : { data: [], error: null };
+  if (secErr) throw secErr;
+  const secById = Object.fromEntries((secRows || []).map(x => [x.id, x]));
   // exercícios adicionados "só hoje" (ficam no programa-arquivo, ligados a um dia da ficha)
   const { data: extraRows, error: xErr } = dayIds.length ? await supabase
     .from('workout_exercises').select(WE_COLS).in('extra_day_id', dayIds) : { data: [], error: null };
@@ -101,6 +107,7 @@ export async function loadPresencialClient(clientId) {
     const base = history.filter(l => (l.week_no == null || !deloadWeeks.has(l.week_no)) && !l.substitute_exercise_id);
     return {
       id: w.id,
+      sectionId: w.section_id, sectionTitle: secById[w.section_id]?.title || '', sortOrder: w.sort_order,
       exerciseId: w.exercise_id,
       name: w.exercises?.name || 'Exercício',
       muscle: w.exercises?.muscle_groups?.name || '',
@@ -113,7 +120,14 @@ export async function loadPresencialClient(clientId) {
       suggestion: suggestNext({ history: base, repsRange: range, rirFloor, phase: info?.phase || null, deloadApplied, deloadFactor }),
     };
   };
-  const daysOut = days.map(d => ({ ...d, exercises: wes.filter(w => w.workout_day_id === d.id).map(buildEx) }));
+  // Alongamentos não aparecem no painel (continuam na ficha do aluno): nem na lista, nem no volume, nem na progressão.
+  const daysOut = days.map(d => {
+    const mine = wes.filter(w => w.workout_day_id === d.id);
+    const rows = orderRows(mine.map(w => ({ id: w.id, section_id: w.section_id, sort_order: w.sort_order, hidden: isStretch(w.method, w.exercises?.name) })),
+      (secRows || []).filter(x => x.workout_day_id === d.id));
+    const byId = Object.fromEntries(mine.map(w => [w.id, w]));
+    return { ...d, rows, hiddenStretch: rows.filter(r => r.hidden).length, exercises: rows.filter(r => !r.hidden).map(r => buildEx(byId[r.id])) };
+  });
   const extras = extraRows.map(w => ({ ...buildEx(w), dayId: w.extra_day_id, extraOn: w.extra_on }));
 
   // bloco de rotação: começa na última vez que a ficha foi ajustada (ou na criação); 4 sem. (iniciante/adaptação) ou 6
@@ -123,7 +137,7 @@ export async function loadPresencialClient(clientId) {
   const block = blockInfo({ start: blockStart, blockWeeks, today: todayIso() });
 
   return {
-    profile, program, days: daysOut, extras, level, logs,
+    profile, program, days: daysOut, extras, sectionTitles: Object.fromEntries((secRows || []).map(x => [x.id, x.title])), level, logs,
     phases, info, signals, currentSignal, deloadApplied, deloadWeeks,
     deloadSuggested: deloadRecommended(signals),
     block: block && { ...block, custom: !!program.block_weeks },

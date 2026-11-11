@@ -6,7 +6,8 @@ import { loadPresencialClient, loadEvolutionExtras, isMissingColumn } from '../l
 import { buildEvolution, evolutionHtml, evolutionToWhatsApp, PERIODS } from '../../../app/js/lib/evolutionDoc.js';
 import { suggestRotation, defaultBlockWeeks, blockInfo, peakLoad, startLoad, DEFAULT_START_PCT, patternOf, ROTATION_BANK } from '../../../app/js/lib/rotation.js';
 import { applySwaps, createNextCycle, loadArchivedExerciseIds } from '../lib/rotationActions.js';
-import { addExercise, removeExtra } from '../lib/sessionActions.js';
+import { addExercise, removeExtra, moveExercise, setExtraIndex } from '../lib/sessionActions.js';
+import { moveFlat, insertFlat, mergeExtras, swapMerged, extraKey, nextTie } from '../../../app/js/lib/ordering.js';
 import { getExerciseLibrary } from '../lib/exerciseLibrary.js';
 import { TECHNIQUES, techniqueByKey, techniqueLabel, aboveLevel, LEVEL_NAME } from '../../../app/js/lib/techniques.js';
 
@@ -19,7 +20,7 @@ const ACTIONS = {
   registrar: { cls: 'muted', icon: '…', label: 'Registrar reps' },
   'sem-dado': { cls: 'muted', icon: '–', label: 'Sem histórico' },
 };
-const MIGRATION_MSG = `<div class="admin-empty">Falta rodar as migrações <b>0037</b> a <b>0042</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`;
+const MIGRATION_MSG = `<div class="admin-empty">Falta rodar as migrações <b>0037</b> a <b>0044</b> no Supabase (SQL Editor) pra liberar o painel dos presenciais.</div>`;
 
 export async function renderPresencial(main, clientId) {
   main.closest('.admin-shell')?.classList.add('wide');
@@ -113,9 +114,14 @@ export async function renderPresencial(main, clientId) {
             <label>Reps<input id="pc-add-reps" value="${esc(ref?.reps || '10-12')}"></label>
             <label>Descanso (s)<input id="pc-add-rest" value="${esc(ref?.rest || 60)}" inputmode="numeric"></label>
           </div>
+          <label>Posição no treino<select id="pc-add-pos">
+            <option value="end">No fim do treino${day.exercises.length ? ` (depois de ${esc(day.exercises[day.exercises.length - 1].name)})` : ''}</option>
+            ${day.exercises.length ? '<option value="start">No começo</option>' : ''}
+            ${day.exercises.map(e => `<option value="after:${e.id}">Depois de: ${esc(e.name)}</option>`).join('')}
+          </select></label>
           <div class="pc-modal-opt"><b>Quando vale?</b>
             <label class="pc-radio"><input type="radio" name="pc-add-when" value="today" checked> Só hoje (não entra na ficha do cliente)</label>
-            <label class="pc-radio"><input type="radio" name="pc-add-when" value="ficha"> Fica na ficha (no fim de ${esc(day.label)})</label>
+            <label class="pc-radio"><input type="radio" name="pc-add-when" value="ficha"> Fica na ficha (${esc(day.label)})</label>
           </div>
           <div class="pc-modal-actions"><button class="admin-btn" data-back>Voltar</button><button class="admin-btn primary" data-add-go>Adicionar</button></div>
         </div>`;
@@ -141,10 +147,17 @@ export async function renderPresencial(main, clientId) {
           close(); if (await reload()) { paint(); toast(main, 'Trocado na ficha. O antigo foi pro arquivo.'); }
         } else if (b.hasAttribute('data-add-go')) {
           const when = modal.querySelector('input[name="pc-add-when"]:checked').value;
-          await addExercise(clientId, {
-            dayId: day.id, exerciseId: id, sets: modal.querySelector('#pc-add-sets').value.trim(), reps: modal.querySelector('#pc-add-reps').value.trim(),
-            rest: modal.querySelector('#pc-add-rest').value.trim(), onlyToday: when === 'today', date: ui.date,
-          });
+          const posVal = modal.querySelector('#pc-add-pos').value;
+          const pos = posVal === 'start' ? { mode: 'start' } : posVal.startsWith('after:') ? { mode: 'after', refId: posVal.slice(6) } : { mode: 'end' };
+          const vis = day.exercises;
+          const common = { dayId: day.id, exerciseId: id, sets: modal.querySelector('#pc-add-sets').value.trim(), reps: modal.querySelector('#pc-add-reps').value.trim(), rest: modal.querySelector('#pc-add-rest').value.trim() };
+          if (when === 'today') {
+            const index = pos.mode === 'start' ? 0 : pos.mode === 'after' ? vis.findIndex(e => e.id === pos.refId) + 1 : vis.length;
+            await addExercise(clientId, { ...common, onlyToday: true, date: ui.date, sortOrder: extraKey(index, nextTie(extrasOfDay(d, ui, day), index)) });
+          } else {
+            const probe = insertFlat(day.rows, { id: '__new' }, pos).find(r => r.id === '__new');   // seção do exercício de referência
+            await addExercise(clientId, { ...common, onlyToday: false, insertAt: { sectionId: probe.section_id, build: (newId) => ({ flatBefore: day.rows, flatAfter: insertFlat(day.rows, { id: newId }, pos) }) } });
+          }
           close(); if (await reload()) { paint(); toast(main, when === 'today' ? 'Exercício extra de hoje adicionado.' : 'Exercício adicionado na ficha.'); }
         }
       } catch (err) {
@@ -183,7 +196,7 @@ export async function renderPresencial(main, clientId) {
   });
 
   main.addEventListener('click', async (ev) => {
-    const t = ev.target.closest('[data-tab],[data-day],[data-use],[data-fillall],[data-save],[data-week],[data-sig-save],[data-phases-save],[data-phases-reset],[data-pdf],[data-wa],[data-copy],[data-block-save],[data-rot-apply],[data-cycle-new],[data-sub-open],[data-sub-clear],[data-add-open],[data-extra-del]');
+    const t = ev.target.closest('[data-tab],[data-day],[data-use],[data-fillall],[data-save],[data-week],[data-sig-save],[data-phases-save],[data-phases-reset],[data-pdf],[data-wa],[data-copy],[data-block-save],[data-rot-apply],[data-cycle-new],[data-sub-open],[data-sub-clear],[data-add-open],[data-extra-del],[data-move]');
     if (!t) return;
 
     if (t.dataset.tab) {
@@ -296,6 +309,26 @@ export async function renderPresencial(main, clientId) {
     if (t.dataset.subOpen) { openExerciseModal({ mode: 'sub', exId: t.dataset.subOpen }); return; }
     if (t.dataset.subClear) { ui.sub[t.dataset.subClear] = null; paint(); return; }
     if (t.hasAttribute('data-add-open')) { openExerciseModal({ mode: 'add' }); return; }
+    if (t.dataset.move) {
+      const [dir, id] = t.dataset.move.split(':'), delta = dir === 'up' ? -1 : 1;
+      const day = d.days[Math.min(ui.dayIdx, d.days.length - 1)];
+      const extras = extrasOfDay(d, ui, day), isX = (x) => extras.some(e => e.id === x.id);
+      const r = swapMerged(mergeExtras(day.exercises, extras), id, delta, isX);
+      if (!r) return;
+      const tasks = [];
+      if (r.ficha) {
+        const before = day.rows, after = moveFlat(day.rows, id, delta);
+        if (!after) return;
+        applyFlat(d, day, after);                                   // mostra já (otimista) e grava em seguida
+        tasks.push(() => moveExercise(before, after));
+      }
+      for (const u of r.extraUpdates) { extras.find(e => e.id === u.id).sortOrder = u.sortOrder; tasks.push(() => setExtraIndex(u.id, u.sortOrder)); }
+      paint();
+      ui.q = (ui.q || Promise.resolve()).then(async () => { for (const f of tasks) await f(); }).catch(async (err) => {   // fila: gravações em ordem
+        console.error(err); alert('Erro ao mudar a ordem: ' + (err.message || err)); if (await reload()) paint();
+      });
+      return;
+    }
     if (t.dataset.extraDel) {
       if (!confirm('Remover este exercício extra de hoje (e o lançamento dele)?')) return;
       try { await removeExtra(t.dataset.extraDel); delete ui.draft[t.dataset.extraDel]; if (await reload()) paint(); }
@@ -472,9 +505,9 @@ function lancarHtml(d, ui) {
     </div>
     ${phaseBanners(d)}
     <div class="pc-list">
-      ${day.exercises.map(ex => exerciseRow(ex, ui, d)).join('') || '<div class="admin-empty">Sem exercícios nesse dia.</div>'}
-      ${(d.extras || []).filter(x => x.dayId === day.id && x.extraOn === ui.date).map(ex => exerciseRow(ex, ui, d, true)).join('')}
+      ${listHtml(d, ui, day)}
     </div>
+    ${day.hiddenStretch ? `<div class="admin-row-sub pc-hid">${day.hiddenStretch} alongamento(s) deste dia ficam só na ficha do aluno e não aparecem aqui.</div>` : ''}
     <div class="pc-actions">
       <button class="admin-btn" data-add-open>+ Adicionar exercício</button>
       <button class="admin-btn" data-fillall>Preencher com as metas</button>
@@ -482,7 +515,36 @@ function lancarHtml(d, ui) {
     </div>`;
 }
 
-function exerciseRow(ex, ui, d, isExtra = false) {
+// reflete localmente a nova ordem/seção (a tela atualiza antes da gravação terminar)
+function applyFlat(d, day, flat) {
+  const byId = Object.fromEntries(day.exercises.map(e => [e.id, e]));
+  day.rows = flat;
+  day.exercises = flat.filter(r => !r.hidden).map(r => {
+    const e = byId[r.id];
+    e.sectionId = r.section_id; e.sectionTitle = d.sectionTitles?.[r.section_id] || e.sectionTitle; e.sortOrder = r.sort_order;
+    return e;
+  });
+}
+
+function extrasOfDay(d, ui, day) { return (d.extras || []).filter(x => x.dayId === day.id && x.extraOn === ui.date); }
+
+// ficha + extras "só hoje" na ordem do treino; com mais de um bloco (ativação, treino...) mostra o nome do bloco
+function listHtml(d, ui, day) {
+  const extras = extrasOfDay(d, ui, day);
+  const merged = mergeExtras(day.exercises, extras);
+  if (!merged.length) return '<div class="admin-empty">Sem exercícios nesse dia.</div>';
+  const isX = new Set(extras.map(x => x.id));
+  const multi = new Set(day.exercises.map(e => e.sectionId)).size > 1;
+  let lastSec;
+  return merged.map((ex, i) => {
+    const extra = isX.has(ex.id);
+    const head = !extra && multi && ex.sectionId !== lastSec ? `<div class="pc-sec">${esc(ex.sectionTitle || 'Treino')}</div>` : '';
+    if (!extra) lastSec = ex.sectionId;
+    return head + exerciseRow(ex, ui, d, extra, { up: i > 0, down: i < merged.length - 1 });
+  }).join('');
+}
+
+function exerciseRow(ex, ui, d, isExtra = false, mv = { up: false, down: false }) {
   const todays = ex.history.find(h => h.logged_on === ui.date);
   const previous = ex.history.find(h => h.logged_on !== ui.date);
   const dr = ui.draft[ex.id] || {};
@@ -519,6 +581,7 @@ function exerciseRow(ex, ui, d, isExtra = false) {
       ${techHint(tech, ui)}
       ${sub ? `<div class="pc-ex-why muted">Carga e reps de hoje não entram na progressão de ${esc(ex.name)} (aparelho diferente).</div>` : ''}
       <div class="pc-ex-tools">
+        <span class="pc-move"><button class="pc-mv" data-move="up:${ex.id}" ${mv.up ? '' : 'disabled'} title="Subir na ordem do treino">↑</button><button class="pc-mv" data-move="down:${ex.id}" ${mv.down ? '' : 'disabled'} title="Descer na ordem do treino">↓</button></span>
         ${isExtra ? `<button class="pc-link" data-extra-del="${ex.id}">Remover exercício extra</button>` : `<button class="pc-link" data-sub-open="${ex.id}">Trocar aparelho</button>`}
       </div>
     </div>`;
