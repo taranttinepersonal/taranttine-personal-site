@@ -21,10 +21,12 @@ import { renderReport } from './pages/report.js';
 import { renderAnamneseReport } from './pages/anamneseReport.js';
 import { renderPresenciais } from './pages/presenciais.js';
 import { renderPresencial } from './pages/presencial.js';
+import { renderAgenda } from './pages/agenda.js';
 import { enablePushNotifications, isPushConfigured, getNotificationPermission } from '../../app/js/push.js';
 
 const NAV_ITEMS = [
   { path: '/clientes', label: 'Clientes' },
+  { path: '/agenda', label: 'Agenda' },
   { path: '/presenciais', label: 'Presenciais' },
   { path: '/avisos', label: 'Avisos' },
   { path: '/indicacoes', label: 'Indicações' },
@@ -104,6 +106,12 @@ route('/cliente/novo', async () => {
   if (!(await requireTrainer())) return;
   const main = renderShell('/clientes');
   renderNewClient(main);
+});
+
+route('/agenda', async () => {
+  if (!(await requireTrainer())) return;
+  const main = renderShell('/agenda');
+  renderAgenda(main);
 });
 
 route('/presenciais', async () => {

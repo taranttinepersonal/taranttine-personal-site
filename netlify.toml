@@ -18,3 +18,6 @@
 
 [functions."plano50-expire"]
   schedule = "@daily"
+
+[functions."send-agenda-reminders"]
+  schedule = "*/5 * * * *"
