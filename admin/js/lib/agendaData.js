@@ -56,8 +56,8 @@ export async function deleteEvent(id) {
 }
 
 // ---- horários fixos ----
-export async function createSlots(clientId, weekdays, startTime, durationMin, validFrom, note) {
-  const rows = weekdays.map(w => ({ client_id: clientId, weekday: w, start_time: startTime, duration_min: durationMin, valid_from: validFrom, note: note || null }));
+export async function createSlots(clientId, weekdays, startTime, durationMin, validFrom, note, { kind = 'treino', title = null } = {}) {
+  const rows = weekdays.map(w => ({ client_id: kind === 'bloqueio' ? null : clientId, kind, title: kind === 'bloqueio' ? title : null, weekday: w, start_time: startTime, duration_min: durationMin, valid_from: validFrom, note: note || null }));
   return must(await supabase.from('agenda_slots').insert(rows).select('*'));
 }
 async function cleanupMoved(slotId, fromIso) { // os movidos de propósito ficam; só limpa os que estão no próprio dia
@@ -77,7 +77,7 @@ export async function endSlot(slot, fromIso) {
 export async function changeSlotFrom(slot, fromIso, { weekday, start_time, duration_min }) {
   await endSlot(slot, fromIso);
   return must(await supabase.from('agenda_slots').insert({
-    client_id: slot.client_id, weekday, start_time, duration_min, valid_from: fromIso, note: slot.note,
+    client_id: slot.client_id, kind: slot.kind, title: slot.title, weekday, start_time, duration_min, valid_from: fromIso, note: slot.note,
   }).select('*').single());
 }
 export const todayIso = () => toIso(new Date());

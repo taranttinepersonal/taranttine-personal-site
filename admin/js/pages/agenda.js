@@ -165,27 +165,37 @@ export async function renderAgenda(main) {
   // ----- horários fixos -----
   function openSlotForm() {
     openModal(`<div class="pc-sum-title">Novo horário fixo</div>
-      <label>Aluno<select id="s-client">${clientOptions('')}</select></label>
+      <label>Tipo<select id="s-kind"><option value="treino">Horário de aluno</option><option value="bloqueio">Bloqueio fixo (almoço, escola das crianças...)</option></select></label>
+      <label id="sw-client">Aluno<select id="s-client">${clientOptions('')}</select></label>
+      <label id="sw-title" style="display:none">Título<input id="s-title" placeholder="Ex.: Almoço / buscar as crianças"></label>
       <div class="admin-row-sub">Dias da semana</div>
       <div class="ag-days">${[1, 2, 3, 4, 5, 6, 0].map(w => `<label class="ag-day"><input type="checkbox" value="${w}"><span>${A.DOW_SHORT[w]}</span></label>`).join('')}</div>
       <div class="ag-row3"><label>Hora<input type="time" id="s-time" value="07:00"></label><label>Duração (min)<input type="number" id="s-dur" min="10" step="5" value="60"></label><label>Vale a partir de<input type="date" id="s-from" value="${D.todayIso()}"></label></div>
       <label>Observação<input id="s-note" placeholder="Opcional"></label>
       <div class="admin-msg" id="s-msg"></div>
       <div class="pc-modal-actions"><button class="admin-btn" data-close>Cancelar</button><button class="admin-btn primary" id="s-save">Criar</button></div>`,
-    (m, close) => m.querySelector('#s-save').addEventListener('click', async () => {
+    (m, close) => {
+      m.querySelector('#s-kind').addEventListener('change', (e) => {
+        const block = e.target.value === 'bloqueio';
+        m.querySelector('#sw-client').style.display = block ? 'none' : '';
+        m.querySelector('#sw-title').style.display = block ? '' : 'none';
+      });
+      m.querySelector('#s-save').addEventListener('click', async () => {
       const days = [...m.querySelectorAll('.ag-day input:checked')].map(i => Number(i.value));
       const client = m.querySelector('#s-client').value;
+      const kind = m.querySelector('#s-kind').value, title = m.querySelector('#s-title').value.trim();
       const err = (t) => { m.querySelector('#s-msg').textContent = t; m.querySelector('#s-msg').classList.add('error'); };
-      if (!client) return err('Escolha o aluno.');
+      if (kind === 'treino' && !client) return err('Escolha o aluno.');
+      if (kind === 'bloqueio' && !title) return err('Dê um título ao bloqueio.');
       if (!days.length) return err('Marque pelo menos um dia da semana.');
       try {
-        await D.createSlots(client, days, m.querySelector('#s-time').value, Number(m.querySelector('#s-dur').value) || 60, m.querySelector('#s-from').value, m.querySelector('#s-note').value.trim());
-        close(); await refresh(); toast('Horário fixo criado. Os treinos aparecem na agenda.');
+        await D.createSlots(client, days, m.querySelector('#s-time').value, Number(m.querySelector('#s-dur').value) || 60, m.querySelector('#s-from').value, m.querySelector('#s-note').value.trim(), { kind, title });
+        close(); await refresh(); toast('Horário fixo criado. Ele aparece na agenda.');
       } catch (e) { console.error(e); err('Erro: ' + (e.message || e)); }
-    }));
+    }); });
   }
   function openSlotChange(slot) {
-    openModal(`<div class="pc-sum-title">Mudar horário de ${esc(nameOf(slot.client_id))}</div>
+    openModal(`<div class="pc-sum-title">Mudar horário de ${esc(slotName(slot, nameOf))}</div>
       <div class="admin-row-sub">Hoje: ${A.slotLabel(slot)} (${slot.duration_min} min). Os treinos anteriores ficam como estão.</div>
       <label>Mudar a partir de<input type="date" id="c-from" value="${D.todayIso()}"></label>
       <div class="ag-row3"><label>Dia<select id="c-dow">${[1, 2, 3, 4, 5, 6, 0].map(w => `<option value="${w}" ${w === slot.weekday ? 'selected' : ''}>${A.DOW_LONG[w]}</option>`).join('')}</select></label>
@@ -199,7 +209,7 @@ export async function renderAgenda(main) {
     }));
   }
   function openSlotEnd(slot) {
-    openModal(`<div class="pc-sum-title">Encerrar ${esc(nameOf(slot.client_id))} · ${A.slotLabel(slot)}</div>
+    openModal(`<div class="pc-sum-title">Encerrar ${esc(slotName(slot, nameOf))} · ${A.slotLabel(slot)}</div>
       <div class="admin-row-sub">Os treinos a partir desta data, ainda sem registro, saem da agenda. Faltas e treinos já marcados ficam.</div>
       <label>Encerrar a partir de<input type="date" id="e-from" value="${D.todayIso()}"></label>
       <div class="pc-modal-actions"><button class="admin-btn" data-close>Cancelar</button><button class="admin-btn primary" id="e-save">Encerrar</button></div>`,
@@ -249,7 +259,7 @@ export async function renderAgenda(main) {
         else if (act === 'move') openMove(e);
         else if (act === 'repo') openEventForm({ kind: 'reposicao', clientId: e.client_id, makeupFor: e.id, lockKind: true, date: A.addDays(e.on_date, 1) });
         else if (act === 'del') { if (confirm('Apagar este compromisso?')) { await D.deleteEvent(e.id); await refresh(); toast('Apagado.'); } }
-        else if (act === 'cancel-one') { if (confirm('Cancelar só este dia? O horário fixo continua nos outros dias.')) { await D.setStatus(e.id, 'cancelado'); await refresh(); toast('Cancelado.'); } }
+        else if (act === 'cancel-one') { if (confirm('Só este dia? O horário fixo continua nos outros dias.')) { await D.setStatus(e.id, 'cancelado'); await refresh(); toast('Cancelado.'); } }
       } catch (err) { console.error(err); alert('Erro: ' + (err.message || err)); }
     }
   });
@@ -257,6 +267,7 @@ export async function renderAgenda(main) {
 
 // ---------- HTML ----------
 
+function slotName(slot, nameOf) { return slot.client_id ? nameOf(slot.client_id) : (slot.title || 'Bloqueio'); }
 function titleOf(ev, nameOf) { return ev.client_id ? nameOf(ev.client_id) + (ev.title ? ` · ${ev.title}` : '') : (ev.title || A.KINDS[ev.kind].label); }
 function waType(ev) {
   if (ev.status === 'faltou') return 'falta';
@@ -313,6 +324,7 @@ function cardHtml(ev, ui, nameOf, today) {
     if (ev.kind === 'lembrete') actions.push(btn('done', '✓ Feito', 'ok'));
     actions.push(btn('move', 'Mover'));
     if (ev.slot_id && ev.kind === 'treino') actions.push(btn('cancel-one', 'Sem treino neste dia'));
+    if (ev.slot_id && ev.kind === 'bloqueio') actions.push(btn('cancel-one', 'Liberar este dia'));
   } else {
     actions.push(btn('undo', 'Desfazer'));
     if (ev.generates_credit && A.ABSENCES.includes(ev.status) && ui.credits.some(c => c.id === ev.id)) actions.push(btn('repo', 'Marcar reposição', 'ok'));
@@ -331,6 +343,7 @@ function cardHtml(ev, ui, nameOf, today) {
         ${ev.orig_date ? `<span class="pc-badge deload">remarcado · era ${A.fmtDay(ev.orig_date)} ${A.hm(ev.orig_time)}</span>` : ''}
         ${ev.generates_credit && A.ABSENCES.includes(ev.status) ? `<span class="pc-badge warn">gera reposição</span>` : ''}
         ${ev.makeup_for ? `<span class="pc-badge phase">reposição</span>` : ''}
+        ${ev.kind === 'bloqueio' && ev.status === 'cancelado' ? `<span class="pc-badge up">liberado neste dia</span>` : ''}
         ${needs ? `<span class="pc-badge warn">marque se veio</span>` : ''}
       </div>
       ${ev.note ? `<div class="ag-note">${esc(ev.note)}</div>` : ''}
@@ -355,16 +368,17 @@ function slotsHtml(ui, nameOf) {
   const live = ui.slots.filter(s => s.active && (!s.valid_until || s.valid_until >= today));
   const ended = ui.slots.filter(s => !live.includes(s));
   const byClient = {};
-  for (const s of live) (byClient[s.client_id] ||= []).push(s);
-  const rows = Object.entries(byClient).sort((a, b) => nameOf(a[0]).localeCompare(nameOf(b[0])));
+  for (const s of live) (byClient[s.client_id ? s.client_id : `b:${s.title}`] ||= []).push(s);
+  const keyName = (k) => k.startsWith('b:') ? k.slice(2) : nameOf(k);
+  const rows = Object.entries(byClient).sort((a, b) => (a[0].startsWith('b:') - b[0].startsWith('b:')) || keyName(a[0]).localeCompare(keyName(b[0])));
   return `
-    <div class="ag-fixhead"><div class="admin-row-sub">Os treinos da semana são criados sozinhos a partir destes horários.</div><button class="admin-btn primary" data-slot-new>+ Horário fixo</button></div>
-    <div class="ag-list">${rows.map(([cid, slots]) => `<div class="admin-card ag-fix">
-      <div class="admin-row-name">${esc(nameOf(cid))}</div>
+    <div class="ag-fixhead"><div class="admin-row-sub">Os atendimentos e bloqueios da semana são criados sozinhos a partir destes horários.</div><button class="admin-btn primary" data-slot-new>+ Horário fixo</button></div>
+    <div class="ag-list">${rows.map(([key, slots]) => `<div class="admin-card ag-fix">
+      <div class="admin-row-name">${esc(keyName(key))}${key.startsWith('b:') ? ' <span class="pc-badge phase">Bloqueio</span>' : ''}</div>
       ${slots.map(s => `<div class="ag-slot"><span><b>${A.slotLabel(s)}</b> · ${s.duration_min} min${s.valid_until ? ` · até ${A.fmtDay(s.valid_until)}` : ''}${s.valid_from > today ? ` · a partir de ${A.fmtDay(s.valid_from)}` : ''}</span>
         <span><button class="ag-btn" data-slot-act="change" data-id="${s.id}">Mudar horário</button><button class="ag-btn" data-slot-act="end" data-id="${s.id}">Encerrar</button></span></div>`).join('')}
     </div>`).join('') || `<div class="admin-empty">Nenhum horário fixo ainda.<br>Cadastre os dias e horários de cada aluno com <b>+ Horário fixo</b>.</div>`}</div>
-    ${ended.length ? `<details class="admin-card"><summary>Encerrados (${ended.length})</summary>${ended.map(s => `<div class="admin-row-sub">${esc(nameOf(s.client_id))} · ${A.slotLabel(s)} · ${A.fmtDay(s.valid_from)}${s.valid_until ? ` a ${A.fmtDay(s.valid_until)}` : ''}</div>`).join('')}</details>` : ''}`;
+    ${ended.length ? `<details class="admin-card"><summary>Encerrados (${ended.length})</summary>${ended.map(s => `<div class="admin-row-sub">${esc(slotName(s, nameOf))} · ${A.slotLabel(s)} · ${A.fmtDay(s.valid_from)}${s.valid_until ? ` a ${A.fmtDay(s.valid_until)}` : ''}</div>`).join('')}</details>` : ''}`;
 }
 
 function creditsHtml(ui, nameOf) {
