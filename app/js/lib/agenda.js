@@ -16,7 +16,7 @@ export const STATUS = {
   agendado:  { label: 'Agendado', cls: 'muted' },
   feito:     { label: 'Compareceu', cls: 'up' },
   faltou:    { label: 'Faltou', cls: 'down' },
-  desmarcou: { label: 'Desmarcou', cls: 'warn' },
+  desmarcou: { label: 'Desmarcou', cls: 'down' },
   cancelado: { label: 'Cancelado', cls: 'warn' },
 };
 export const ABSENCES = ['faltou', 'desmarcou', 'cancelado'];
@@ -108,3 +108,45 @@ export function waLink(phone, text) {
 
 // ---------- horários fixos ----------
 export function slotLabel(s) { return `${DOW_SHORT[s.weekday]} ${hm(s.start_time)}`; }
+
+// ---------- viagem / aviso de que não vem ----------
+// "Viagem" é um desmarcou (o aluno avisou) com a observação "Viagem": não precisa de status novo no banco.
+export const TRIP_NOTE = 'Viagem';
+export const ATTEND_KINDS = ['treino', 'reposicao', 'avaliacao', 'consulta'];
+export function isTrip(ev) { return ev.status === 'desmarcou' && /viag/i.test(ev.note || ''); }
+// atendimentos do aluno, ainda agendados, entre duas datas (inclusive): os que a viagem tira da agenda
+export function tripTargets(events, clientId, fromIso, toIso) {
+  return events.filter(e => e.client_id === clientId && e.status === 'agendado' && ATTEND_KINDS.includes(e.kind) && e.on_date >= fromIso && e.on_date <= toIso)
+    .sort((a, b) => (a.on_date + a.start_time).localeCompare(b.on_date + b.start_time));
+}
+
+// ---------- arrastar / trocar de lugar ----------
+// Quem pode ser arrastado: atendimento ainda agendado (bloqueio e lembrete não trocam de lugar)
+export function canReorder(ev) { return ev.status === 'agendado' && ATTEND_KINDS.includes(ev.kind); }
+// Troca de horário entre dois atendimentos: cada um assume o dia e a hora do outro; a duração de cada um não muda.
+export function planSwap(a, b) {
+  return [
+    { id: a.id, on_date: b.on_date, start_time: hm(b.start_time) },
+    { id: b.id, on_date: a.on_date, start_time: hm(a.start_time) },
+  ];
+}
+// Vizinho de quem está no dia, na ordem do horário (dir = -1 sobe, +1 desce), só entre os que podem trocar
+export function neighbor(dayEvents, ev, dir) {
+  const list = dayEvents.filter(canReorder).sort((x, y) => (x.start_time + x.id).localeCompare(y.start_time + y.id));
+  const i = list.findIndex(e => e.id === ev.id);
+  return i < 0 ? null : (list[i + dir] || null);
+}
+// Depois da troca, quem fica sobreposto a outro compromisso ativo do dia (ignora os dois trocados)
+export function swapConflicts(a, b, dayEvents) {
+  const plan = planSwap(a, b);
+  const ids = new Set([a.id, b.id]);
+  const rest = dayEvents.filter(e => !ids.has(e.id));
+  const out = [];
+  for (const [ev, p] of [[a, plan[0]], [b, plan[1]]]) {
+    const cand = { ...ev, on_date: p.on_date, start_time: p.start_time };
+    for (const c of conflictsWith(cand, rest)) if (!out.includes(c)) out.push(c);
+    const other = ev === a ? { ...b, on_date: plan[1].on_date, start_time: plan[1].start_time } : { ...a, on_date: plan[0].on_date, start_time: plan[0].start_time };
+    if (overlaps(cand, other)) out.push(other);
+  }
+  return out;
+}

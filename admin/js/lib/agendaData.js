@@ -1,6 +1,6 @@
 // Leitura e gravação da agenda (as regras puras ficam em app/js/lib/agenda.js).
 import { supabase } from '../../../app/js/supabaseClient.js';
-import { addDays, toIso, ABSENCES } from '../../../app/js/lib/agenda.js';
+import { addDays, toIso, ABSENCES, planSwap } from '../../../app/js/lib/agenda.js';
 
 const must = ({ data, error }) => { if (error) throw error; return data; };
 export const isMissingAgenda = (e) => !!e && (['42P01', '42883', 'PGRST205', 'PGRST202'].includes(e.code) || /agenda_/.test(e.message || ''));
@@ -44,6 +44,17 @@ export async function moveEvent(ev, date, time, extra = {}) {
   if (!ev.orig_date) { patch.orig_date = ev.on_date; patch.orig_time = ev.start_time; }
   if (ev.orig_date && date === ev.orig_date && time === String(ev.orig_time).slice(0, 5)) { patch.orig_date = null; patch.orig_time = null; } // voltou pro lugar de origem
   must(await supabase.from('agenda_events').update(patch).eq('id', ev.id).select('id'));
+}
+// Troca de lugar entre dois atendimentos (arrastar): cada um assume o dia e a hora do outro.
+export async function swapEvents(a, b) {
+  const [pa, pb] = planSwap(a, b);
+  await moveEvent(a, pa.on_date, pa.start_time);
+  await moveEvent(b, pb.on_date, pb.start_time);
+}
+// Aluno avisou que não vem (viagem): marca vários atendimentos de uma vez como "desmarcou" com a observação.
+export async function markAway(ids, { credit = false, note } = {}) {
+  if (!ids.length) return;
+  must(await supabase.from('agenda_events').update({ status: 'desmarcou', generates_credit: !!credit, note: note || null }).in('id', ids).select('id'));
 }
 export async function setStatus(id, status, { credit = false, note } = {}) {
   const patch = { status, generates_credit: ABSENCES.includes(status) ? credit : false };

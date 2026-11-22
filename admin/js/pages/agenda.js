@@ -162,6 +162,56 @@ export async function renderAgenda(main) {
     });
   }
 
+  // ----- viagem: aluno avisou que não vem (vários dias de uma vez) -----
+  function openTrip(ev) {
+    const name = nameOf(ev.client_id);
+    const week = A.weekDays(ev.on_date);
+    openModal(`<div class="pc-sum-title">✈ ${esc(name)} não vem</div>
+      <div class="admin-row-sub">Marca os atendimentos dele(a) no período como "desmarcou (avisou)", em vermelho na agenda. O horário fixo continua pras outras semanas.</div>
+      <div class="ag-row3"><label>De<input type="date" id="t-from" value="${ev.on_date}"></label><label>Até<input type="date" id="t-to" value="${week[6]}"></label></div>
+      <label>Observação<input id="t-note" value="${A.TRIP_NOTE}"></label>
+      <label class="pc-radio"><input type="checkbox" id="t-credit"> Gera crédito de reposição</label>
+      <div class="admin-row-sub" id="t-preview">Calculando...</div>
+      <div class="admin-msg" id="t-msg"></div>
+      <div class="pc-modal-actions"><button class="admin-btn" data-close>Cancelar</button><button class="admin-btn primary" id="t-save">Marcar</button></div>`,
+    (m, close) => {
+      const q = (x) => m.querySelector(x);
+      let targets = [];
+      const preview = async () => {
+        const from = q('#t-from').value, to = q('#t-to').value;
+        if (!from || !to || to < from) { targets = []; q('#t-preview').textContent = 'Confira as datas.'; return; }
+        try {
+          const evs = await D.loadRange(from, to);
+          targets = A.tripTargets(evs, ev.client_id, from, to);
+          q('#t-preview').innerHTML = targets.length ? `<b>${targets.length}</b> atendimento(s): ${targets.map(t => `${A.fmtDay(t.on_date)} ${A.hm(t.start_time)}`).join(' · ')}` : 'Nenhum atendimento agendado neste período.';
+        } catch (e) { console.error(e); q('#t-preview').textContent = 'Erro ao calcular.'; }
+      };
+      q('#t-from').addEventListener('change', preview); q('#t-to').addEventListener('change', preview); preview();
+      q('#t-save').addEventListener('click', async () => {
+        if (!targets.length) { q('#t-msg').textContent = 'Nada para marcar neste período.'; q('#t-msg').classList.add('error'); return; }
+        try {
+          await D.markAway(targets.map(t => t.id), { credit: q('#t-credit').checked, note: q('#t-note').value.trim() || A.TRIP_NOTE });
+          close(); await refresh(); toast(`${targets.length} atendimento(s) de ${name.split(' ')[0]} marcados como viagem.`);
+        } catch (e) { console.error(e); alert('Erro: ' + (e.message || e)); }
+      });
+    });
+  }
+
+  // ----- trocar de lugar (arrastar ou ↑↓) -----
+  async function doSwap(a, b) {
+    const clash = A.swapConflicts(a, b, ui.events);
+    if (clash.length && !confirm(`Depois da troca bate com: ${clash.map(e => `${A.hm(e.start_time)} ${titleOf(e, nameOf)}`).join(', ')}. Trocar mesmo assim?`)) return;
+    try { await D.swapEvents(a, b); await refresh(); toast(`${nameOf(a.client_id)} ↔ ${nameOf(b.client_id)}: horários trocados.`); }
+    catch (e) { console.error(e); alert('Erro ao trocar: ' + (e.message || e)); }
+  }
+  async function doMoveToDay(ev, date) {
+    if (date === ev.on_date) return;
+    const clash = A.conflictsWith({ ...ev, on_date: date }, ui.events);
+    if (clash.length && !confirm(`Conflita com: ${clash.map(e => `${A.hm(e.start_time)} ${titleOf(e, nameOf)}`).join(', ')}. Mover mesmo assim?`)) return;
+    try { await D.moveEvent(ev, date, A.hm(ev.start_time)); await refresh(); toast(`${nameOf(ev.client_id)} movido pra ${A.fmtDay(date)}.`); }
+    catch (e) { console.error(e); alert('Erro ao mover: ' + (e.message || e)); }
+  }
+
   // ----- horários fixos -----
   function openSlotForm() {
     openModal(`<div class="pc-sum-title">Novo horário fixo</div>
@@ -257,12 +307,81 @@ export async function renderAgenda(main) {
         else if (act === 'undo') { await D.setStatus(e.id, 'agendado'); await refresh(); toast('Voltou pra agendado.'); }
         else if (['faltou', 'desmarcou', 'cancelado'].includes(act)) openAbsence(e, act);
         else if (act === 'move') openMove(e);
+        else if (act === 'trip') openTrip(e);
+        else if (act === 'up' || act === 'down') {
+          const nb = A.neighbor(ui.events.filter(x => x.on_date === e.on_date), e, act === 'up' ? -1 : 1);
+          if (!nb) toast(act === 'up' ? 'Já é o primeiro do dia.' : 'Já é o último do dia.'); else await doSwap(e, nb);
+        }
         else if (act === 'repo') openEventForm({ kind: 'reposicao', clientId: e.client_id, makeupFor: e.id, lockKind: true, date: A.addDays(e.on_date, 1) });
         else if (act === 'del') { if (confirm('Apagar este compromisso?')) { await D.deleteEvent(e.id); await refresh(); toast('Apagado.'); } }
         else if (act === 'cancel-one') { if (confirm('Só este dia? O horário fixo continua nos outros dias.')) { await D.setStatus(e.id, 'cancelado'); await refresh(); toast('Cancelado.'); } }
       } catch (err) { console.error(err); alert('Erro: ' + (err.message || err)); }
     }
   });
+
+  // ----- arrastar pra trocar de lugar -----
+  // Dia: segure a alça ⠿ e solte sobre outro atendimento (os dois trocam de horário).
+  // Semana (mouse): arraste o nome pra outro nome (troca) ou pra outro dia (mesma hora).
+  let drag = null, suppressClick = false, scrollRaf = 0;
+  main.addEventListener('click', (e) => { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
+  main.addEventListener('pointerdown', (e) => {
+    const grip = e.target.closest('[data-drag]');
+    const mini = !grip && e.pointerType === 'mouse' && e.button === 0 ? e.target.closest('.ag-mini[data-ev]') : null;
+    const src = grip || mini;
+    if (!src) return;
+    const ev = ui.events.find(x => x.id === (grip ? grip.dataset.drag : mini.dataset.ev));
+    if (!ev || !A.canReorder(ev)) return;
+    drag = { ev, kind: grip ? 'grip' : 'mini', src: grip ? grip.closest('.ag-card') : mini, x0: e.clientX, y0: e.clientY, started: false, ghost: null, target: null, id: e.pointerId, x: e.clientX, y: e.clientY };
+    if (grip) e.preventDefault();
+  });
+  const findTarget = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const sel = drag.kind === 'grip' ? '.ag-card[data-ev]' : '.ag-mini[data-ev], .ag-col[data-date]';
+    const t = el.closest(sel);
+    if (!t || t === drag.src || !main.contains(t)) return null;
+    if (t.dataset.ev) { const o = ui.events.find(x => x.id === t.dataset.ev); return o && A.canReorder(o) ? t : null; }
+    return t;
+  };
+  const clearTarget = () => { main.querySelectorAll('.ag-drop').forEach(n => n.classList.remove('ag-drop')); };
+  const autoscroll = () => {
+    cancelAnimationFrame(scrollRaf);
+    if (!drag?.started) return;
+    const edge = 70, h = window.innerHeight;
+    const dy = drag.y < edge ? -14 : drag.y > h - edge ? 14 : 0;
+    if (dy) window.scrollBy(0, dy);
+    scrollRaf = requestAnimationFrame(autoscroll);
+  };
+  window.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.x = e.clientX; drag.y = e.clientY;
+    if (!drag.started) {
+      if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+      drag.started = true;
+      const r = drag.src.getBoundingClientRect();
+      drag.dx = drag.x0 - r.left; drag.dy = drag.y0 - r.top;
+      const g = drag.src.cloneNode(true);
+      g.classList.add('ag-ghost'); g.style.width = r.width + 'px'; g.removeAttribute('data-ev');
+      document.body.appendChild(g); drag.ghost = g; drag.src.classList.add('ag-dragging');
+      scrollRaf = requestAnimationFrame(autoscroll);
+    }
+    drag.ghost.style.transform = `translate(${e.clientX - drag.dx}px, ${e.clientY - drag.dy}px)`;
+    const t = findTarget(e.clientX, e.clientY);
+    if (t !== drag.target) { clearTarget(); drag.target = t; t?.classList.add('ag-drop'); }
+    e.preventDefault();
+  }, { passive: false });
+  const endDrag = async (e, cancelled) => {
+    if (!drag || (e && e.pointerId !== drag.id)) return;
+    const d = drag; drag = null;
+    cancelAnimationFrame(scrollRaf); clearTarget(); d.ghost?.remove(); d.src?.classList.remove('ag-dragging');
+    if (!d.started) return;
+    suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+    if (cancelled || !d.target) return;
+    if (d.target.dataset.ev) { const other = ui.events.find(x => x.id === d.target.dataset.ev); if (other) await doSwap(d.ev, other); }
+    else if (d.target.dataset.date) await doMoveToDay(d.ev, d.target.dataset.date);
+  };
+  window.addEventListener('pointerup', (e) => endDrag(e, false));
+  window.addEventListener('pointercancel', (e) => endDrag(e, true));
 }
 
 // ---------- HTML ----------
@@ -321,6 +440,7 @@ function cardHtml(ev, ui, nameOf, today) {
   const actions = [];
   if (ev.status === 'agendado') {
     if (attend) actions.push(btn('done', '✓ Veio', 'ok'), btn('faltou', 'Faltou'), btn('desmarcou', 'Desmarcou'), btn('cancelado', 'Cancelei'));
+    if (attend && isClient) actions.push(btn('trip', '✈ Viaja'));
     if (ev.kind === 'lembrete') actions.push(btn('done', '✓ Feito', 'ok'));
     actions.push(btn('move', 'Mover'));
     if (ev.slot_id && ev.kind === 'treino') actions.push(btn('cancel-one', 'Sem treino neste dia'));
@@ -333,14 +453,19 @@ function cardHtml(ev, ui, nameOf, today) {
   const phone = ui.byId[ev.client_id]?.phone;
   const c = ui.byId[ev.client_id];
   const wa = isClient && attend ? `<a class="ag-btn" target="_blank" rel="noopener" href="${A.waLink(phone, A.waMessage(waType(ev), ev, c?.full_name || ''))}">WhatsApp</a>` : '';
-  return `<div class="ag-card k-${ev.kind} s-${ev.status} ${needs ? 'needs' : ''}">
+  const movable = A.canReorder(ev);
+  const dayEvs = ui.events.filter(x => x.on_date === ev.on_date);
+  const hasUp = movable && !!A.neighbor(dayEvs, ev, -1), hasDown = movable && !!A.neighbor(dayEvs, ev, 1);
+  const move = movable ? `<div class="ag-move"><button class="ag-grip" data-drag="${ev.id}" title="Segure e arraste sobre outro nome pra trocar de horário" aria-label="Arrastar">⠿</button><button class="ag-arrow" data-act="up" data-id="${ev.id}" ${hasUp ? '' : 'disabled'} aria-label="Subir">↑</button><button class="ag-arrow" data-act="down" data-id="${ev.id}" ${hasDown ? '' : 'disabled'} aria-label="Descer">↓</button></div>` : '';
+  return `<div class="ag-card k-${ev.kind} s-${ev.status} ${A.isTrip(ev) ? 'trip' : ''} ${needs ? 'needs' : ''} ${movable ? 'has-move' : ''}" data-ev="${ev.id}">
     <div class="ag-time"><b>${A.hm(ev.start_time)}</b><span>${ev.duration_min ? A.endTime(ev.start_time, ev.duration_min) : ''}</span></div>
     <div class="ag-body">
       <div class="ag-title">${esc(titleOf(ev, nameOf))}</div>
       <div class="ag-badges">
         ${ev.kind !== 'treino' ? `<span class="pc-badge phase">${A.KINDS[ev.kind].label}</span>` : ''}
-        ${(attend || ev.kind === 'lembrete') && !(ev.kind === 'lembrete' && ev.status === 'agendado') ? `<span class="pc-badge ${st.cls}">${ev.kind === 'lembrete' && ev.status === 'feito' ? 'Feito' : st.label}</span>` : ''}
+        ${(attend || ev.kind === 'lembrete') && !(ev.kind === 'lembrete' && ev.status === 'agendado') && !A.isTrip(ev) ? `<span class="pc-badge ${st.cls}">${ev.kind === 'lembrete' && ev.status === 'feito' ? 'Feito' : st.label}</span>` : ''}
         ${ev.orig_date ? `<span class="pc-badge deload">remarcado · era ${A.fmtDay(ev.orig_date)} ${A.hm(ev.orig_time)}</span>` : ''}
+        ${A.isTrip(ev) ? `<span class="pc-badge down">✈ Viagem · não vem</span>` : ''}
         ${ev.generates_credit && A.ABSENCES.includes(ev.status) ? `<span class="pc-badge warn">gera reposição</span>` : ''}
         ${ev.makeup_for ? `<span class="pc-badge phase">reposição</span>` : ''}
         ${ev.kind === 'bloqueio' && ev.status === 'cancelado' ? `<span class="pc-badge up">liberado neste dia</span>` : ''}
@@ -349,6 +474,7 @@ function cardHtml(ev, ui, nameOf, today) {
       ${ev.note ? `<div class="ag-note">${esc(ev.note)}</div>` : ''}
       <div class="ag-actions">${actions.join('')}${wa}</div>
     </div>
+    ${move}
   </div>`;
 }
 
@@ -358,8 +484,8 @@ function weekHtml(ui, nameOf, today) {
     ${navHtml(ui, `${A.fmtDay(days[0])} a ${A.fmtDay(days[6])}`)}
     <div class="ag-week">${days.map(d => {
       const evs = ui.events.filter(e => e.on_date === d).sort((a, b) => a.start_time.localeCompare(b.start_time));
-      return `<div class="ag-col ${d === today ? 'today' : ''}"><button class="ag-colhead" data-day="${d}">${A.fmtDay(d)}</button>
-        ${evs.map(e => `<button class="ag-mini k-${e.kind} s-${e.status}" data-day="${d}"><b>${A.hm(e.start_time)}</b> ${esc(titleOf(e, nameOf).split(' ').slice(0, 2).join(' '))}${e.status !== 'agendado' && e.kind !== 'bloqueio' ? ` <small>${A.STATUS[e.status].label}</small>` : ''}</button>`).join('') || '<div class="ag-empty">—</div>'}</div>`;
+      return `<div class="ag-col ${d === today ? 'today' : ''}" data-date="${d}"><button class="ag-colhead" data-day="${d}">${A.fmtDay(d)}</button>
+        ${evs.map(e => `<button class="ag-mini k-${e.kind} s-${e.status} ${A.isTrip(e) ? 'trip' : ''} ${A.canReorder(e) ? 'drag' : ''}" data-day="${d}" data-ev="${e.id}"><b>${A.hm(e.start_time)}</b> ${esc(titleOf(e, nameOf).split(' ').slice(0, 2).join(' '))}${A.isTrip(e) ? ' <small>✈ Viagem</small>' : e.status !== 'agendado' && e.kind !== 'bloqueio' ? ` <small>${A.STATUS[e.status].label}</small>` : ''}</button>`).join('') || '<div class="ag-empty">—</div>'}</div>`;
     }).join('')}</div>`;
 }
 

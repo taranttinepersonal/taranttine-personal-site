@@ -575,3 +575,22 @@
 .pc-mv:disabled { opacity: .3; cursor: default; }
 .pc-hid { margin-top: 10px; }
 .pc-modal select { width: 100%; background: var(--black3); color: var(--text); border: 1.5px solid var(--border2); border-radius: 10px; padding: 11px 12px; font: inherit; font-size: 14px; }
+/* agenda: aluno que avisou que não vem (vermelho) + arrastar pra trocar de lugar */
+.ag-card.s-desmarcou { opacity: 1; border-color: rgba(255,92,92,.75); background: rgba(255,92,92,.07); }
+.ag-card.s-desmarcou .ag-title { color: #ff7a7a; }
+.ag-card.s-desmarcou .ag-time b { color: #ff7a7a; }
+.ag-mini.s-desmarcou { opacity: 1; text-decoration: none; color: #ff7a7a; border-color: rgba(255,92,92,.7); background: rgba(255,92,92,.1); }
+.ag-mini.s-desmarcou small { color: #ff9a9a; }
+.ag-card.has-move { grid-template-columns: 64px minmax(0, 1fr) auto; }
+.ag-move { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+@media (max-width: 760px) { .ag-card.has-move { grid-template-columns: 54px minmax(0, 1fr) auto; } }
+.ag-grip, .ag-arrow { background: var(--black3); border: 1px solid var(--border2); color: var(--muted); border-radius: 8px; width: 34px; height: 34px; font: inherit; font-size: 16px; line-height: 1; cursor: pointer; padding: 0; }
+.ag-grip { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ag-grip:active { cursor: grabbing; }
+.ag-arrow:hover:not(:disabled), .ag-grip:hover { border-color: var(--green); color: var(--green); }
+.ag-arrow:disabled { opacity: .3; cursor: default; }
+.ag-mini.drag { cursor: grab; }
+.ag-dragging { opacity: .35; }
+.ag-drop { outline: 2px dashed var(--green); outline-offset: 2px; background: rgba(0,184,148,.1); }
+.ag-ghost { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; opacity: .92; box-shadow: 0 12px 30px rgba(0,0,0,.55); }
+@media (max-width: 760px) { .ag-time b { font-size: 23px; } }
