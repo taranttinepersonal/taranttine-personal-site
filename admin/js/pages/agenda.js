@@ -56,14 +56,19 @@ export async function renderAgenda(main) {
 
   // ----- formulário de compromisso novo / reposição -----
   function openEventForm({ kind = 'treino', clientId = '', date = ui.date, makeupFor = null, lockKind = false } = {}) {
-    const kinds = Object.entries(A.KINDS).map(([k, v]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${k === 'treino' ? 'Treino avulso' : v.label}</option>`).join('');
+    const kinds = Object.entries(A.KINDS).map(([k, v]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${k === 'treino' ? 'Treino' : v.label}</option>`).join('');
     openModal(`
       <div class="pc-sum-title">${makeupFor ? 'Marcar reposição' : 'Novo compromisso'}</div>
       <label>Tipo<select id="f-kind" ${lockKind ? 'disabled' : ''}>${kinds}</select></label>
       <label id="w-client">Aluno<select id="f-client">${clientOptions(clientId)}</select></label>
       <label id="w-title">Título<input id="f-title" placeholder="Ex.: Almoço, Viagem, Ligar pro Renan"></label>
+      <div id="w-fixed" class="ag-fixedbox">
+        <label class="pc-radio"><input type="checkbox" id="f-fixed"> 🔁 Aluno fixo: repetir toda semana</label>
+        <div id="w-days" style="display:none"><div class="admin-row-sub">Dias da semana (o horário vale a partir do dia escolhido abaixo)</div>
+          <div class="ag-days">${[1, 2, 3, 4, 5, 6, 0].map(w => `<label class="ag-day"><input type="checkbox" value="${w}"><span>${A.DOW_SHORT[w]}</span></label>`).join('')}</div></div>
+      </div>
       <div class="ag-row3">
-        <label>Dia<input type="date" id="f-date" value="${date}"></label>
+        <label><span id="l-date">Dia</span><input type="date" id="f-date" value="${date}"></label>
         <label>Hora<input type="time" id="f-time" value="07:00"></label>
         <label id="w-dur">Duração (min)<input type="number" id="f-dur" min="10" step="5" value="60"></label>
       </div>
@@ -78,9 +83,23 @@ export async function renderAgenda(main) {
         q('#w-client').style.display = meta.needsClient || k === 'consulta' ? '' : 'none';
         q('#w-title').style.display = meta.needsClient && k !== 'consulta' && k !== 'avaliacao' ? 'none' : '';
         q('#w-dur').style.display = k === 'lembrete' ? 'none' : '';
+        q('#w-fixed').style.display = k === 'treino' && !makeupFor ? '' : 'none';
+        if (k !== 'treino') q('#f-fixed').checked = false;
+        syncFixed();
         if (k === 'lembrete') q('#f-dur').value = 0; else if (+q('#f-dur').value === 0) q('#f-dur').value = k === 'avaliacao' ? 90 : 60;
         if (k === 'avaliacao' && +q('#f-dur').value === 60) q('#f-dur').value = 90;
       };
+      let daysTouched = false;
+      const syncFixed = () => {
+        const on = q('#f-fixed').checked;
+        q('#w-days').style.display = on ? '' : 'none';
+        q('#l-date').textContent = on ? 'Vale a partir de' : 'Dia';
+        q('#f-save').textContent = on ? 'Criar horário fixo' : 'Salvar';
+        if (on && !daysTouched) { const d = A.dowOf(q('#f-date').value || date); m.querySelectorAll('#w-days input').forEach(i => { i.checked = Number(i.value) === d; }); }
+      };
+      q('#f-fixed').addEventListener('change', syncFixed);
+      q('#f-date').addEventListener('change', syncFixed);
+      q('#w-days').addEventListener('change', () => { daysTouched = true; });
       q('#f-kind').addEventListener('change', sync); sync();
       q('#f-save').addEventListener('click', async () => {
         const k = q('#f-kind').value, meta = A.KINDS[k];
@@ -95,6 +114,24 @@ export async function renderAgenda(main) {
         if (k !== 'lembrete' && row.duration_min < 10) return err('Duração mínima: 10 min.');
         if (makeupFor) row.makeup_for = makeupFor;
         const btn = q('#f-save'); btn.disabled = true;
+        if (k === 'treino' && q('#f-fixed').checked) {
+          const days = [...m.querySelectorAll('#w-days input:checked')].map(i => Number(i.value));
+          if (!days.length) { btn.disabled = false; return err('Marque pelo menos um dia da semana.'); }
+          try {
+            // avisa se a primeira vez de cada dia bate com outro compromisso
+            const clashes = [];
+            for (const w of days) {
+              let d = row.on_date; while (A.dowOf(d) !== w) d = A.addDays(d, 1);
+              const day = await D.loadRange(d, d);
+              for (const c of A.conflictsWith({ ...row, on_date: d, start_time: row.start_time, id: 'new' }, day)) clashes.push(`${A.fmtDay(d)} ${A.hm(c.start_time)} ${c.client_id ? nameOf(c.client_id) : c.title}`);
+            }
+            if (clashes.length && !confirm(`Conflita com: ${clashes.join(', ')}. Criar mesmo assim?`)) { btn.disabled = false; return; }
+            await D.createSlots(row.client_id, days, row.start_time, row.duration_min, row.on_date, row.note, { kind: 'treino' });
+            close(); ui.date = row.on_date; await refresh();
+            toast(`${nameOf(row.client_id).split(' ')[0]} agora é fixo: ${days.map(w => A.DOW_SHORT[w]).join(', ')} às ${row.start_time}.`);
+          } catch (e) { console.error(e); err('Erro ao salvar: ' + (e.message || e)); btn.disabled = false; }
+          return;
+        }
         try {
           if (k !== 'lembrete') {
             const day = await D.loadRange(row.on_date, row.on_date);
@@ -163,12 +200,14 @@ export async function renderAgenda(main) {
   }
 
   // ----- viagem: aluno avisou que não vem (vários dias de uma vez) -----
-  function openTrip(ev) {
+  function openTrip(ev, { thisWeek = false } = {}) {
     const name = nameOf(ev.client_id);
     const week = A.weekDays(ev.on_date);
+    // "esta semana": do que ainda falta (hoje em diante) até domingo; senão do dia tocado
+    const fromDefault = thisWeek ? (() => { const f = [week[0], D.todayIso()].sort().pop(); return f > week[6] ? ev.on_date : f; })() : ev.on_date;
     openModal(`<div class="pc-sum-title">✈ ${esc(name)} não vem</div>
       <div class="admin-row-sub">Marca os atendimentos dele(a) no período como "desmarcou (avisou)", em vermelho na agenda. O horário fixo continua pras outras semanas.</div>
-      <div class="ag-row3"><label>De<input type="date" id="t-from" value="${ev.on_date}"></label><label>Até<input type="date" id="t-to" value="${week[6]}"></label></div>
+      <div class="ag-row3"><label>De<input type="date" id="t-from" value="${fromDefault}"></label><label>Até<input type="date" id="t-to" value="${week[6]}"></label></div>
       <label>Observação<input id="t-note" value="${A.TRIP_NOTE}"></label>
       <label class="pc-radio"><input type="checkbox" id="t-credit"> Gera crédito de reposição</label>
       <div class="admin-row-sub" id="t-preview">Calculando...</div>
@@ -269,9 +308,52 @@ export async function renderAgenda(main) {
     }));
   }
 
+  // ----- ações de um atendimento (usadas pelos botões do card e pelo menu rápido da semana) -----
+  async function runAct(act, e) {
+    try {
+      if (act === 'done') { await D.setStatus(e.id, 'feito'); await refresh(); toast('Compareceu.'); }
+      else if (act === 'undo') { await D.setStatus(e.id, 'agendado'); await refresh(); toast('Voltou pra agendado.'); }
+      else if (['faltou', 'desmarcou', 'cancelado'].includes(act)) openAbsence(e, act);
+      else if (act === 'move') openMove(e);
+      else if (act === 'trip') openTrip(e);
+      else if (act === 'up' || act === 'down') {
+        const nb = A.neighbor(ui.events.filter(x => x.on_date === e.on_date), e, act === 'up' ? -1 : 1);
+        if (!nb) toast(act === 'up' ? 'Já é o primeiro do dia.' : 'Já é o último do dia.'); else await doSwap(e, nb);
+      }
+      else if (act === 'repo') openEventForm({ kind: 'reposicao', clientId: e.client_id, makeupFor: e.id, lockKind: true, date: A.addDays(e.on_date, 1) });
+      else if (act === 'del') { if (confirm('Apagar este compromisso?')) { await D.deleteEvent(e.id); await refresh(); toast('Apagado.'); } }
+      else if (act === 'cancel-one') { if (confirm('Só este dia? O horário fixo continua nos outros dias.')) { await D.setStatus(e.id, 'cancelado'); await refresh(); toast('Cancelado.'); } }
+    } catch (err) { console.error(err); alert('Erro: ' + (err.message || err)); }
+  }
+
+  // ----- menu rápido (toque num nome na aba Semana) -----
+  function openQuick(ev) {
+    const isClient = !!ev.client_id, attend = A.canReorder(ev);
+    const b = (act, label, cls = '') => `<button class="admin-btn ${cls}" data-q="${act}">${label}</button>`;
+    const items = [];
+    if (attend && isClient) items.push(b('week', '✈ Avisou que não vem esta semana', 'primary'));
+    if (attend) items.push(b('done', '✓ Veio', ''), b('faltou', 'Faltou'), b('desmarcou', 'Desmarcou só este dia'), b('move', 'Mover'));
+    if (!attend && ev.status !== 'agendado') items.push(b('undo', 'Desfazer'));
+    if (ev.status === 'agendado' && ev.slot_id && ev.kind === 'bloqueio') items.push(b('cancel-one', 'Liberar este dia'));
+    items.push(b('day', 'Ver o dia'));
+    openModal(`<div class="pc-sum-title">${esc(titleOf(ev, nameOf))}</div>
+      <div class="admin-row-sub">${A.fmtDay(ev.on_date)} às ${A.hm(ev.start_time)}${A.isTrip(ev) ? ' · ✈ avisou que não vem' : ev.status !== 'agendado' ? ` · ${A.STATUS[ev.status].label}` : ''}</div>
+      <div class="ag-quick">${items.join('')}</div>
+      <div class="pc-modal-actions"><button class="admin-btn" data-close>Fechar</button></div>`,
+    (m, close) => m.addEventListener('click', async (c) => {
+      const q = c.target.closest('[data-q]');
+      if (!q) return;
+      close();
+      const act = q.dataset.q;
+      if (act === 'day') { ui.date = ev.on_date; ui.view = 'dia'; await refresh(); return; }
+      if (act === 'week') { openTrip(ev, { thisWeek: true }); return; }
+      await runAct(act, ev);
+    }));
+  }
+
   // ----- cliques -----
   main.addEventListener('click', async (ev) => {
-    const t = ev.target.closest('[data-v],[data-nav],[data-day],[data-act],[data-new],[data-slot-new],[data-slot-act],[data-credit]');
+    const t = ev.target.closest('[data-v],[data-nav],[data-day],[data-act],[data-quick],[data-new],[data-slot-new],[data-slot-act],[data-credit]');
     if (!t) return;
     if (t.dataset.v) { ui.view = t.dataset.v; paint(); return; }
     if (t.dataset.nav) {
@@ -298,24 +380,11 @@ export async function renderAgenda(main) {
       else if (confirm('Dispensar este crédito de reposição? A falta continua registrada.')) { await D.updateEvent(abs.id, { generates_credit: false }); await refresh(); toast('Crédito dispensado.'); }
       return;
     }
+    if (t.dataset.quick) { const q = ui.events.find(x => x.id === t.dataset.quick); if (q) openQuick(q); return; }
     if (t.dataset.act) {
       const e = ui.events.find(x => x.id === t.dataset.id);
       if (!e) return;
-      const act = t.dataset.act;
-      try {
-        if (act === 'done') { await D.setStatus(e.id, 'feito'); await refresh(); toast('Compareceu.'); }
-        else if (act === 'undo') { await D.setStatus(e.id, 'agendado'); await refresh(); toast('Voltou pra agendado.'); }
-        else if (['faltou', 'desmarcou', 'cancelado'].includes(act)) openAbsence(e, act);
-        else if (act === 'move') openMove(e);
-        else if (act === 'trip') openTrip(e);
-        else if (act === 'up' || act === 'down') {
-          const nb = A.neighbor(ui.events.filter(x => x.on_date === e.on_date), e, act === 'up' ? -1 : 1);
-          if (!nb) toast(act === 'up' ? 'Já é o primeiro do dia.' : 'Já é o último do dia.'); else await doSwap(e, nb);
-        }
-        else if (act === 'repo') openEventForm({ kind: 'reposicao', clientId: e.client_id, makeupFor: e.id, lockKind: true, date: A.addDays(e.on_date, 1) });
-        else if (act === 'del') { if (confirm('Apagar este compromisso?')) { await D.deleteEvent(e.id); await refresh(); toast('Apagado.'); } }
-        else if (act === 'cancel-one') { if (confirm('Só este dia? O horário fixo continua nos outros dias.')) { await D.setStatus(e.id, 'cancelado'); await refresh(); toast('Cancelado.'); } }
-      } catch (err) { console.error(err); alert('Erro: ' + (err.message || err)); }
+      await runAct(t.dataset.act, e);
     }
   });
 
@@ -326,13 +395,16 @@ export async function renderAgenda(main) {
   main.addEventListener('click', (e) => { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
   main.addEventListener('pointerdown', (e) => {
     const grip = e.target.closest('[data-drag]');
-    const mini = !grip && e.pointerType === 'mouse' && e.button === 0 ? e.target.closest('.ag-mini[data-ev]') : null;
+    const mini = !grip && e.button === 0 ? e.target.closest('.ag-mini[data-ev]') : null;
     const src = grip || mini;
     if (!src) return;
     const ev = ui.events.find(x => x.id === (grip ? grip.dataset.drag : mini.dataset.ev));
     if (!ev || !A.canReorder(ev)) return;
-    drag = { ev, kind: grip ? 'grip' : 'mini', src: grip ? grip.closest('.ag-card') : mini, x0: e.clientX, y0: e.clientY, started: false, ghost: null, target: null, id: e.pointerId, x: e.clientX, y: e.clientY };
+    const touch = e.pointerType !== 'mouse';
+    drag = { ev, kind: grip ? 'grip' : 'mini', src: grip ? grip.closest('.ag-card') : mini, x0: e.clientX, y0: e.clientY, started: false, ghost: null, target: null, id: e.pointerId, x: e.clientX, y: e.clientY, armed: !(touch && mini), timer: 0 };
     if (grip) e.preventDefault();
+    // dedo na semana: segura ~0,3s pra "pegar" o nome (antes disso é rolagem normal da página)
+    if (touch && mini) drag.timer = setTimeout(() => { if (drag && drag.id === e.pointerId) { drag.armed = true; drag.src.classList.add('ag-armed'); navigator.vibrate?.(15); } }, 320);
   });
   const findTarget = (x, y) => {
     const el = document.elementFromPoint(x, y);
@@ -356,7 +428,9 @@ export async function renderAgenda(main) {
     if (!drag || e.pointerId !== drag.id) return;
     drag.x = e.clientX; drag.y = e.clientY;
     if (!drag.started) {
-      if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+      const moved = Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0);
+      if (!drag.armed) { if (moved > 9) { clearTimeout(drag.timer); drag = null; } return; } // mexeu antes de segurar: é rolagem
+      if (moved < 6) return;
       drag.started = true;
       const r = drag.src.getBoundingClientRect();
       drag.dx = drag.x0 - r.left; drag.dy = drag.y0 - r.top;
@@ -373,13 +447,16 @@ export async function renderAgenda(main) {
   const endDrag = async (e, cancelled) => {
     if (!drag || (e && e.pointerId !== drag.id)) return;
     const d = drag; drag = null;
-    cancelAnimationFrame(scrollRaf); clearTarget(); d.ghost?.remove(); d.src?.classList.remove('ag-dragging');
+    cancelAnimationFrame(scrollRaf); clearTimeout(d.timer); clearTarget(); d.ghost?.remove(); d.src?.classList.remove('ag-dragging', 'ag-armed');
     if (!d.started) return;
     suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
     if (cancelled || !d.target) return;
     if (d.target.dataset.ev) { const other = ui.events.find(x => x.id === d.target.dataset.ev); if (other) await doSwap(d.ev, other); }
     else if (d.target.dataset.date) await doMoveToDay(d.ev, d.target.dataset.date);
   };
+  // com o nome "pego" na ponta do dedo, a página não rola junto
+  window.addEventListener('touchmove', (e) => { if (drag?.armed && e.cancelable) e.preventDefault(); }, { passive: false });
+  main.addEventListener('contextmenu', (e) => { if (e.target.closest('.ag-mini.drag')) e.preventDefault(); });
   window.addEventListener('pointerup', (e) => endDrag(e, false));
   window.addEventListener('pointercancel', (e) => endDrag(e, true));
 }
@@ -482,10 +559,11 @@ function weekHtml(ui, nameOf, today) {
   const days = A.weekDays(ui.date);
   return `
     ${navHtml(ui, `${A.fmtDay(days[0])} a ${A.fmtDay(days[6])}`)}
+    <div class="admin-row-sub ag-hint">Segure um nome e arraste: pra outro nome (troca os horários) ou pra outro dia (mantém a hora). Toque num nome pra ver as opções. <span class="ag-leg red"></span> avisou que não vem</div>
     <div class="ag-week">${days.map(d => {
       const evs = ui.events.filter(e => e.on_date === d).sort((a, b) => a.start_time.localeCompare(b.start_time));
       return `<div class="ag-col ${d === today ? 'today' : ''}" data-date="${d}"><button class="ag-colhead" data-day="${d}">${A.fmtDay(d)}</button>
-        ${evs.map(e => `<button class="ag-mini k-${e.kind} s-${e.status} ${A.isTrip(e) ? 'trip' : ''} ${A.canReorder(e) ? 'drag' : ''}" data-day="${d}" data-ev="${e.id}"><b>${A.hm(e.start_time)}</b> ${esc(titleOf(e, nameOf).split(' ').slice(0, 2).join(' '))}${A.isTrip(e) ? ' <small>✈ Viagem</small>' : e.status !== 'agendado' && e.kind !== 'bloqueio' ? ` <small>${A.STATUS[e.status].label}</small>` : ''}</button>`).join('') || '<div class="ag-empty">—</div>'}</div>`;
+        ${evs.map(e => `<button class="ag-mini k-${e.kind} s-${e.status} ${A.isTrip(e) ? 'trip' : ''} ${A.canReorder(e) ? 'drag' : ''}" data-quick="${e.id}" data-ev="${e.id}"><b>${A.hm(e.start_time)}</b> ${esc(titleOf(e, nameOf).split(' ').slice(0, 2).join(' '))}${A.isTrip(e) ? ' <small>✈ Viagem</small>' : e.status !== 'agendado' && e.kind !== 'bloqueio' ? ` <small>${A.STATUS[e.status].label}</small>` : ''}</button>`).join('') || '<div class="ag-empty">—</div>'}</div>`;
     }).join('')}</div>`;
 }
 

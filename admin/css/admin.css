@@ -594,3 +594,18 @@
 .ag-drop { outline: 2px dashed var(--green); outline-offset: 2px; background: rgba(0,184,148,.1); }
 .ag-ghost { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; opacity: .92; box-shadow: 0 12px 30px rgba(0,0,0,.55); }
 @media (max-width: 760px) { .ag-time b { font-size: 23px; } }
+.ag-fixedbox { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--border2); border-radius: 12px; background: var(--black3); }
+.ag-fixedbox .pc-radio { margin: 0; }
+.ag-modal .ag-day { margin: 0; display: inline-block; }
+.ag-modal .ag-days { display: flex; flex-wrap: wrap; gap: 6px; }
+.ag-modal input[type="checkbox"] { width: auto; }
+.ag-modal .pc-radio { display: flex; align-items: center; gap: 8px; }
+
+/* semana no iPad/celular: segurar e arrastar, menu rápido */
+.ag-mini.drag { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+.ag-armed { transform: scale(1.04); outline: 2px solid var(--green); outline-offset: 1px; }
+.ag-hint { margin-bottom: 10px; }
+.ag-leg { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin: 0 3px 0 6px; }
+.ag-leg.red { background: #ff7a7a; }
+.ag-quick { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 4px; }
+.ag-quick .admin-btn { text-align: left; }
