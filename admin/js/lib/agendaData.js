@@ -4,6 +4,7 @@ import { addDays, toIso, ABSENCES, planSwap } from '../../../app/js/lib/agenda.j
 
 const must = ({ data, error }) => { if (error) throw error; return data; };
 export const isMissingAgenda = (e) => !!e && (['42P01', '42883', 'PGRST205', 'PGRST202'].includes(e.code) || /agenda_/.test(e.message || ''));
+export const isMissingVagas = (e) => !!e && (['42P01', 'PGRST205'].includes(e.code) || /agenda_vagas/.test(e.message || ''));
 
 export async function loadClients() {
   return must(await supabase.from('profiles').select('id, full_name, phone, active, modalidade').eq('role', 'client').order('full_name'));
@@ -92,3 +93,15 @@ export async function changeSlotFrom(slot, fromIso, { weekday, start_time, durat
   }).select('*').single());
 }
 export const todayIso = () => toIso(new Date());
+
+// ---- horários vagos ----
+export async function loadVagas() {
+  return must(await supabase.from('agenda_vagas').select('*').eq('active', true).order('weekday').order('start_time'));
+}
+export async function createVagas(weekdays, startTime, durationMin) {
+  const rows = weekdays.map(w => ({ weekday: w, start_time: startTime, duration_min: durationMin }));
+  return must(await supabase.from('agenda_vagas').insert(rows).select('*'));
+}
+export async function removeVaga(id) {
+  must(await supabase.from('agenda_vagas').delete().eq('id', id).select('id'));
+}

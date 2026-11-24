@@ -150,3 +150,24 @@ export function swapConflicts(a, b, dayEvents) {
   }
   return out;
 }
+
+// ---------- horários vagos (verdes) ----------
+// Quem ocupa um horário: atendimento ainda ativo (agendado/feito) de qualquer tipo, menos lembrete.
+const OCCUPIES = ['agendado', 'feito'];
+// Vagas da semana que continuam livres: não passou, e nenhum compromisso ativo bate com o horário.
+// vagas: [{id, weekday, start_time, duration_min, active}] · days: datas ISO da semana
+export function openVagas(vagas, events, days, todayIso, nowHm) {
+  const out = [];
+  for (const d of days) {
+    if (d < todayIso) continue;
+    const dayEvents = events.filter(e => e.on_date === d && OCCUPIES.includes(e.status) && e.kind !== 'lembrete');
+    for (const v of vagas) {
+      if (v.active === false || v.weekday !== dowOf(d)) continue;
+      if (d === todayIso && toMin(v.start_time) < toMin(nowHm)) continue;
+      const cand = { on_date: d, start_time: v.start_time, duration_min: v.duration_min };
+      if (dayEvents.some(e => overlaps(cand, e))) continue;
+      out.push({ vaga_id: v.id, on_date: d, start_time: hm(v.start_time), duration_min: v.duration_min });
+    }
+  }
+  return out.sort((a, b) => (a.on_date + a.start_time).localeCompare(b.on_date + b.start_time));
+}

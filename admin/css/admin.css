@@ -609,3 +609,15 @@
 .ag-leg.red { background: #ff7a7a; }
 .ag-quick { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 4px; }
 .ag-quick .admin-btn { text-align: left; }
+
+/* horários vagos (verde) */
+.ag-mini.vago { background: rgba(0,184,148,.08); border: 1px dashed rgba(0,184,148,.7); color: var(--green); }
+.ag-mini.vago b { color: var(--green); }
+.ag-card.vago { background: rgba(0,184,148,.07); border: 1px dashed rgba(0,184,148,.65); cursor: pointer; }
+.ag-card.vago .ag-time b, .ag-card.vago .ag-title { color: var(--green); }
+.ag-leg.green { background: var(--green); }
+.ag-vagas { margin-bottom: 14px; border-color: rgba(0,184,148,.4); }
+.ag-vchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ag-vchip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 6px 5px 11px; border: 1px solid rgba(0,184,148,.6); border-radius: 99px; color: var(--green); font-size: 13px; }
+.ag-vx { background: none; border: none; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 4px; }
+.ag-vx:hover { color: #ff7a7a; }

@@ -7,7 +7,7 @@ const REMIND_OPTIONS = [['', 'Aviso padrão (30 min antes; lembrete na hora)'], 
 export async function renderAgenda(main) {
   main.closest('.admin-shell')?.classList.add('wide');
   main.innerHTML = `<div class="admin-empty">Carregando...</div>`;
-  const ui = { view: 'dia', date: D.todayIso(), events: [], clients: [], byId: {}, slots: [], credits: [], unmarked: [] };
+  const ui = { view: 'dia', date: D.todayIso(), events: [], clients: [], byId: {}, slots: [], credits: [], unmarked: [], vagas: [], vagasMissing: false };
 
   const nowHm = () => { const n = new Date(); return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`; };
   const nameOf = (id) => ui.byId[id]?.full_name || '';
@@ -15,9 +15,12 @@ export async function renderAgenda(main) {
   async function load() {
     try {
       const days = A.weekDays(ui.date);
-      const [events, clients, slots, creditEvents, unmarked] = await Promise.all([
+      const [events, clients, slots, creditEvents, unmarked, vagas] = await Promise.all([
         D.loadRange(days[0], days[6]), ui.clients.length ? ui.clients : D.loadClients(), D.loadSlots(), D.loadCreditEvents(), D.loadUnmarked(D.todayIso()),
+        D.loadVagas().then(v => ({ ok: true, v }), e => ({ ok: false, e })),
       ]);
+      ui.vagas = vagas.ok ? vagas.v : []; ui.vagasMissing = !vagas.ok && D.isMissingVagas(vagas.e);
+      if (!vagas.ok && !ui.vagasMissing) console.error(vagas.e);
       ui.events = events; ui.clients = clients; ui.slots = slots;
       ui.byId = Object.fromEntries(clients.map(c => [c.id, c]));
       ui.credits = A.pendingCredits(creditEvents);
@@ -55,7 +58,7 @@ export async function renderAgenda(main) {
   };
 
   // ----- formulário de compromisso novo / reposição -----
-  function openEventForm({ kind = 'treino', clientId = '', date = ui.date, makeupFor = null, lockKind = false } = {}) {
+  function openEventForm({ kind = 'treino', clientId = '', date = ui.date, time = '07:00', dur = 60, fixed = false, makeupFor = null, lockKind = false } = {}) {
     const kinds = Object.entries(A.KINDS).map(([k, v]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${k === 'treino' ? 'Treino' : v.label}</option>`).join('');
     openModal(`
       <div class="pc-sum-title">${makeupFor ? 'Marcar reposição' : 'Novo compromisso'}</div>
@@ -69,8 +72,8 @@ export async function renderAgenda(main) {
       </div>
       <div class="ag-row3">
         <label><span id="l-date">Dia</span><input type="date" id="f-date" value="${date}"></label>
-        <label>Hora<input type="time" id="f-time" value="07:00"></label>
-        <label id="w-dur">Duração (min)<input type="number" id="f-dur" min="10" step="5" value="60"></label>
+        <label>Hora<input type="time" id="f-time" value="${time}"></label>
+        <label id="w-dur">Duração (min)<input type="number" id="f-dur" min="10" step="5" value="${dur}"></label>
       </div>
       <label>Aviso no celular<select id="f-remind">${REMIND_OPTIONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
       <label>Observação<textarea id="f-note" placeholder="Opcional"></textarea></label>
@@ -101,6 +104,7 @@ export async function renderAgenda(main) {
       q('#f-date').addEventListener('change', syncFixed);
       q('#w-days').addEventListener('change', () => { daysTouched = true; });
       q('#f-kind').addEventListener('change', sync); sync();
+      if (fixed && !makeupFor) { q('#f-fixed').checked = true; syncFixed(); }
       q('#f-save').addEventListener('click', async () => {
         const k = q('#f-kind').value, meta = A.KINDS[k];
         const row = {
@@ -243,11 +247,11 @@ export async function renderAgenda(main) {
     try { await D.swapEvents(a, b); await refresh(); toast(`${nameOf(a.client_id)} ↔ ${nameOf(b.client_id)}: horários trocados.`); }
     catch (e) { console.error(e); alert('Erro ao trocar: ' + (e.message || e)); }
   }
-  async function doMoveToDay(ev, date) {
-    if (date === ev.on_date) return;
-    const clash = A.conflictsWith({ ...ev, on_date: date }, ui.events);
+  async function doMoveToDay(ev, date, time = A.hm(ev.start_time)) {
+    if (date === ev.on_date && time === A.hm(ev.start_time)) return;
+    const clash = A.conflictsWith({ ...ev, on_date: date, start_time: time }, ui.events);
     if (clash.length && !confirm(`Conflita com: ${clash.map(e => `${A.hm(e.start_time)} ${titleOf(e, nameOf)}`).join(', ')}. Mover mesmo assim?`)) return;
-    try { await D.moveEvent(ev, date, A.hm(ev.start_time)); await refresh(); toast(`${nameOf(ev.client_id)} movido pra ${A.fmtDay(date)}.`); }
+    try { await D.moveEvent(ev, date, time); await refresh(); toast(`${nameOf(ev.client_id)} movido pra ${A.fmtDay(date)} às ${time}.`); }
     catch (e) { console.error(e); alert('Erro ao mover: ' + (e.message || e)); }
   }
 
@@ -326,6 +330,39 @@ export async function renderAgenda(main) {
     } catch (err) { console.error(err); alert('Erro: ' + (err.message || err)); }
   }
 
+  // ----- horário vago: tocar abre "colocar aluno" -----
+  function openVago(date, time, dur) {
+    openModal(`<div class="pc-sum-title">🟢 Horário vago</div>
+      <div class="admin-row-sub">${A.fmtDay(date)} às ${time} · ${dur} min. Escolha como encaixar um aluno:</div>
+      <div class="ag-quick"><button class="admin-btn primary" data-v2="fixed">🔁 Aluno fixo, toda semana neste horário</button><button class="admin-btn" data-v2="once">Só neste dia</button></div>
+      <div class="admin-row-sub">Dica: você também pode arrastar um nome da agenda até este quadrado verde.</div>
+      <div class="pc-modal-actions"><button class="admin-btn" data-close>Fechar</button></div>`,
+    (m, close) => m.addEventListener('click', (c) => {
+      const b = c.target.closest('[data-v2]'); if (!b) return;
+      close(); openEventForm({ date, time, dur, fixed: b.dataset.v2 === 'fixed' });
+    }));
+  }
+
+  function openVagaForm() {
+    openModal(`<div class="pc-sum-title">Novo horário vago</div>
+      <div class="admin-row-sub">Dias da semana</div>
+      <div class="ag-days">${[1, 2, 3, 4, 5, 6, 0].map(w => `<label class="ag-day"><input type="checkbox" value="${w}"><span>${A.DOW_SHORT[w]}</span></label>`).join('')}</div>
+      <div class="ag-row3"><label>Hora<input type="time" id="v-time" value="10:00"></label><label>Duração (min)<input type="number" id="v-dur" min="10" step="5" value="60"></label></div>
+      <div class="admin-msg" id="v-msg"></div>
+      <div class="pc-modal-actions"><button class="admin-btn" data-close>Cancelar</button><button class="admin-btn primary" id="v-save">Criar</button></div>`,
+    (m, close) => m.querySelector('#v-save').addEventListener('click', async () => {
+      const days = [...m.querySelectorAll('.ag-day input:checked')].map(i => Number(i.value));
+      const err = (t) => { m.querySelector('#v-msg').textContent = t; m.querySelector('#v-msg').classList.add('error'); };
+      if (!days.length) return err('Marque pelo menos um dia da semana.');
+      const time = m.querySelector('#v-time').value; if (!time) return err('Informe a hora.');
+      const already = days.filter(w => ui.vagas.some(v => v.weekday === w && A.hm(v.start_time) === time));
+      const fresh = days.filter(w => !already.includes(w));
+      if (!fresh.length) return err('Esses horários vagos já existem.');
+      try { await D.createVagas(fresh, time, Number(m.querySelector('#v-dur').value) || 60); close(); await refresh(); toast(`${fresh.length} horário(s) vago(s) criado(s).`); }
+      catch (e) { console.error(e); err('Erro: ' + (e.message || e)); }
+    }));
+  }
+
   // ----- menu rápido (toque num nome na aba Semana) -----
   function openQuick(ev) {
     const isClient = !!ev.client_id, attend = A.canReorder(ev);
@@ -353,7 +390,7 @@ export async function renderAgenda(main) {
 
   // ----- cliques -----
   main.addEventListener('click', async (ev) => {
-    const t = ev.target.closest('[data-v],[data-nav],[data-day],[data-act],[data-quick],[data-new],[data-slot-new],[data-slot-act],[data-credit]');
+    const t = ev.target.closest('[data-v],[data-nav],[data-day],[data-act],[data-quick],[data-vago],[data-vaga-new],[data-vaga-del],[data-new],[data-slot-new],[data-slot-act],[data-credit]');
     if (!t) return;
     if (t.dataset.v) { ui.view = t.dataset.v; paint(); return; }
     if (t.dataset.nav) {
@@ -380,6 +417,13 @@ export async function renderAgenda(main) {
       else if (confirm('Dispensar este crédito de reposição? A falta continua registrada.')) { await D.updateEvent(abs.id, { generates_credit: false }); await refresh(); toast('Crédito dispensado.'); }
       return;
     }
+    if (t.hasAttribute('data-vaga-new')) { openVagaForm(); return; }
+    if (t.dataset.vagaDel) {
+      const v = ui.vagas.find(x => x.id === t.dataset.vagaDel);
+      if (v && confirm(`Remover o horário vago de ${A.DOW_LONG[v.weekday].toLowerCase()} às ${A.hm(v.start_time)}?`)) { try { await D.removeVaga(v.id); await refresh(); toast('Horário vago removido.'); } catch (e) { console.error(e); alert('Erro: ' + (e.message || e)); } }
+      return;
+    }
+    if (t.dataset.vago) { const [d, tm, du] = t.dataset.vago.split('|'); openVago(d, tm, Number(du) || 60); return; }
     if (t.dataset.quick) { const q = ui.events.find(x => x.id === t.dataset.quick); if (q) openQuick(q); return; }
     if (t.dataset.act) {
       const e = ui.events.find(x => x.id === t.dataset.id);
@@ -409,7 +453,7 @@ export async function renderAgenda(main) {
   const findTarget = (x, y) => {
     const el = document.elementFromPoint(x, y);
     if (!el) return null;
-    const sel = drag.kind === 'grip' ? '.ag-card[data-ev]' : '.ag-mini[data-ev], .ag-col[data-date]';
+    const sel = drag.kind === 'grip' ? '.ag-card[data-ev], .ag-card.vago' : '.ag-mini[data-ev], .ag-mini.vago, .ag-col[data-date]';
     const t = el.closest(sel);
     if (!t || t === drag.src || !main.contains(t)) return null;
     if (t.dataset.ev) { const o = ui.events.find(x => x.id === t.dataset.ev); return o && A.canReorder(o) ? t : null; }
@@ -451,7 +495,8 @@ export async function renderAgenda(main) {
     if (!d.started) return;
     suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
     if (cancelled || !d.target) return;
-    if (d.target.dataset.ev) { const other = ui.events.find(x => x.id === d.target.dataset.ev); if (other) await doSwap(d.ev, other); }
+    if (d.target.dataset.vago) { const [vd, vt] = d.target.dataset.vago.split('|'); await doMoveToDay(d.ev, vd, vt); }
+    else if (d.target.dataset.ev) { const other = ui.events.find(x => x.id === d.target.dataset.ev); if (other) await doSwap(d.ev, other); }
     else if (d.target.dataset.date) await doMoveToDay(d.ev, d.target.dataset.date);
   };
   // com o nome "pego" na ponta do dedo, a página não rola junto
@@ -463,6 +508,13 @@ export async function renderAgenda(main) {
 
 // ---------- HTML ----------
 
+const nowHmStr = () => { const n = new Date(); return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`; };
+function vagoCardHtml(v) {
+  const key = `${v.on_date}|${v.start_time}|${v.duration_min}`;
+  return `<div class="ag-card vago" data-vago="${key}"><div class="ag-time"><b>${v.start_time}</b><span>${A.endTime(v.start_time, v.duration_min)}</span></div>
+    <div class="ag-body"><div class="ag-title">Horário vago</div><div class="ag-badges"><span class="pc-badge up">disponível</span></div>
+    <div class="ag-actions"><button class="ag-btn ok" data-vago="${key}">+ Colocar aluno</button></div></div></div>`;
+}
 function slotName(slot, nameOf) { return slot.client_id ? nameOf(slot.client_id) : (slot.title || 'Bloqueio'); }
 function titleOf(ev, nameOf) { return ev.client_id ? nameOf(ev.client_id) + (ev.title ? ` · ${ev.title}` : '') : (ev.title || A.KINDS[ev.kind].label); }
 function waType(ev) {
@@ -505,7 +557,11 @@ function dayHtml(ui, nameOf, today) {
     ${dayPills(ui, today)}
     ${ui.unmarked.length ? `<div class="pc-note warn">⚠ ${ui.unmarked.length} atendimento(s) passado(s) sem registro de presença. <button class="pc-link" data-day="${oldest.on_date}">Ver o mais antigo (${A.fmtDay(oldest.on_date)})</button></div>` : ''}
     ${att.length ? `<div class="admin-row-sub ag-sum">${att.length} atendimento(s)${c('feito') ? ` · ${c('feito')} compareceram` : ''}${c('faltou') + c('desmarcou') ? ` · ${c('faltou') + c('desmarcou')} falta(s)` : ''}${c('cancelado') ? ` · ${c('cancelado')} cancelado(s)` : ''}</div>` : ''}
-    <div class="ag-list">${evs.map(e => cardHtml(e, ui, nameOf, today)).join('') || `<div class="admin-empty">Nada marcado pra este dia.<br>Use <b>+ Novo</b> ou cadastre os horários fixos dos alunos.</div>`}</div>`;
+    <div class="ag-list">${(() => {
+      const vs = A.openVagas(ui.vagas, ui.events, [ui.date], today, nowHmStr());
+      const items = [...evs.map(e => ({ t: A.hm(e.start_time), html: cardHtml(e, ui, nameOf, today) })), ...vs.map(v => ({ t: v.start_time, html: vagoCardHtml(v) }))].sort((a, b) => a.t.localeCompare(b.t));
+      return items.map(i => i.html).join('') || `<div class="admin-empty">Nada marcado pra este dia.<br>Use <b>+ Novo</b> ou cadastre os horários fixos dos alunos.</div>`;
+    })()}</div>`;
 }
 
 function cardHtml(ev, ui, nameOf, today) {
@@ -559,11 +615,13 @@ function weekHtml(ui, nameOf, today) {
   const days = A.weekDays(ui.date);
   return `
     ${navHtml(ui, `${A.fmtDay(days[0])} a ${A.fmtDay(days[6])}`)}
-    <div class="admin-row-sub ag-hint">Segure um nome e arraste: pra outro nome (troca os horários) ou pra outro dia (mantém a hora). Toque num nome pra ver as opções. <span class="ag-leg red"></span> avisou que não vem</div>
+    <div class="admin-row-sub ag-hint">Segure um nome e arraste: pra outro nome (troca os horários) ou pra outro dia (mantém a hora). Toque num nome pra ver as opções. <span class="ag-leg red"></span> avisou que não vem · <span class="ag-leg green"></span> horário vago (toque ou arraste um nome até ele)</div>
     <div class="ag-week">${days.map(d => {
       const evs = ui.events.filter(e => e.on_date === d).sort((a, b) => a.start_time.localeCompare(b.start_time));
+      const vs = A.openVagas(ui.vagas, ui.events, [d], today, nowHmStr());
+      const items = [...evs.map(e => ({ t: A.hm(e.start_time), e })), ...vs.map(v => ({ t: v.start_time, v }))].sort((a, b) => a.t.localeCompare(b.t));
       return `<div class="ag-col ${d === today ? 'today' : ''}" data-date="${d}"><button class="ag-colhead" data-day="${d}">${A.fmtDay(d)}</button>
-        ${evs.map(e => `<button class="ag-mini k-${e.kind} s-${e.status} ${A.isTrip(e) ? 'trip' : ''} ${A.canReorder(e) ? 'drag' : ''}" data-quick="${e.id}" data-ev="${e.id}"><b>${A.hm(e.start_time)}</b> ${esc(titleOf(e, nameOf).split(' ').slice(0, 2).join(' '))}${A.isTrip(e) ? ' <small>✈ Viagem</small>' : e.status !== 'agendado' && e.kind !== 'bloqueio' ? ` <small>${A.STATUS[e.status].label}</small>` : ''}</button>`).join('') || '<div class="ag-empty">—</div>'}</div>`;
+        ${items.map(({ e, v }) => v ? `<button class="ag-mini vago" data-vago="${v.on_date}|${v.start_time}|${v.duration_min}"><b>${v.start_time}</b> Vago</button>` : `<button class="ag-mini k-${e.kind} s-${e.status} ${A.isTrip(e) ? 'trip' : ''} ${A.canReorder(e) ? 'drag' : ''}" data-quick="${e.id}" data-ev="${e.id}"><b>${A.hm(e.start_time)}</b> ${esc(titleOf(e, nameOf).split(' ').slice(0, 2).join(' '))}${A.isTrip(e) ? ' <small>✈ Viagem</small>' : e.status !== 'agendado' && e.kind !== 'bloqueio' ? ` <small>${A.STATUS[e.status].label}</small>` : ''}</button>`).join('') || '<div class="ag-empty">—</div>'}</div>`;
     }).join('')}</div>`;
 }
 
@@ -575,7 +633,14 @@ function slotsHtml(ui, nameOf) {
   for (const s of live) (byClient[s.client_id ? s.client_id : `b:${s.title}`] ||= []).push(s);
   const keyName = (k) => k.startsWith('b:') ? k.slice(2) : nameOf(k);
   const rows = Object.entries(byClient).sort((a, b) => (a[0].startsWith('b:') - b[0].startsWith('b:')) || keyName(a[0]).localeCompare(keyName(b[0])));
+  const vagasHtml = ui.vagasMissing
+    ? `<div class="pc-note warn">Falta rodar a migração <b>0045</b> (horários vagos) no Supabase (SQL Editor) pra liberar os horários verdes.</div>`
+    : `<div class="admin-card ag-fix ag-vagas"><div class="ag-fixhead"><div class="admin-row-name">🟢 Horários vagos</div><button class="admin-btn" data-vaga-new>+ Horário vago</button></div>
+        <div class="admin-row-sub">Aparecem em verde na agenda e somem sozinhos quando um aluno ocupa o horário.</div>
+        ${A.DOW_SHORT.map((_, i) => (i + 1) % 7).map(w => { const vs = ui.vagas.filter(v => v.weekday === w); return vs.length ? `<div class="ag-slot"><span><b>${A.DOW_LONG[w]}</b></span><span class="ag-vchips">${vs.map(v => `<span class="ag-vchip">${A.hm(v.start_time)}<button class="ag-vx" data-vaga-del="${v.id}" aria-label="Remover vaga das ${A.hm(v.start_time)}">×</button></span>`).join('')}</span></div>` : ''; }).join('') || '<div class="admin-row-sub">Nenhum horário vago cadastrado.</div>'}
+      </div>`;
   return `
+    ${vagasHtml}
     <div class="ag-fixhead"><div class="admin-row-sub">Os atendimentos e bloqueios da semana são criados sozinhos a partir destes horários.</div><button class="admin-btn primary" data-slot-new>+ Horário fixo</button></div>
     <div class="ag-list">${rows.map(([key, slots]) => `<div class="admin-card ag-fix">
       <div class="admin-row-name">${esc(keyName(key))}${key.startsWith('b:') ? ' <span class="pc-badge phase">Bloqueio</span>' : ''}</div>
