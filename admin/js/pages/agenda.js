@@ -59,7 +59,7 @@ export async function renderAgenda(main) {
 
   // ----- formulário de compromisso novo / reposição -----
   function openEventForm({ kind = 'treino', clientId = '', date = ui.date, time = '07:00', dur = 60, fixed = false, makeupFor = null, lockKind = false } = {}) {
-    const kinds = Object.entries(A.KINDS).map(([k, v]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${k === 'treino' ? 'Treino' : v.label}</option>`).join('');
+    const kinds = Object.entries(A.KINDS).map(([k, v]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${k === 'treino' ? 'Treino' : v.label}</option>`).join('') + (makeupFor ? '' : '<option value="vago">🟢 Horário vago</option>');
     openModal(`
       <div class="pc-sum-title">${makeupFor ? 'Marcar reposição' : 'Novo compromisso'}</div>
       <label>Tipo<select id="f-kind" ${lockKind ? 'disabled' : ''}>${kinds}</select></label>
@@ -103,7 +103,11 @@ export async function renderAgenda(main) {
       q('#f-fixed').addEventListener('change', syncFixed);
       q('#f-date').addEventListener('change', syncFixed);
       q('#w-days').addEventListener('change', () => { daysTouched = true; });
-      q('#f-kind').addEventListener('change', sync); sync();
+      q('#f-kind').addEventListener('change', () => {
+        if (q('#f-kind').value === 'vago') { const d = q('#f-date').value, t = q('#f-time').value, du = Number(q('#f-dur').value) || 60; close(); openVagaForm({ date: d || date, time: t, dur: du }); return; }
+        sync();
+      });
+      sync();
       if (fixed && !makeupFor) { q('#f-fixed').checked = true; syncFixed(); }
       q('#f-save').addEventListener('click', async () => {
         const k = q('#f-kind').value, meta = A.KINDS[k];
@@ -305,9 +309,15 @@ export async function renderAgenda(main) {
     openModal(`<div class="pc-sum-title">Encerrar ${esc(slotName(slot, nameOf))} · ${A.slotLabel(slot)}</div>
       <div class="admin-row-sub">Os treinos a partir desta data, ainda sem registro, saem da agenda. Faltas e treinos já marcados ficam.</div>
       <label>Encerrar a partir de<input type="date" id="e-from" value="${D.todayIso()}"></label>
+      ${slot.client_id && !ui.vagasMissing ? `<label class="pc-radio"><input type="checkbox" id="e-vago" checked> 🟢 Deixar este horário vago (fica em verde)</label>` : ''}
       <div class="pc-modal-actions"><button class="admin-btn" data-close>Cancelar</button><button class="admin-btn primary" id="e-save">Encerrar</button></div>`,
     (m, close) => m.querySelector('#e-save').addEventListener('click', async () => {
-      try { await D.endSlot(slot, m.querySelector('#e-from').value); close(); await refresh(); toast('Horário encerrado.'); }
+      try {
+        await D.endSlot(slot, m.querySelector('#e-from').value);
+        const wantVago = m.querySelector('#e-vago')?.checked && !ui.vagas.some(v => !v.on_date && v.weekday === slot.weekday && A.hm(v.start_time) === A.hm(slot.start_time));
+        if (wantVago) await D.createVagas([slot.weekday], A.hm(slot.start_time), slot.duration_min || 60);
+        close(); await refresh(); toast(wantVago ? 'Horário encerrado e agora vago (verde).' : 'Horário encerrado.');
+      }
       catch (e) { console.error(e); alert('Erro: ' + (e.message || e)); }
     }));
   }
@@ -343,24 +353,51 @@ export async function renderAgenda(main) {
     }));
   }
 
-  function openVagaForm() {
-    openModal(`<div class="pc-sum-title">Novo horário vago</div>
-      <div class="admin-row-sub">Dias da semana</div>
-      <div class="ag-days">${[1, 2, 3, 4, 5, 6, 0].map(w => `<label class="ag-day"><input type="checkbox" value="${w}"><span>${A.DOW_SHORT[w]}</span></label>`).join('')}</div>
-      <div class="ag-row3"><label>Hora<input type="time" id="v-time" value="10:00"></label><label>Duração (min)<input type="number" id="v-dur" min="10" step="5" value="60"></label></div>
+  function openVagaForm({ date = ui.date, time = '10:00', dur = 60 } = {}) {
+    openModal(`<div class="pc-sum-title">🟢 Novo horário vago</div>
+      <div class="admin-row-sub">Fica em verde na agenda até um aluno ocupar o horário.</div>
+      <div class="ag-row3"><label><span id="v-ldate">Dia</span><input type="date" id="v-date" value="${date}"></label><label>Hora<input type="time" id="v-time" value="${time}"></label><label>Duração (min)<input type="number" id="v-dur" min="10" step="5" value="${dur}"></label></div>
+      <div class="ag-fixedbox"><label class="pc-radio"><input type="checkbox" id="v-repeat"> 🔁 Repetir toda semana</label>
+        <div id="v-days" style="display:none"><div class="admin-row-sub">Dias da semana (vale a partir do dia escolhido)</div>
+          <div class="ag-days">${[1, 2, 3, 4, 5, 6, 0].map(w => `<label class="ag-day"><input type="checkbox" value="${w}"><span>${A.DOW_SHORT[w]}</span></label>`).join('')}</div></div></div>
       <div class="admin-msg" id="v-msg"></div>
-      <div class="pc-modal-actions"><button class="admin-btn" data-close>Cancelar</button><button class="admin-btn primary" id="v-save">Criar</button></div>`,
-    (m, close) => m.querySelector('#v-save').addEventListener('click', async () => {
-      const days = [...m.querySelectorAll('.ag-day input:checked')].map(i => Number(i.value));
-      const err = (t) => { m.querySelector('#v-msg').textContent = t; m.querySelector('#v-msg').classList.add('error'); };
-      if (!days.length) return err('Marque pelo menos um dia da semana.');
-      const time = m.querySelector('#v-time').value; if (!time) return err('Informe a hora.');
-      const already = days.filter(w => ui.vagas.some(v => v.weekday === w && A.hm(v.start_time) === time));
-      const fresh = days.filter(w => !already.includes(w));
-      if (!fresh.length) return err('Esses horários vagos já existem.');
-      try { await D.createVagas(fresh, time, Number(m.querySelector('#v-dur').value) || 60); close(); await refresh(); toast(`${fresh.length} horário(s) vago(s) criado(s).`); }
-      catch (e) { console.error(e); err('Erro: ' + (e.message || e)); }
-    }));
+      <div class="pc-modal-actions"><button class="admin-btn" data-close>Cancelar</button><button class="admin-btn primary" id="v-save">Criar vaga</button></div>`,
+    (m, close) => {
+      const q = (x) => m.querySelector(x);
+      let touched = false;
+      const sync = () => {
+        const on = q('#v-repeat').checked;
+        q('#v-days').style.display = on ? '' : 'none';
+        q('#v-ldate').textContent = on ? 'Vale a partir de' : 'Dia';
+        q('#v-save').textContent = on ? 'Criar vagas' : 'Criar vaga';
+        if (on && !touched) { const d = A.dowOf(q('#v-date').value || date); m.querySelectorAll('#v-days input').forEach(i => { i.checked = Number(i.value) === d; }); }
+      };
+      q('#v-repeat').addEventListener('change', sync); q('#v-date').addEventListener('change', sync);
+      q('#v-days').addEventListener('change', () => { touched = true; });
+      q('#v-save').addEventListener('click', async () => {
+        const err = (t) => { q('#v-msg').textContent = t; q('#v-msg').classList.add('error'); };
+        const day = q('#v-date').value, tm = q('#v-time').value, du = Number(q('#v-dur').value) || 60;
+        if (!day || !tm) return err('Informe o dia e a hora.');
+        try {
+          if (q('#v-repeat').checked) {
+            const days = [...m.querySelectorAll('#v-days input:checked')].map(i => Number(i.value));
+            if (!days.length) return err('Marque pelo menos um dia da semana.');
+            const fresh = days.filter(w => !ui.vagas.some(v => v.weekday === w && A.hm(v.start_time) === tm));
+            if (!fresh.length) return err('Esses horários vagos já existem.');
+            await D.createVagas(fresh, tm, du);
+            close(); ui.date = day; await refresh(); toast(`${fresh.length} horário(s) vago(s) semanal(is) criado(s): já aparecem em verde.`);
+          } else {
+            if (ui.vagas.some(v => v.on_date === day && A.hm(v.start_time) === tm)) return err('Já existe um horário vago neste dia e hora.');
+            if (ui.vagas.some(v => !v.on_date && v.weekday === A.dowOf(day) && A.hm(v.start_time) === tm)) return err('Esse horário já é vago toda semana.');
+            await D.createVagaOnce(day, tm, du);
+            close(); ui.date = day; await refresh(); toast(`Horário vago de ${A.fmtDay(day)} às ${tm} criado: já aparece em verde.`);
+          }
+        } catch (e) {
+          console.error(e);
+          err(/on_date|weekday/.test(e.message || '') ? 'Falta rodar a migração 0046 (vaga de um dia só) no Supabase.' : 'Erro: ' + (e.message || e));
+        }
+      });
+    });
   }
 
   // ----- menu rápido (toque num nome na aba Semana) -----
@@ -370,7 +407,10 @@ export async function renderAgenda(main) {
     const items = [];
     if (attend && isClient) items.push(b('week', '✈ Avisou que não vem esta semana', 'primary'));
     if (attend) items.push(b('done', '✓ Veio', ''), b('faltou', 'Faltou'), b('desmarcou', 'Desmarcou só este dia'), b('move', 'Mover'));
-    if (!attend && ev.status !== 'agendado') items.push(b('undo', 'Desfazer'));
+    if (!attend && ev.status !== 'agendado') {
+      if (isClient && !ui.vagasMissing && A.ABSENCES.includes(ev.status)) items.push(b('vago1', '🟢 Deixar este horário vago neste dia', 'primary'));
+      items.push(b('undo', 'Desfazer'));
+    }
     if (ev.status === 'agendado' && ev.slot_id && ev.kind === 'bloqueio') items.push(b('cancel-one', 'Liberar este dia'));
     items.push(b('day', 'Ver o dia'));
     openModal(`<div class="pc-sum-title">${esc(titleOf(ev, nameOf))}</div>
@@ -384,6 +424,14 @@ export async function renderAgenda(main) {
       const act = q.dataset.q;
       if (act === 'day') { ui.date = ev.on_date; ui.view = 'dia'; await refresh(); return; }
       if (act === 'week') { openTrip(ev, { thisWeek: true }); return; }
+      if (act === 'vago1') {
+        try {
+          const t = A.hm(ev.start_time);
+          if (!ui.vagas.some(v => (v.on_date ? v.on_date === ev.on_date : v.weekday === A.dowOf(ev.on_date)) && A.hm(v.start_time) === t)) await D.createVagaOnce(ev.on_date, t, ev.duration_min || 60);
+          await refresh(); toast(`${A.fmtDay(ev.on_date)} às ${t} ficou vago (verde).`);
+        } catch (e) { console.error(e); alert(/on_date|weekday/.test(e.message || '') ? 'Falta rodar a migração 0046 (vaga de um dia só) no Supabase.' : 'Erro: ' + (e.message || e)); }
+        return;
+      }
       await runAct(act, ev);
     }));
   }
@@ -528,7 +576,7 @@ function pageHtml(ui, nameOf) {
   const today = D.todayIso();
   const tabs = [['dia', 'Dia'], ['semana', 'Semana'], ['fixos', 'Fixos'], ['repos', `Reposições${ui.credits.length ? ` (${ui.credits.length})` : ''}`]];
   return `
-    <div class="admin-header"><div class="admin-title">Agenda</div><button class="admin-btn primary" data-new>+ Novo</button></div>
+    <div class="admin-header"><div class="admin-title">Agenda</div><div class="ag-headbtns"><button class="admin-btn ag-vagobtn" data-vaga-new>🟢 Horário vago</button><button class="admin-btn primary" data-new>+ Novo</button></div></div>
     <div class="pc-tabs">${tabs.map(([k, l]) => `<button class="pc-tab ${ui.view === k ? 'active' : ''}" data-v="${k}">${l}</button>`).join('')}</div>
     ${ui.view === 'dia' ? dayHtml(ui, nameOf, today) : ui.view === 'semana' ? weekHtml(ui, nameOf, today) : ui.view === 'fixos' ? slotsHtml(ui, nameOf) : creditsHtml(ui, nameOf)}
     <div class="pc-toast" id="ag-toast"></div>`;
@@ -637,7 +685,8 @@ function slotsHtml(ui, nameOf) {
     ? `<div class="pc-note warn">Falta rodar a migração <b>0045</b> (horários vagos) no Supabase (SQL Editor) pra liberar os horários verdes.</div>`
     : `<div class="admin-card ag-fix ag-vagas"><div class="ag-fixhead"><div class="admin-row-name">🟢 Horários vagos</div><button class="admin-btn" data-vaga-new>+ Horário vago</button></div>
         <div class="admin-row-sub">Aparecem em verde na agenda e somem sozinhos quando um aluno ocupa o horário.</div>
-        ${A.DOW_SHORT.map((_, i) => (i + 1) % 7).map(w => { const vs = ui.vagas.filter(v => v.weekday === w); return vs.length ? `<div class="ag-slot"><span><b>${A.DOW_LONG[w]}</b></span><span class="ag-vchips">${vs.map(v => `<span class="ag-vchip">${A.hm(v.start_time)}<button class="ag-vx" data-vaga-del="${v.id}" aria-label="Remover vaga das ${A.hm(v.start_time)}">×</button></span>`).join('')}</span></div>` : ''; }).join('') || '<div class="admin-row-sub">Nenhum horário vago cadastrado.</div>'}
+        ${A.DOW_SHORT.map((_, i) => (i + 1) % 7).map(w => { const vs = ui.vagas.filter(v => !v.on_date && v.weekday === w); return vs.length ? `<div class="ag-slot"><span><b>${A.DOW_LONG[w]}</b></span><span class="ag-vchips">${vs.map(v => `<span class="ag-vchip">${A.hm(v.start_time)}<button class="ag-vx" data-vaga-del="${v.id}" aria-label="Remover vaga das ${A.hm(v.start_time)}">×</button></span>`).join('')}</span></div>` : ''; }).join('') || '<div class="admin-row-sub">Nenhum horário vago cadastrado.</div>'}
+        ${(() => { const once = ui.vagas.filter(v => v.on_date && v.on_date >= today).sort((a, b) => (a.on_date + a.start_time).localeCompare(b.on_date + b.start_time)); return once.length ? `<div class="ag-slot"><span><b>Só em um dia</b></span><span class="ag-vchips">${once.map(v => `<span class="ag-vchip">${A.fmtDay(v.on_date)} ${A.hm(v.start_time)}<button class="ag-vx" data-vaga-del="${v.id}" aria-label="Remover">×</button></span>`).join('')}</span></div>` : ''; })()}
       </div>`;
   return `
     ${vagasHtml}

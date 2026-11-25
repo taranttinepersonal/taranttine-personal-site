@@ -102,6 +102,10 @@ export async function createVagas(weekdays, startTime, durationMin) {
   const rows = weekdays.map(w => ({ weekday: w, start_time: startTime, duration_min: durationMin }));
   return must(await supabase.from('agenda_vagas').insert(rows).select('*'));
 }
+// vaga de um dia só (ex.: o aluno cancelou e o horário ficou livre)
+export async function createVagaOnce(date, startTime, durationMin) {
+  return must(await supabase.from('agenda_vagas').insert({ on_date: date, start_time: startTime, duration_min: durationMin, weekday: null }).select('*').single());
+}
 export async function removeVaga(id) {
   must(await supabase.from('agenda_vagas').delete().eq('id', id).select('id'));
 }

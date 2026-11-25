@@ -162,7 +162,8 @@ export function openVagas(vagas, events, days, todayIso, nowHm) {
     if (d < todayIso) continue;
     const dayEvents = events.filter(e => e.on_date === d && OCCUPIES.includes(e.status) && e.kind !== 'lembrete');
     for (const v of vagas) {
-      if (v.active === false || v.weekday !== dowOf(d)) continue;
+      if (v.active === false) continue;
+      if (v.on_date ? v.on_date !== d : v.weekday !== dowOf(d)) continue; // vaga de um dia só ou semanal
       if (d === todayIso && toMin(v.start_time) < toMin(nowHm)) continue;
       const cand = { on_date: d, start_time: v.start_time, duration_min: v.duration_min };
       if (dayEvents.some(e => overlaps(cand, e))) continue;
